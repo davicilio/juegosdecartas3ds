@@ -1,0 +1,28 @@
+name: Compilar
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  tests:
+    name: Tests de la lógica
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Ejecutar tests
+        run: make -C tests
+
+  build-3ds:
+    name: Compilar para 3DS
+    runs-on: ubuntu-latest
+    container: devkitpro/devkitarm:latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Compilar
+        run: make -j"$(nproc)"
+      - name: Subir JuegosDeCartas.3dsx
+        uses: actions/upload-artifact@v4
+        with:
+          name: JuegosDeCartas
+          path: JuegosDeCartas.3dsx
