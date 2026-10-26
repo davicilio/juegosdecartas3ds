@@ -1,0 +1,5 @@
+--atlas -f rgb565 -z auto
+bg_title_top.png
+bg_menu_bottom.png
+bg_table_top.png
+bg_table_bottom.png

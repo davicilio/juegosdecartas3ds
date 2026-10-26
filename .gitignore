@@ -1,0 +1,8 @@
+build/
+romfs/gfx/
+*.3dsx
+*.smdh
+*.elf
+*.map
+tests/run_tests
+__pycache__/
