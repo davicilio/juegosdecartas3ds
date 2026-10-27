@@ -43,6 +43,27 @@ static const MenuEntry entries[] = {
 	  "Forma tríos y escaleras del mismo palo. Cierra con todo ligado (menos diez) o con una suelta "
 	  "pequeña. Siete seguidas del mismo palo: ¡chinchón! Pierde quien pase de 100.",
 	  SCENE_CHINCHON, SUIT_OROS, { C(ESPADAS, 4), C(ESPADAS, 5), C(ESPADAS, 6) }, { CPU_LUCIA, -1, -1 } },
+	{ "Tute",
+	  "Juego de bazas con triunfo. Canta las veinte y las cuarenta con el rey y el caballo del mismo palo, "
+	  "¡o el tute con los cuatro reyes o los cuatro caballos!",
+	  SCENE_COUNT, SUIT_COPAS, { C(COPAS, RANK_CABALLO), C(COPAS, RANK_REY), C(OROS, 1) }, { -1, -1, -1 } },
+	{ "Culo",
+	  "Quítate las cartas de encima antes que nadie. El primero que acaba manda en la siguiente mano "
+	  "y el último... es el culo.",
+	  SCENE_COUNT, SUIT_BASTOS, { C(BASTOS, 2), C(BASTOS, 2), C(OROS, 2) }, { -1, -1, -1 } },
+	{ "Mentiroso",
+	  "Echa cartas boca abajo diciendo lo que son... aunque sea mentira. Si te pillan, te llevas el montón.",
+	  SCENE_COUNT, SUIT_ESPADAS, { C(ESPADAS, 4), C(OROS, 4), C(COPAS, 4) }, { -1, -1, -1 } },
+	{ "Mierda",
+	  "Otro clásico de la baraja española que llegará en una próxima versión.",
+	  SCENE_COUNT, SUIT_BASTOS, { C(BASTOS, 7), C(COPAS, 1), C(ESPADAS, 6) }, { -1, -1, -1 } },
+	{ "Burro",
+	  "Juego de cartas para reírse en grupo. El que pierde va sumando letras hasta formar BURRO.",
+	  SCENE_COUNT, SUIT_OROS, { C(OROS, 6), C(COPAS, 6), C(BASTOS, 6) }, { -1, -1, -1 } },
+	{ "As, 2, 3",
+	  "Otro juego de la baraja española que llegará en una próxima versión.",
+	  SCENE_COUNT, SUIT_COPAS, { C(OROS, 1), C(COPAS, 2), C(ESPADAS, 3) }, { -1, -1, -1 } },
+	/* Configuración */
 	{ "Mi perfil",
 	  "Tu Mii, tus estadísticas y tus rivales: los Miis de tu consola (o los Miis invitados) "
 	  "que juegan contra ti en cada mesa.",
@@ -54,21 +75,53 @@ static const MenuEntry entries[] = {
 };
 
 #define NUM_ENTRIES ((int)(sizeof entries / sizeof entries[0]))
+#define NUM_CONFIG 2
+#define NUM_GAMES (NUM_ENTRIES - NUM_CONFIG)
+#define GAME_ROWS ((NUM_GAMES + 1) / 2)
 
-#define ITEM_X 28
-#define ITEM_Y 10
-#define ITEM_W 264
-#define ITEM_H 23
-#define ITEM_STEP 25
+/* Juegos y próximos juegos: cuadrículas de dos columnas. Configuración: dos
+ * botones pequeños debajo. */
+#define NUM_READY   6 /* los primeros juegos ya se pueden jugar */
+#define COL_X(c)    (8.0f + (c) * 156.0f)
+#define HEAD_H      15.0f
+#define GAME_Y      (2.0f + HEAD_H)
+#define GAME_W      148.0f
+#define GAME_H      22.0f
+#define GAME_STEP   24.0f
+#define SOON_HEAD   (GAME_Y + NUM_READY / 2 * GAME_STEP + 1.0f)
+#define SOON_Y      (SOON_HEAD + HEAD_H)
+#define CONFIG_HEAD (SOON_Y + (NUM_GAMES - NUM_READY + 1) / 2 * GAME_STEP + 1.0f)
+#define CONFIG_Y    (CONFIG_HEAD + 14.0f)
+#define CONFIG_H    18.0f
 
 static int s_selected;
 static Mood s_mood;
-static float s_cursor_y;
+static float s_cursor_x, s_cursor_y;
 static float s_shake; /* sacudida al elegir un juego no disponible */
+
+static bool is_config(int i)
+{
+	return i >= NUM_GAMES;
+}
+
+static void item_rect(int i, float* x, float* y, float* w, float* h)
+{
+	if (is_config(i)) {
+		*x = COL_X(i - NUM_GAMES);
+		*y = CONFIG_Y;
+		*h = CONFIG_H;
+	} else {
+		*x = COL_X(i % 2);
+		*y = i < NUM_READY ? GAME_Y + (i / 2) * GAME_STEP : SOON_Y + ((i - NUM_READY) / 2) * GAME_STEP;
+		*h = GAME_H;
+	}
+	*w = GAME_W;
+}
 
 static void menu_enter(void)
 {
-	s_cursor_y = ITEM_Y + s_selected * ITEM_STEP;
+	float w, h;
+	item_rect(s_selected, &s_cursor_x, &s_cursor_y, &w, &h);
 }
 
 static SceneId launch(int i)
@@ -82,20 +135,34 @@ static SceneId launch(int i)
 	return entries[i].scene;
 }
 
+/* Movimiento con la cruceta por la cuadrícula de juegos y la fila de configuración */
+static int move(int i, int dx, int dy)
+{
+	int col = is_config(i) ? i - NUM_GAMES : i % 2;
+	int row = is_config(i) ? GAME_ROWS : i / 2;
+	col = (col + dx + 2) % 2;
+	row = (row + dy + GAME_ROWS + 1) % (GAME_ROWS + 1);
+	if (row == GAME_ROWS)
+		return NUM_GAMES + col;
+	int next = row * 2 + col;
+	return next < NUM_GAMES ? next : NUM_GAMES - 1;
+}
+
 static SceneId menu_update(const Input* in, float dt)
 {
 	if (s_shake > 0.0f)
 		s_shake -= dt;
 	mood_update(&s_mood, dt);
-	if (in->repeat & KEY_DOWN) {
-		s_selected = (s_selected + 1) % NUM_ENTRIES;
+	int dx = (in->repeat & KEY_RIGHT) ? 1 : (in->repeat & KEY_LEFT) ? -1 : 0;
+	int dy = (in->repeat & KEY_DOWN) ? 1 : (in->repeat & KEY_UP) ? -1 : 0;
+	if (dx || dy) {
+		s_selected = move(s_selected, dx, dy);
 		audio_play(SFX_SELECT);
 	}
-	if (in->repeat & KEY_UP) {
-		s_selected = (s_selected + NUM_ENTRIES - 1) % NUM_ENTRIES;
-		audio_play(SFX_SELECT);
-	}
-	s_cursor_y = approach(s_cursor_y, ITEM_Y + s_selected * ITEM_STEP, 18.0f, dt);
+	float x, y, w, h;
+	item_rect(s_selected, &x, &y, &w, &h);
+	s_cursor_x = approach(s_cursor_x, x, 18.0f, dt);
+	s_cursor_y = approach(s_cursor_y, y, 18.0f, dt);
 
 	if (in->down & KEY_A)
 		return launch(s_selected);
@@ -103,7 +170,8 @@ static SceneId menu_update(const Input* in, float dt)
 		return SCENE_QUIT;
 
 	for (int i = 0; i < NUM_ENTRIES; i++) {
-		if (input_touch_in(in, ITEM_X, ITEM_Y + i * ITEM_STEP, ITEM_W, ITEM_H)) {
+		item_rect(i, &x, &y, &w, &h);
+		if (input_touch_in(in, x, y, w, h)) {
 			s_selected = i;
 			return launch(i);
 		}
@@ -154,42 +222,49 @@ static void menu_draw_top(void)
 		k++;
 	}
 	gfx_text_wrap(e->description, 166, 140, DEPTH_UI, 0.42f, COLOR_CREAM, 214);
+	if (e->scene == SCENE_COUNT) {
+		gfx_rrect(290, 112, 92, 20, 7, DEPTH_UI, C2D_Color32(120, 120, 120, 255));
+		gfx_text("Próximamente", 336, 114, DEPTH_UI, 0.45f, COLOR_WHITE, C2D_AlignCenter);
+	}
 }
 
 static void menu_draw_bottom(void)
 {
 	gfx_background(BG_MENU_BOTTOM);
+	gfx_text("Juegos", BOTTOM_W / 2, 2, 0, 0.55f, COLOR_GOLD, C2D_AlignCenter);
+	gfx_text("Próximamente", BOTTOM_W / 2, SOON_HEAD, 0, 0.45f, C2D_Color32(220, 200, 180, 255), C2D_AlignCenter);
+	gfx_text("Configuración", BOTTOM_W / 2, CONFIG_HEAD, 0, 0.45f, COLOR_GOLD, C2D_AlignCenter);
 
 	float shake = s_shake > 0.0f ? sinf(s_shake * 60.0f) * 4.0f : 0.0f;
 
 	/* Cursor */
+	float cx, cy, cw, ch;
+	item_rect(s_selected, &cx, &cy, &cw, &ch);
 	float pulse = 0.5f + 0.5f * sinf(gfx_time() * 5.0f);
-	gfx_rrect(ITEM_X - 4 + shake, s_cursor_y - 4, ITEM_W + 8, ITEM_H + 8, 12, 0,
+	gfx_rrect(s_cursor_x - 3 + shake, s_cursor_y - 3, cw + 6, ch + 6, 10, 0,
 		C2D_Color32(255, 215, 90, (u8)(150 + 100 * pulse)));
 
 	for (int i = 0; i < NUM_ENTRIES; i++) {
 		const MenuEntry* e = &entries[i];
 		bool available = e->scene != SCENE_COUNT;
-		float x = ITEM_X + (i == s_selected ? shake : 0.0f);
-		float y = ITEM_Y + i * ITEM_STEP;
-		u32 fill = available ? C2D_Color32(250, 244, 228, 255) : C2D_Color32(190, 180, 170, 255);
-		gfx_panel(x, y, ITEM_W, ITEM_H, 0, fill, C2D_Color32(110, 20, 25, 255));
+		bool small = is_config(i);
+		float x, y, w, h;
+		item_rect(i, &x, &y, &w, &h);
+		if (i == s_selected)
+			x += shake;
+		u32 fill = available ? C2D_Color32(250, 244, 228, 255) : C2D_Color32(200, 190, 180, 255);
+		gfx_panel(x, y, w, h, 0, fill, C2D_Color32(110, 20, 25, 255));
+		float icon = small ? 0.6f : 0.75f;
 		if (e->scene == SCENE_PROFILE)
-			mii_draw(&profile_get()->avatar, x + 20, y + ITEM_H / 2, 8, 0, EXPR_NORMAL, false);
+			mii_draw(&profile_get()->avatar, x + 13, y + h / 2, small ? 6 : 8, 0, EXPR_NORMAL, false);
 		else if (e->scene == SCENE_CARDBACK)
-			gfx_card_back(x + 20, y + ITEM_H / 2, 0.2f, 0.2f, 0.15f, 0, NULL);
+			gfx_card_back(x + 13, y + h / 2, 0.16f, 0.16f, 0.15f, 0, NULL);
 		else
-			gfx_sprite(SPR_SUIT_FIRST + e->icon, x + 20, y + ITEM_H / 2, 0.8f, 0);
-		gfx_text(e->name, x + 38, y + 3, 0, 0.55f,
+			gfx_sprite(SPR_SUIT_FIRST + e->icon, x + 13, y + h / 2, icon, 0);
+		gfx_text(e->name, x + 26, y + (small ? 2 : 3), 0, small ? 0.45f : 0.52f,
 			available ? C2D_Color32(90, 15, 20, 255) : C2D_Color32(110, 100, 95, 255), C2D_AlignLeft);
-		if (!available) {
-			gfx_rrect(x + ITEM_W - 96, y + 6, 88, 16, 6, 0, C2D_Color32(120, 120, 120, 255));
-			gfx_text("Próximamente", x + ITEM_W - 52, y + 7, 0, 0.4f, COLOR_WHITE, C2D_AlignCenter);
-		} else {
-			gfx_text(GLYPH_A, x + ITEM_W - 20, y + 3, 0, 0.55f, C2D_Color32(90, 15, 20, 255), C2D_AlignCenter);
-		}
 	}
-	gfx_text(GLYPH_DPAD " Elegir   " GLYPH_A " Jugar   START Salir", BOTTOM_W / 2, 216, 0, 0.45f, COLOR_CREAM,
+	gfx_text(GLYPH_DPAD " Elegir   " GLYPH_A " Aceptar   START Salir", BOTTOM_W / 2, 223, 0, 0.45f, COLOR_CREAM,
 		C2D_AlignCenter);
 }
 

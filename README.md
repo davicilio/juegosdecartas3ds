@@ -52,7 +52,7 @@ se sorprenden con una escoba, un chinchón o un órdago.
 
 ## Editor del dorso de las cartas
 
-En **Dorso de las cartas** (en el menú) diseñas la parte de atrás de las cartas,
+En **Configuración → Dorso de las cartas** (en el menú) diseñas la parte de atrás de las cartas,
 con una vista previa grande en la pantalla de arriba:
 
 - **Fondo**: 14 colores.
@@ -73,6 +73,10 @@ El juego compone el dorso en una textura con las capas que genera
 
 ## Juegos
 
+El menú tiene tres apartados: **Juegos**, **Próximamente** (los que todavía no se
+pueden jugar) y, en pequeño, **Configuración** (*Mi perfil* y *Dorso de las cartas*).
+
+
 | Juego | Estado |
 |---|---|
 | Siete y media | ✅ Disponible |
@@ -81,6 +85,12 @@ El juego compone el dorso en una textura con las capas que genera
 | Escoba | ✅ Disponible |
 | Mus | ✅ Disponible |
 | Chinchón | ✅ Disponible |
+| Tute | 🕓 Próximamente |
+| Culo | 🕓 Próximamente |
+| Mentiroso | 🕓 Próximamente |
+| Mierda | 🕓 Próximamente |
+| Burro | 🕓 Próximamente |
+| As, 2, 3 | 🕓 Próximamente |
 
 ### Siete y media
 Te enfrentas a la banca. Las cartas del 1 al 7 valen su número y las figuras
