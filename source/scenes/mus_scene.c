@@ -77,11 +77,11 @@ static Expression sena_expr(MusSena s)
 {
 	switch (s) {
 	case MUS_SENA_REYES:
-		return EXPR_BITE_LIP;
+		return EXPR_FRUSTRATED;
 	case MUS_SENA_ASES:
-		return EXPR_TONGUE;
+		return EXPR_SMILE_OPEN;
 	case MUS_SENA_MEDIAS:
-		return EXPR_MOUTH_SIDE;
+		return EXPR_ANGER;
 	case MUS_SENA_DUPLES:
 		return EXPR_BROWS_UP;
 	case MUS_SENA_31:

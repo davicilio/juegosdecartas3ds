@@ -4,9 +4,12 @@
 #include <stdbool.h>
 #include <stdint.h>
 
-/* Aspecto de un personaje al estilo Mii. Los colores usan las mismas paletas
- * que el editor de Miis de la consola (piel, pelo y color favorito), así un
- * Mii real se puede traducir directamente. */
+#include "core/miidata.h"
+
+/* Un personaje: su Mii de verdad (mii, que se dibuja con el renderizador
+ * oficial de Nintendo) y una versión simplificada (el resto de campos) que se
+ * dibuja por código cuando la imagen oficial no está disponible, por ejemplo
+ * sin conexión a internet. Los colores usan las paletas del editor de Miis. */
 
 #define AVATAR_NAME_MAX 32 /* UTF-8, hasta 10 caracteres como los Miis */
 
@@ -43,6 +46,8 @@ typedef struct {
 	uint8_t glasses;    /* 0 sin gafas */
 	uint8_t facial;     /* FacialHair */
 	uint8_t long_face;
+	uint8_t official; /* mii contiene un Mii de verdad */
+	MiiParts mii;
 } Avatar;
 
 /* Personajes de la CPU */
@@ -61,6 +66,8 @@ const Avatar* cpu_avatar(CpuId id);
 void avatar_default(Avatar* a);
 /* Recorta el valor de cada campo a su rango válido. */
 void avatar_sanitize(Avatar* a);
+/* Ajusta el aspecto simplificado a partir de las piezas del Mii de verdad. */
+void avatar_from_mii(Avatar* a, const MiiParts* mii, const char* name);
 
 /* Colores en formato 0xRRGGBB */
 uint32_t avatar_skin_rgb(int skin);

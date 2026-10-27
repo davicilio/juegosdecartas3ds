@@ -6,25 +6,28 @@
 #include "core/avatar.h"
 #include "core/profile.h"
 
-/* Dibujo de personajes al estilo Mii, sus caras (expresiones y señas) y el
- * perfil del jugador guardado en la SD. */
+/* Dibujo de los Miis: la cara oficial (renderizada por Mii Studio de
+ * Nintendo y guardada en la SD) o, mientras no está disponible, una versión
+ * simplificada dibujada por código. También el perfil del jugador. */
 
 typedef enum {
 	EXPR_NORMAL,
 	EXPR_HAPPY,
 	EXPR_SAD,
 	EXPR_SURPRISED,
-	EXPR_BITE_LIP,    /* seña de reyes */
-	EXPR_TONGUE,      /* seña de ases */
-	EXPR_MOUTH_SIDE,  /* seña de medias */
-	EXPR_BROWS_UP,    /* seña de duples */
-	EXPR_WINK,        /* seña de 31 */
+	EXPR_FRUSTRATED,  /* seña de reyes: apretar los labios */
+	EXPR_SMILE_OPEN,  /* seña de ases: sonreír con la boca abierta */
+	EXPR_ANGER,       /* seña de medias: fruncir el ceño */
+	EXPR_BROWS_UP,    /* seña de duples: levantar las cejas */
+	EXPR_WINK,        /* seña de 31: guiñar un ojo */
 	EXPR_EYES_CLOSED, /* seña de ciego (y parpadeo) */
 	EXPR_COUNT
 } Expression;
 
 /* Dibuja el Mii con la cabeza centrada en (cx, cy) y radio size. Con bust se
- * dibujan también los hombros con la camiseta del color favorito. */
+ * dibujan también los hombros con la camiseta del color favorito. Si el
+ * personaje es un Mii de verdad se usa su cara oficial cuando ya está
+ * descargada. */
 void mii_draw(const Avatar* a, float cx, float cy, float size, float depth, Expression e, bool bust);
 
 /* Estado de ánimo de un personaje: una expresión que dura un tiempo y un
@@ -48,5 +51,7 @@ void profile_record_game(GameId game, bool won);
 bool profile_pick_console_mii(void);
 /* Abre el teclado de la consola para cambiar el nombre. */
 bool profile_edit_name(void);
+/* Expresión equivalente del renderizador de Mii Studio. */
+const char* mii_studio_expression(Expression e);
 
 #endif

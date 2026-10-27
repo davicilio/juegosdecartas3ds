@@ -9,6 +9,7 @@
 #include "ui/gfx.h"
 #include "ui/input.h"
 #include "ui/mii.h"
+#include "ui/miiface.h"
 
 #define FADE_TIME 0.25f
 
@@ -51,6 +52,7 @@ int main(void)
 	}
 	srand((unsigned)time(NULL));
 	audio_init();
+	miiface_init();
 
 	/* La primera vez se crea el perfil antes de ir al menú */
 	SceneId current = profile_get()->created ? SCENE_MENU : SCENE_PROFILE;
@@ -87,6 +89,7 @@ int main(void)
 			}
 		}
 
+		miiface_frame();
 		gfx_frame_begin();
 		for (int eye = 0; eye < 2; eye++) {
 			if (!gfx_begin_top(eye))
@@ -100,6 +103,7 @@ int main(void)
 		gfx_frame_end();
 	}
 
+	miiface_exit();
 	audio_exit();
 	gfx_exit();
 	return 0;

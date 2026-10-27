@@ -64,9 +64,9 @@ typedef enum {
 /* Señas entre compañeros: cada una es un gesto de la cara. */
 typedef enum {
 	MUS_SENA_NONE,
-	MUS_SENA_REYES,  /* dos reyes o más: morderse el labio */
-	MUS_SENA_ASES,   /* dos ases o más: sacar la punta de la lengua */
-	MUS_SENA_MEDIAS, /* torcer la boca */
+	MUS_SENA_REYES,  /* dos reyes o más: apretar los labios */
+	MUS_SENA_ASES,   /* dos ases o más: sonreír con la boca abierta */
+	MUS_SENA_MEDIAS, /* fruncir el ceño */
 	MUS_SENA_DUPLES, /* levantar las cejas */
 	MUS_SENA_31,     /* guiñar un ojo */
 	MUS_SENA_CIEGO,  /* nada de nada: cerrar los ojos */

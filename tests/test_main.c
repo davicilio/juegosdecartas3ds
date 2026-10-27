@@ -922,6 +922,82 @@ static void test_profile(void)
 	CHECK(strcmp(cpu_avatar(CPU_LOLA)->name, "Lola") == 0);
 }
 
+
+static void test_mii_studio(void)
+{
+	MiiParts m;
+	mii_parts_default(&m, false);
+	m.hair_type = 77;
+	m.hair_color = 0;      /* el 0 se envía como 8 */
+	m.glasses_color = 2;   /* las gafas empiezan en 13 */
+	m.mouth_color = 1;     /* la boca empieza en 19 */
+	m.eye_color = 3;       /* los ojos empiezan en 8 */
+	uint8_t data[MII_STUDIO_SIZE];
+	mii_studio_data(&m, data);
+	CHECK(data[29] == 77);  /* tipo de pelo */
+	CHECK(data[27] == 8);
+	CHECK(data[23] == 15);
+	CHECK(data[36] == 20);
+	CHECK(data[4] == 11);
+	CHECK(data[22] == 0);   /* hombre */
+	CHECK(data[2] == 64 && data[30] == 64); /* complexión y altura */
+
+	char code[MII_STUDIO_HEX];
+	for (int seed = 0; seed < 256; seed += 37) {
+		mii_studio_code(&m, (uint8_t)seed, code);
+		CHECK(strlen(code) == 94);
+		uint8_t back[MII_STUDIO_SIZE];
+		CHECK(mii_studio_decode(code, back));
+		CHECK(memcmp(back, data, sizeof data) == 0);
+	}
+	/* Con semilla 0 el primer byte es 7 + (dato ^ 0) */
+	mii_studio_code(&m, 0, code);
+	char first[5];
+	snprintf(first, sizeof first, "00%02x", (uint8_t)(7 + data[0]));
+	CHECK(strncmp(code, first, 4) == 0);
+
+	/* Todos los Miis de la CPU son Miis de verdad y distintos entre sí */
+	for (int i = 0; i < CPU_COUNT; i++) {
+		const Avatar* a = cpu_avatar((CpuId)i);
+		CHECK(a->official);
+		for (int j = 0; j < i; j++)
+			CHECK(mii_parts_hash(&a->mii) != mii_parts_hash(&cpu_avatar((CpuId)j)->mii));
+	}
+	CHECK(cpu_avatar(CPU_LOLA)->female && cpu_avatar(CPU_LOLA)->mii.gender == 1);
+}
+
+static void test_profile_v1(void)
+{
+	/* Un perfil de la versión 1 se convierte sin perder las estadísticas */
+	struct {
+		uint32_t magic;
+		uint16_t version;
+		uint8_t created, from_console;
+		char name[AVATAR_NAME_MAX];
+		uint8_t look[8];
+		uint32_t played[GAME_COUNT], won[GAME_COUNT];
+	} old;
+	memset(&old, 0, sizeof old);
+	old.magic = PROFILE_MAGIC;
+	old.version = 1;
+	old.created = 1;
+	snprintf(old.name, sizeof old.name, "Viejo");
+	old.look[2] = HAIR_CURLY;
+	old.played[GAME_BRISCA] = 5;
+	old.won[GAME_BRISCA] = 3;
+	const char* path = "test_perfil_v1.dat";
+	FILE* f = fopen(path, "wb");
+	fwrite(&old, 1, sizeof old, f);
+	fclose(f);
+	PlayerProfile p;
+	CHECK(profile_load(&p, path));
+	CHECK(p.version == PROFILE_VERSION && p.created == 1 && p.online_miis == 1);
+	CHECK(strcmp(p.avatar.name, "Viejo") == 0 && p.avatar.hair_style == HAIR_CURLY);
+	CHECK(p.played[GAME_BRISCA] == 5 && p.won[GAME_BRISCA] == 3);
+	CHECK(!p.avatar.official);
+	remove(path);
+}
+
 int main(void)
 {
 	printf("Ejecutando tests...\n");
@@ -950,6 +1026,8 @@ int main(void)
 	test_mus_senas();
 	test_mus_senas_simulation();
 	test_profile();
+	test_mii_studio();
+	test_profile_v1();
 	printf("%d comprobaciones, %d fallos\n", checks, failures);
 	return failures ? 1 : 0;
 }

@@ -7,6 +7,7 @@
 #include <sys/stat.h>
 
 #include "ui/gfx.h"
+#include "ui/miiface.h"
 
 /* ---------------------------------------------------------------------------
  * Dibujo
@@ -80,8 +81,61 @@ static void draw_front_hair(const Avatar* a, float cx, float cy, float r, float 
 	gfx_ellipse(cx + (a->hair_style == HAIR_SHORT ? r * 0.08f : 0), cy + ry * fy, r * 0.9f, ry * 0.86f, d, skin);
 }
 
+const char* mii_studio_expression(Expression e)
+{
+	switch (e) {
+	case EXPR_HAPPY:
+		return "smile";
+	case EXPR_SAD:
+		return "sorrow";
+	case EXPR_SURPRISED:
+		return "surprise_open_mouth";
+	case EXPR_FRUSTRATED:
+		return "frustrated";
+	case EXPR_SMILE_OPEN:
+		return "smile_open_mouth";
+	case EXPR_ANGER:
+		return "anger";
+	case EXPR_BROWS_UP:
+		return "surprise";
+	case EXPR_WINK:
+		return "wink_left";
+	case EXPR_EYES_CLOSED:
+		return "blink";
+	default:
+		return "normal";
+	}
+}
+
+/* Cara oficial del Mii, si ya está disponible. */
+static bool draw_official(const Avatar* a, float cx, float cy, float r, float d, Expression e, bool bust)
+{
+	if (!a->official)
+		return false;
+	bool online = profile_get()->online_miis;
+	const C2D_Image* img = miiface_get(&a->mii, mii_studio_expression(e), online);
+	if (!img && e != EXPR_NORMAL) {
+		/* Mientras llega esa expresión, la cara normal (si ya está) */
+		img = miiface_get(&a->mii, "normal", online);
+	}
+	if (!img)
+		return false;
+	if (bust) {
+		u32 fav = gfx_rgb(avatar_favorite_rgb(a->favorite), 255);
+		gfx_ellipse(cx, cy + r * 2.0f, r * 1.25f, r * 0.85f, d, fav);
+		gfx_rect(cx - r * 0.28f, cy + r * 0.8f, r * 0.56f, r * 0.5f, d,
+			gfx_rgb(avatar_skin_rgb(a->skin), 255));
+	}
+	/* La imagen de Mii Studio incluye el pelo: la cabeza ocupa unos 4/5 */
+	float scale = r * 2.5f / img->subtex->width;
+	C2D_DrawImageAtRotated(*img, cx + gfx_dx(d), cy, 0.5f, 0.0f, NULL, scale, scale);
+	return true;
+}
+
 void mii_draw(const Avatar* a, float cx, float cy, float r, float d, Expression e, bool bust)
 {
+	if (draw_official(a, cx, cy, r, d, e, bust))
+		return;
 	uint32_t skin_rgb = avatar_skin_rgb(a->skin);
 	u32 skin = gfx_rgb(skin_rgb, 255);
 	u32 hair = gfx_rgb(avatar_hair_rgb(a->hair_color), 255);
@@ -127,7 +181,7 @@ void mii_draw(const Avatar* a, float cx, float cy, float r, float d, Expression 
 	float by = cy - ry * (e == EXPR_BROWS_UP || e == EXPR_SURPRISED ? 0.42f : 0.3f);
 	float bw = r * (e == EXPR_BROWS_UP ? 0.11f : 0.07f) + 0.5f;
 	for (int s = -1; s <= 1; s += 2) {
-		float inner = e == EXPR_SAD ? -r * 0.08f : 0.0f;
+		float inner = e == EXPR_SAD ? -r * 0.08f : e == EXPR_ANGER ? r * 0.1f : 0.0f;
 		gfx_line(cx + s * ex - r * 0.16f, by + (s < 0 ? 0 : inner), cx + s * ex + r * 0.16f, by + (s < 0 ? inner : 0), bw,
 			d, hair);
 	}
@@ -167,16 +221,17 @@ void mii_draw(const Avatar* a, float cx, float cy, float r, float d, Expression 
 	case EXPR_SURPRISED:
 		gfx_ellipse(cx, my, r * 0.11f, r * 0.14f, d, lip);
 		break;
-	case EXPR_BITE_LIP:
-		gfx_ellipse(cx, my + r * 0.04f, mw * 0.85f, r * 0.09f, d, C2D_Color32(220, 110, 120, 255));
-		gfx_rect(cx - mw * 0.45f, my - r * 0.04f, mw * 0.9f, r * 0.08f, d, COLOR_WHITE);
+	case EXPR_FRUSTRATED:
+		/* labios apretados y algo torcidos */
+		gfx_line(cx - mw * 0.7f, my + r * 0.03f, cx + mw * 0.7f, my - r * 0.03f, r * 0.1f + 0.5f, d, lip);
 		break;
-	case EXPR_TONGUE:
-		curve(cx - mw * 0.7f, cx + mw * 0.7f, my, r * 0.04f, r * 0.06f + 0.5f, d, lip);
-		gfx_ellipse(cx, my + r * 0.1f, r * 0.11f, r * 0.12f, d, C2D_Color32(240, 110, 130, 255));
+	case EXPR_SMILE_OPEN:
+		gfx_ellipse(cx, my, mw, r * 0.17f, d, lip);
+		gfx_rect(cx - mw - 1, my - r * 0.18f, mw * 2 + 2, r * 0.18f, d, skin);
+		gfx_rect(cx - mw * 0.7f, my, mw * 1.4f, r * 0.05f, d, COLOR_WHITE);
 		break;
-	case EXPR_MOUTH_SIDE:
-		gfx_line(cx - mw * 0.2f, my + r * 0.04f, cx + mw * 1.1f, my - r * 0.1f, r * 0.07f + 0.5f, d, lip);
+	case EXPR_ANGER:
+		gfx_line(cx - mw * 0.6f, my, cx + mw * 0.6f, my, r * 0.06f + 0.5f, d, lip);
 		break;
 	default:
 		curve(cx - mw * 0.8f, cx + mw * 0.8f, my, r * 0.08f, r * 0.06f + 0.5f, d, lip);
@@ -242,24 +297,57 @@ void profile_record_game(GameId game, bool won)
 	profile_store();
 }
 
-/* Traduce un Mii de la consola a nuestro aspecto. Los colores coinciden; los
- * cientos de peinados del editor se agrupan en los nuestros. */
-static void from_mii(Avatar* a, const MiiData* mii, const char* name)
+/* Copia todas las piezas de un Mii de la consola. */
+static void parts_from_console(MiiParts* m, const MiiData* mii)
 {
-	memset(a, 0, sizeof *a);
-	snprintf(a->name, sizeof a->name, "%s", name);
-	a->female = mii->mii_details.sex;
-	a->skin = mii->face_style.skinColor;
-	a->hair_color = mii->hair_details.color;
-	a->favorite = mii->mii_details.shirt_color;
-	a->glasses = mii->glasses_details.style != 0;
-	a->facial = mii->beard_details.style ? FACIAL_BEARD : mii->mustache_details.mustache_style ? FACIAL_MUSTACHE : FACIAL_NONE;
-	a->long_face = mii->face_style.shape >= 6;
-	static const uint8_t female_styles[] = { HAIR_LONG, HAIR_BOB, HAIR_PONYTAIL, HAIR_BUN, HAIR_CURLY, HAIR_SHORT };
-	static const uint8_t male_styles[] = { HAIR_SHORT, HAIR_SPIKY, HAIR_CURLY, HAIR_BALD, HAIR_SHORT, HAIR_BOB };
-	unsigned k = mii->hair_style % 6;
-	a->hair_style = a->female ? female_styles[k] : male_styles[k];
-	avatar_sanitize(a);
+	memset(m, 0, sizeof *m);
+	m->gender = mii->mii_details.sex;
+	m->favorite_color = mii->mii_details.shirt_color;
+	m->height = mii->height;
+	m->build = mii->width;
+	m->face_type = mii->face_style.shape;
+	m->face_color = mii->face_style.skinColor;
+	m->face_wrinkles = mii->face_details.wrinkles;
+	m->face_makeup = mii->face_details.makeup;
+	m->hair_type = mii->hair_style;
+	m->hair_color = mii->hair_details.color;
+	m->hair_flip = mii->hair_details.flip;
+	m->eye_type = mii->eye_details.style;
+	m->eye_color = mii->eye_details.color;
+	m->eye_scale = mii->eye_details.scale;
+	m->eye_yscale = mii->eye_details.yscale;
+	m->eye_rotation = mii->eye_details.rotation;
+	m->eye_xspacing = mii->eye_details.xspacing;
+	m->eye_y = mii->eye_details.yposition;
+	m->brow_type = mii->eyebrow_details.style;
+	m->brow_color = mii->eyebrow_details.color;
+	m->brow_scale = mii->eyebrow_details.scale;
+	m->brow_yscale = mii->eyebrow_details.yscale;
+	m->brow_rotation = mii->eyebrow_details.rotation;
+	m->brow_xspacing = mii->eyebrow_details.xspacing;
+	m->brow_y = mii->eyebrow_details.yposition;
+	m->nose_type = mii->nose_details.style;
+	m->nose_scale = mii->nose_details.scale;
+	m->nose_y = mii->nose_details.yposition;
+	m->mouth_type = mii->mouth_details.style;
+	m->mouth_color = mii->mouth_details.color;
+	m->mouth_scale = mii->mouth_details.scale;
+	m->mouth_yscale = mii->mouth_details.yscale;
+	m->mouth_y = mii->mustache_details.mouth_yposition;
+	m->mustache_type = mii->mustache_details.mustache_style;
+	m->beard_type = mii->beard_details.style;
+	m->facial_hair_color = mii->beard_details.color;
+	m->mustache_scale = mii->beard_details.scale;
+	m->mustache_y = mii->beard_details.ypos;
+	m->glasses_type = mii->glasses_details.style;
+	m->glasses_color = mii->glasses_details.color;
+	m->glasses_scale = mii->glasses_details.scale;
+	m->glasses_y = mii->glasses_details.ypos;
+	m->mole_enabled = mii->mole_details.enable;
+	m->mole_scale = mii->mole_details.scale;
+	m->mole_x = mii->mole_details.xpos;
+	m->mole_y = mii->mole_details.ypos;
+	mii_parts_sanitize(m);
 }
 
 bool profile_pick_console_mii(void)
@@ -275,7 +363,9 @@ bool profile_pick_console_mii(void)
 	char name[AVATAR_NAME_MAX];
 	miiSelectorReturnGetName(&ret, name, sizeof name);
 	PlayerProfile* p = profile_get();
-	from_mii(&p->avatar, &ret.mii, name);
+	MiiParts parts;
+	parts_from_console(&parts, &ret.mii);
+	avatar_from_mii(&p->avatar, &parts, name);
 	p->from_console = 1;
 	p->created = 1;
 	profile_store();

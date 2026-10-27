@@ -6,11 +6,13 @@
 #include "ui/audio.h"
 #include "ui/gfx.h"
 #include "ui/mii.h"
+#include "ui/miiface.h"
 #include "ui/widgets.h"
 
 typedef enum {
 	ROW_CONSOLE,
 	ROW_NAME,
+	ROW_ONLINE,
 	ROW_SEX,
 	ROW_SKIN,
 	ROW_HAIR,
@@ -25,8 +27,8 @@ typedef enum {
 #define ROW_X 14
 #define ROW_Y 8
 #define ROW_W 292
-#define ROW_H 18
-#define ROW_STEP 19
+#define ROW_H 16
+#define ROW_STEP 17
 
 static int s_row;
 static Mood s_mood;
@@ -45,7 +47,17 @@ static void profile_enter(void)
 
 static void change(int row, int delta)
 {
-	Avatar* a = &profile_get()->avatar;
+	PlayerProfile* p = profile_get();
+	Avatar* a = &p->avatar;
+	if (row == ROW_ONLINE) {
+		p->online_miis = !p->online_miis;
+		if (p->online_miis)
+			miiface_retry();
+		audio_play(SFX_SELECT);
+		return;
+	}
+	/* Retocar el dibujo deja de usar el Mii de verdad */
+	a->official = 0;
 	switch (row) {
 	case ROW_SEX:
 		a->female = !a->female;
@@ -118,6 +130,8 @@ static SceneId profile_update(const Input* in, float dt)
 		change(s_row, -1);
 	if (in->repeat & KEY_RIGHT)
 		change(s_row, 1);
+	if (in->down & KEY_Y)
+		miiface_retry();
 	if (in->down & KEY_A) {
 		if (s_row <= ROW_NAME)
 			activate(s_row);
@@ -155,14 +169,25 @@ static void profile_draw_top(void)
 	mii_draw(&p->avatar, 110, 92 + bob, 44, DEPTH_BANNER, mood_expr(&s_mood), true);
 	gfx_panel(40, 192, 140, 30, DEPTH_UI, C2D_Color32(110, 20, 25, 230), COLOR_GOLD);
 	gfx_text(p->avatar.name, 110, 197, DEPTH_UI, 0.6f, COLOR_CREAM, C2D_AlignCenter);
-	if (p->from_console)
-		gfx_text("Mii de la consola", 110, 172, DEPTH_UI, 0.4f, COLOR_GOLD, C2D_AlignCenter);
+	const char* status = NULL;
+	if (p->avatar.official) {
+		if (miiface_pending() > 0)
+			status = "Descargando Mii oficial...";
+		else if (!miiface_get(&p->avatar.mii, "normal", false))
+			status = p->online_miis ? "Sin conexión: Mii dibujado" : "Mii oficial desactivado";
+		else
+			status = "Mii oficial";
+	} else {
+		status = "Mii dibujado";
+	}
+	gfx_text(status, 110, 12, DEPTH_UI, 0.42f, COLOR_GOLD, C2D_AlignCenter);
 
 	/* Estadísticas */
 	gfx_panel(210, 16, 178, 208, DEPTH_UI, C2D_Color32(40, 8, 12, 210), C2D_Color32(230, 170, 50, 255));
 	gfx_text(s_welcome ? "¡Bienvenido!" : "Tus estadísticas", 299, 22, DEPTH_UI, 0.55f, COLOR_GOLD, C2D_AlignCenter);
 	if (s_welcome) {
-		gfx_text_wrap("Crea tu Mii para jugar: usa uno de la consola o diséñalo aquí abajo. "
+		gfx_text_wrap("Elige tu Mii de la consola para jugar con tu Mii de verdad (su cara oficial se "
+		              "descarga una vez de Mii Studio de Nintendo), o diséñalo aquí abajo. "
 		              "Tus rivales también son Miis.",
 			220, 50, DEPTH_UI, 0.45f, COLOR_CREAM, 160);
 		return;
@@ -180,8 +205,8 @@ static void profile_draw_top(void)
 
 static void swatch(float x, float y, uint32_t rgb)
 {
-	gfx_rrect(x - 1, y - 1, 26, 14, 3, 0, COLOR_BLACK);
-	gfx_rrect(x, y, 24, 12, 3, 0, gfx_rgb(rgb, 255));
+	gfx_rrect(x - 1, y - 1, 26, 13, 3, 0, COLOR_BLACK);
+	gfx_rrect(x, y, 24, 11, 3, 0, gfx_rgb(rgb, 255));
 }
 
 static void profile_draw_bottom(void)
@@ -189,8 +214,8 @@ static void profile_draw_bottom(void)
 	const Avatar* a = &profile_get()->avatar;
 	gfx_background(BG_MENU_BOTTOM);
 
-	static const char* const LABELS[ROW_COUNT] = { "Usar un Mii de la consola", "Nombre", "Sexo", "Piel", "Peinado",
-		"Color de pelo", "Color favorito", "Gafas", "Barba", "Cara" };
+	static const char* const LABELS[ROW_COUNT] = { "Usar un Mii de la consola", "Nombre", "Miis oficiales (internet)",
+		"Sexo", "Piel", "Peinado", "Color de pelo", "Color favorito", "Gafas", "Barba", "Cara" };
 	static const char* const FACIAL[FACIAL_STYLES] = { "Ninguna", "Barba", "Bigote" };
 
 	for (int r = 0; r < ROW_COUNT; r++) {
@@ -202,30 +227,35 @@ static void profile_draw_bottom(void)
 			gfx_rrect(ROW_X, y + ROW_H - 3, ROW_W, 3, 1, 0, COLOR_GOLD);
 		u32 ink = C2D_Color32(90, 15, 20, 255);
 		if (r == ROW_CONSOLE) {
-			gfx_text(GLYPH_A " Usar un Mii de la consola", ROW_X + ROW_W / 2, y + 2, 0, 0.45f, ink, C2D_AlignCenter);
+			gfx_text(GLYPH_A " Usar un Mii de la consola", ROW_X + ROW_W / 2, y + 1, 0, 0.43f, ink, C2D_AlignCenter);
 			continue;
 		}
-		gfx_text(LABELS[r], ROW_X + 8, y + 2, 0, 0.45f, ink, C2D_AlignLeft);
+		if (r >= ROW_SEX && a->official)
+			ink = C2D_Color32(150, 130, 120, 255); /* retocar pasa al Mii dibujado */
+		gfx_text(LABELS[r], ROW_X + 8, y + 1, 0, 0.43f, ink, C2D_AlignLeft);
 		float vx = ROW_X + ROW_W - 70;
 		char value[40] = "";
 		switch (r) {
 		case ROW_NAME:
 			snprintf(value, sizeof value, "%s", a->name);
 			break;
+		case ROW_ONLINE:
+			snprintf(value, sizeof value, "%s", profile_get()->online_miis ? "Sí" : "No");
+			break;
 		case ROW_SEX:
 			snprintf(value, sizeof value, "%s", a->female ? "Mujer" : "Hombre");
 			break;
 		case ROW_SKIN:
-			swatch(vx - 12, y + 3, avatar_skin_rgb(a->skin));
+			swatch(vx - 12, y + 2, avatar_skin_rgb(a->skin));
 			break;
 		case ROW_HAIR:
 			snprintf(value, sizeof value, "%s", avatar_hair_style_name(a->hair_style));
 			break;
 		case ROW_HAIR_COLOR:
-			swatch(vx - 12, y + 3, avatar_hair_rgb(a->hair_color));
+			swatch(vx - 12, y + 2, avatar_hair_rgb(a->hair_color));
 			break;
 		case ROW_FAVORITE:
-			swatch(vx - 50, y + 3, avatar_favorite_rgb(a->favorite));
+			swatch(vx - 50, y + 2, avatar_favorite_rgb(a->favorite));
 			snprintf(value, sizeof value, "%s", avatar_favorite_name(a->favorite));
 			vx += 10;
 			break;
@@ -240,7 +270,7 @@ static void profile_draw_bottom(void)
 			break;
 		}
 		if (value[0])
-			gfx_text(value, vx, y + 2, 0, 0.45f, ink, C2D_AlignCenter);
+			gfx_text(value, vx, y + 1, 0, 0.43f, ink, C2D_AlignCenter);
 		if (r != ROW_NAME) {
 			/* Flechas para cambiar el valor */
 			float ax = ROW_X + ROW_W - 136, bx = ROW_X + ROW_W - 8, cy = y + ROW_H / 2;

@@ -21,21 +21,29 @@ para Nintendo 3DS con [devkitPro](https://devkitpro.org) (libctru + citro2d).
 
 ## Tu Mii y los rivales
 
-La primera vez que abres el juego creas tu **perfil**: puedes usar un **Mii de la
-consola** (se abre el selector de Miis del sistema) o diseñar uno aquí mismo
-(nombre, sexo, piel, peinado, color de pelo, color favorito, gafas, barba y forma
-de la cara). Tu perfil guarda tus estadísticas de cada juego y se puede cambiar
-cuando quieras desde **Mi perfil** en el menú. Se guarda en
-`/3ds/JuegosDeCartas/perfil.dat` en la tarjeta SD.
+Todos los personajes son **Miis de verdad**: tienen las mismas piezas que crea el
+editor de Miis de Nintendo (peinado, ojos, cejas, nariz, boca, gafas, barba,
+lunar, colores, altura y complexión) y su cara se dibuja con el **renderizador
+oficial de Nintendo, Mii Studio** (`studio.mii.nintendo.com`), con expresiones
+oficiales: sonrisa, tristeza, sorpresa, enfado, guiño, ojos cerrados...
 
-Todos los rivales de la CPU son Miis con su propia cara: Don Ramón (la banca de la
-siete y media), Paco, Lola y Manolo (cinquillo y mus), Carmen (brisca), Pepe
-(escoba) y Lucía (chinchón). Parpadean, se alegran cuando ganan, ponen mala cara
-cuando pierden y se sorprenden con una escoba, un chinchón o un órdago.
+- La primera vez que abres el juego creas tu **perfil**. Con **Usar un Mii de la
+  consola** se abre el selector de Miis del sistema y se copian todas las piezas
+  de tu Mii, así que en las mesas aparece tu Mii tal cual lo tienes en la consola.
+- Los rivales (Don Ramón, Paco, Lola, Manolo, Carmen, Pepe y Lucía) también son
+  Miis completos.
+- Cada cara se descarga **una sola vez** con la conexión a internet de la consola y
+  se guarda en `/3ds/JuegosDeCartas/miis/` de la SD; después funciona sin conexión.
+  La descarga usa el servicio HTTPS de la propia consola, que comprueba el
+  certificado del servidor.
+- Mientras no está la cara oficial (sin conexión, o si se desactiva la opción
+  **Miis oficiales** en Mi perfil) se ve una versión simplificada dibujada por el
+  juego. Esa versión también se puede retocar a mano en Mi perfil.
 
-Los Miis se dibujan con formas sencillas al estilo Mii: de un Mii de la consola se
-copian el nombre, el sexo, los colores (piel, pelo y color favorito), las gafas y
-la barba o el bigote; los peinados se agrupan en los ocho estilos del juego.
+El perfil guarda tus estadísticas de cada juego en `/3ds/JuegosDeCartas/perfil.dat`.
+
+Los Miis parpadean, se alegran cuando ganan, se entristecen cuando pierden y se
+sorprenden con una escoba, un chinchón o un órdago.
 
 ## Juegos
 
@@ -127,13 +135,13 @@ grande, tus pares y tu juego para no tener que contar.
 
 #### Señas
 Como en el mus de verdad, los compañeros se hacen **señas** con la cara, y las
-verás en los Miis:
+verás en los Miis (cada seña es una expresión oficial de los Miis):
 
 | Seña | Significa |
 |---|---|
-| Morderse el labio | Dos reyes o más |
-| Sacar la punta de la lengua | Dos ases o más |
-| Torcer la boca | Medias |
+| Apretar los labios | Dos reyes o más |
+| Sonreír con la boca abierta | Dos ases o más |
+| Fruncir el ceño | Medias |
 | Levantar las cejas | Duples |
 | Guiñar un ojo | 31 de juego |
 | Cerrar los ojos | Ciego: nada |
