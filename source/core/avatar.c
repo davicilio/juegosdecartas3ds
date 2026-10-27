@@ -161,9 +161,9 @@ const char* cpu_role(CpuId id)
 		[CPU_PACO] = "Cinquillo y mus (rival)",
 		[CPU_LOLA] = "Cinquillo y mus (compañero)",
 		[CPU_MANOLO] = "Cinquillo y mus (rival)",
-		[CPU_CARMEN] = "Brisca",
-		[CPU_PEPE] = "Escoba",
-		[CPU_LUCIA] = "Chinchón",
+		[CPU_CARMEN] = "Brisca y guiñote (rival)",
+		[CPU_PEPE] = "Escoba y guiñote (compañero)",
+		[CPU_LUCIA] = "Chinchón y guiñote (rival)",
 		[CPU_RAMON] = "Banca de la siete y media",
 	};
 	return roles[id < CPU_COUNT ? id : 0];

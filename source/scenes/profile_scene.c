@@ -69,15 +69,18 @@ static void profile_draw_top(void)
 			220, 50, DEPTH_UI, 0.48f, COLOR_CREAM, 160);
 		return;
 	}
+	/* Una línea por juego: nombre a la izquierda y resultado a la derecha */
 	for (int g = 0; g < GAME_COUNT; g++) {
-		float y = 48 + g * 28;
-		gfx_text(game_name((GameId)g), 220, y, DEPTH_UI, 0.48f, COLOR_CREAM, C2D_AlignLeft);
+		float y = 42 + g * 18;
+		gfx_text(game_name((GameId)g), 218, y, DEPTH_UI, 0.45f, COLOR_CREAM, C2D_AlignLeft);
 		if (p->played[g] == 0)
-			gfx_text("sin jugar", 380, y + 12, DEPTH_UI, 0.45f, C2D_Color32(190, 170, 160, 255), C2D_AlignRight);
+			gfx_text("-", 380, y, DEPTH_UI, 0.45f, C2D_Color32(190, 170, 160, 255), C2D_AlignRight);
 		else
-			gfx_textf(380, y + 12, DEPTH_UI, 0.45f, COLOR_GOLD, C2D_AlignRight, "%u de %u ganadas", (unsigned)p->won[g],
+			gfx_textf(380, y, DEPTH_UI, 0.45f, COLOR_GOLD, C2D_AlignRight, "%u/%u", (unsigned)p->won[g],
 				(unsigned)p->played[g]);
 	}
+	gfx_text("ganadas / jugadas", 299, 42 + GAME_COUNT * 18, DEPTH_UI, 0.45f, C2D_Color32(190, 170, 160, 255),
+		C2D_AlignCenter);
 }
 
 static void profile_draw_bottom(void)

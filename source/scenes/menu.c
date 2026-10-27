@@ -43,6 +43,18 @@ static const MenuEntry entries[] = {
 	  "Forma tríos y escaleras del mismo palo. Cierra con todo ligado (menos diez) o con una suelta "
 	  "pequeña. Siete seguidas del mismo palo: ¡chinchón! Pierde quien pase de 100.",
 	  SCENE_CHINCHON, SUIT_OROS, { C(ESPADAS, 4), C(ESPADAS, 5), C(ESPADAS, 6) }, { CPU_LUCIA, -1, -1 } },
+	{ "Guiñote",
+	  "Por parejas con tu compañero. Canta las veinte y las cuarenta con rey y sota del mismo palo "
+	  "y, en el arrastre, asiste y mata. Gana la pareja que llegue a 101.",
+	  SCENE_GUINOTE, SUIT_OROS, { C(OROS, RANK_REY), C(OROS, RANK_CABALLO), C(ESPADAS, 1) }, { CPU_PEPE, CPU_LUCIA, CPU_CARMEN } },
+	{ "Solitario tradicional",
+	  "El solitario de toda la vida con la baraja española: baja las cartas alternando palos y "
+	  "llévalas a sus montones, del as al rey.",
+	  SCENE_SOLITARIO, SUIT_OROS, { C(OROS, 1), C(OROS, 2), C(OROS, 3) }, { -1, -1, -1 } },
+	{ "Solitario en pirámide",
+	  "La base de la pirámide está descubierta y lo de arriba, tapado. Saca cartas de tu mazo y "
+	  "quita de la base las iguales: si sacas un caballo, busca un caballo.",
+	  SCENE_PIRAMIDE, SUIT_COPAS, { C(COPAS, RANK_CABALLO), C(ESPADAS, RANK_CABALLO), C(BASTOS, 5) }, { -1, -1, -1 } },
 	{ "Tute",
 	  "Juego de bazas con triunfo. Canta las veinte y las cuarenta con el rey y el caballo del mismo palo, "
 	  "¡o el tute con los cuatro reyes o los cuatro caballos!",
@@ -63,10 +75,6 @@ static const MenuEntry entries[] = {
 	{ "As, 2, 3",
 	  "Otro juego de la baraja española que llegará en una próxima versión.",
 	  SCENE_COUNT, SUIT_COPAS, { C(OROS, 1), C(COPAS, 2), C(ESPADAS, 3) }, { -1, -1, -1 } },
-	{ "Guiñote",
-	  "El pariente aragonés del tute: por parejas, con cantes de veinte y cuarenta y arrastre al "
-	  "acabarse el mazo.",
-	  SCENE_COUNT, SUIT_OROS, { C(OROS, RANK_REY), C(OROS, RANK_CABALLO), C(ESPADAS, 1) }, { -1, -1, -1 } },
 	{ "Tute subastado",
 	  "Tute por parejas en el que se puja por los puntos que se van a hacer. Quien gana la subasta "
 	  "elige el triunfo.",
@@ -112,14 +120,6 @@ static const MenuEntry entries[] = {
 	{ "Pumba",
 	  "Quédate sin cartas antes que nadie, con cartas que hacen robar o saltar turno. ¡Pumba!",
 	  SCENE_COUNT, SUIT_ESPADAS, { C(ESPADAS, 2), C(OROS, 2), C(COPAS, RANK_SOTA) }, { -1, -1, -1 } },
-	{ "Solitario tradicional",
-	  "El solitario de toda la vida con la baraja española: ve colocando las cartas por palos del as "
-	  "al rey.",
-	  SCENE_COUNT, SUIT_OROS, { C(OROS, 1), C(OROS, 2), C(OROS, 3) }, { -1, -1, -1 } },
-	{ "Solitario en pirámide",
-	  "La base de la pirámide tiene siete cartas descubiertas y las de arriba están tapadas. Saca "
-	  "cartas de tu mazo y busca en la base una igual: si sacas un caballo, busca un caballo.",
-	  SCENE_COUNT, SUIT_COPAS, { C(COPAS, RANK_CABALLO), C(ESPADAS, RANK_CABALLO), C(BASTOS, 5) }, { -1, -1, -1 } },
 	/* Configuración */
 	{ "Mi perfil",
 	  "Tu Mii, tus estadísticas y tus rivales: los Miis de tu consola (o los Miis invitados) "
@@ -134,25 +134,26 @@ static const MenuEntry entries[] = {
 #define NUM_ENTRIES ((int)(sizeof entries / sizeof entries[0]))
 #define NUM_CONFIG 2
 #define NUM_GAMES (NUM_ENTRIES - NUM_CONFIG)
-#define GAME_ROWS ((NUM_GAMES + 1) / 2)
 
 /* Juegos y próximos juegos: cuadrículas de dos columnas. Configuración: dos
  * botones pequeños debajo. */
-#define NUM_READY   6 /* los primeros juegos ya se pueden jugar */
+#define NUM_READY   9 /* los primeros juegos ya se pueden jugar */
 #define COL_X(c)    (8.0f + (c) * 156.0f)
 #define HEAD_H      15.0f
 #define GAME_Y      (2.0f + HEAD_H)
 #define GAME_W      148.0f
 #define GAME_H      22.0f
 #define GAME_STEP   24.0f
-#define SOON_HEAD   (GAME_Y + NUM_READY / 2 * GAME_STEP + 1.0f)
+#define READY_ROWS  ((NUM_READY + 1) / 2)
+#define SOON_ROWS   ((NUM_GAMES - NUM_READY + 1) / 2)
+#define SOON_HEAD   (GAME_Y + READY_ROWS * GAME_STEP + 1.0f)
 #define SOON_Y      (SOON_HEAD + HEAD_H)
 /* Configuración se queda fija abajo; los juegos se desplazan por encima */
 #define VIEW_BOTTOM 186.0f
 #define CONFIG_HEAD (VIEW_BOTTOM + 2.0f)
 #define CONFIG_Y    (CONFIG_HEAD + 13.0f)
 #define CONFIG_H    18.0f
-#define CONTENT_H   (SOON_Y + (NUM_GAMES - NUM_READY + 1) / 2 * GAME_STEP + 2.0f)
+#define CONTENT_H   (SOON_Y + SOON_ROWS * GAME_STEP + 2.0f)
 
 static int s_selected;
 static Mood s_mood;
@@ -172,8 +173,9 @@ static void item_rect(int i, float* x, float* y, float* w, float* h)
 		*y = CONFIG_Y;
 		*h = CONFIG_H;
 	} else {
-		*x = COL_X(i % 2);
-		*y = i < NUM_READY ? GAME_Y + (i / 2) * GAME_STEP : SOON_Y + ((i - NUM_READY) / 2) * GAME_STEP;
+		int k = i < NUM_READY ? i : i - NUM_READY;
+		*x = COL_X(k % 2);
+		*y = (i < NUM_READY ? GAME_Y : SOON_Y) + (k / 2) * GAME_STEP;
 		*h = GAME_H;
 	}
 	*w = GAME_W;
@@ -224,17 +226,48 @@ static SceneId launch(int i)
 	return entries[i].scene;
 }
 
-/* Movimiento con la cruceta por la cuadrícula de juegos y la fila de configuración */
+/* Movimiento con la cruceta. Las filas de los tres apartados se recorren
+ * seguidas: juegos, próximamente y configuración. */
+#define NAV_ROWS (READY_ROWS + SOON_ROWS + 1)
+
+static void nav_pos(int i, int* row, int* col)
+{
+	if (i < NUM_READY) {
+		*row = i / 2;
+		*col = i % 2;
+	} else if (i < NUM_GAMES) {
+		*row = READY_ROWS + (i - NUM_READY) / 2;
+		*col = (i - NUM_READY) % 2;
+	} else {
+		*row = NAV_ROWS - 1;
+		*col = i - NUM_GAMES;
+	}
+}
+
+static int nav_item(int row, int col)
+{
+	int first, count;
+	if (row < READY_ROWS) {
+		first = row * 2;
+		count = NUM_READY;
+	} else if (row < READY_ROWS + SOON_ROWS) {
+		first = NUM_READY + (row - READY_ROWS) * 2;
+		count = NUM_GAMES;
+	} else {
+		first = NUM_GAMES;
+		count = NUM_ENTRIES;
+	}
+	/* Si la fila solo tiene una columna, se va a la de la izquierda */
+	return first + col < count ? first + col : first;
+}
+
 static int move(int i, int dx, int dy)
 {
-	int col = is_config(i) ? i - NUM_GAMES : i % 2;
-	int row = is_config(i) ? GAME_ROWS : i / 2;
+	int row, col;
+	nav_pos(i, &row, &col);
 	col = (col + dx + 2) % 2;
-	row = (row + dy + GAME_ROWS + 1) % (GAME_ROWS + 1);
-	if (row == GAME_ROWS)
-		return NUM_GAMES + col;
-	int next = row * 2 + col;
-	return next < NUM_GAMES ? next : NUM_GAMES - 1;
+	row = (row + dy + NAV_ROWS) % NAV_ROWS;
+	return nav_item(row, col);
 }
 
 static SceneId menu_update(const Input* in, float dt)

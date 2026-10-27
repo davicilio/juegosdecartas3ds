@@ -10,9 +10,12 @@
 #include "games/chinchon.h"
 #include "games/cinquillo.h"
 #include "games/escoba.h"
+#include "games/guinote.h"
 #include "games/mus.h"
+#include "games/piramide.h"
 #include "core/profile.h"
 #include "games/sieteymedia.h"
+#include "games/solitario.h"
 
 static int failures = 0;
 static int checks = 0;
@@ -1006,6 +1009,37 @@ static void test_mii_parts(void)
 	CHECK(cpu_avatar(CPU_LOLA)->female && cpu_avatar(CPU_LOLA)->mii.gender == 1);
 }
 
+static void test_profile_v2(void)
+{
+	/* Un perfil de la versión 2 (6 juegos) conserva su Mii y sus estadísticas */
+	struct {
+		uint32_t magic;
+		uint16_t version;
+		uint8_t created, from_console, online_miis, reserved[3];
+		Avatar avatar;
+		uint32_t played[PROFILE_LEGACY_GAMES], won[PROFILE_LEGACY_GAMES];
+	} old;
+	memset(&old, 0, sizeof old);
+	old.magic = PROFILE_MAGIC;
+	old.version = 2;
+	old.created = 1;
+	old.from_console = 1;
+	avatar_from_mii(&old.avatar, &cpu_avatar(CPU_LOLA)->mii, "Antigua");
+	old.played[GAME_CHINCHON] = 7;
+	old.won[GAME_CHINCHON] = 2;
+	const char* path = "test_perfil_v2.dat";
+	FILE* f = fopen(path, "wb");
+	fwrite(&old, 1, sizeof old, f);
+	fclose(f);
+	PlayerProfile p;
+	CHECK(profile_load(&p, path));
+	CHECK(p.version == PROFILE_VERSION && p.created == 1 && p.from_console == 1);
+	CHECK(strcmp(p.avatar.name, "Antigua") == 0 && p.avatar.official && p.avatar.female);
+	CHECK(p.played[GAME_CHINCHON] == 7 && p.won[GAME_CHINCHON] == 2);
+	CHECK(p.played[GAME_GUINOTE] == 0 && p.played[GAME_PIRAMIDE] == 0);
+	remove(path);
+}
+
 static void test_profile_v1(void)
 {
 	/* Un perfil de la versión 1 se convierte sin perder las estadísticas */
@@ -1015,7 +1049,7 @@ static void test_profile_v1(void)
 		uint8_t created, from_console;
 		char name[AVATAR_NAME_MAX];
 		uint8_t look[8];
-		uint32_t played[GAME_COUNT], won[GAME_COUNT];
+		uint32_t played[PROFILE_LEGACY_GAMES], won[PROFILE_LEGACY_GAMES];
 	} old;
 	memset(&old, 0, sizeof old);
 	old.magic = PROFILE_MAGIC;
@@ -1090,6 +1124,372 @@ static void test_rivals(void)
 	CHECK(cpu_is_fallback(CPU_CARMEN));
 }
 
+/* ---------------------------------------------------------------------------
+ * Guiñote
+ * ------------------------------------------------------------------------- */
+
+static void test_gn_rules(void)
+{
+	CHECK(gn_card_points(card_make(SUIT_OROS, 1)) == 11);
+	CHECK(gn_card_points(card_make(SUIT_OROS, RANK_SOTA)) == 3);
+	CHECK(gn_card_points(card_make(SUIT_OROS, RANK_CABALLO)) == 2);
+	/* En el guiñote la sota gana al caballo */
+	CHECK(gn_beats(card_make(SUIT_COPAS, RANK_SOTA), card_make(SUIT_COPAS, RANK_CABALLO), SUIT_OROS));
+	CHECK(gn_beats(card_make(SUIT_COPAS, RANK_REY), card_make(SUIT_COPAS, RANK_SOTA), SUIT_OROS));
+	CHECK(gn_beats(card_make(SUIT_COPAS, 3), card_make(SUIT_COPAS, RANK_REY), SUIT_OROS));
+	CHECK(gn_beats(card_make(SUIT_OROS, 2), card_make(SUIT_COPAS, 1), SUIT_OROS));
+	CHECK(!gn_beats(card_make(SUIT_ESPADAS, 1), card_make(SUIT_COPAS, 2), SUIT_OROS));
+	int total = 0;
+	for (int i = 0; i < DECK_SIZE; i++)
+		total += gn_card_points(card_from_index(i));
+	CHECK(total == 120);
+
+	Guinote g;
+	gn_init(&g, 42);
+	CHECK(g.deck.count == DECK_SIZE - GN_PLAYERS * GN_HAND_SIZE);
+	CHECK(card_equal(g.deck.cards[0], g.trump_card) && g.trump == g.trump_card.suit);
+	for (int p = 0; p < GN_PLAYERS; p++)
+		CHECK(g.hand_count[p] == GN_HAND_SIZE);
+	/* Con mazo se puede jugar cualquier carta */
+	for (int i = 0; i < GN_HAND_SIZE; i++)
+		CHECK(gn_can_play(&g, g.current, i));
+	CHECK(!gn_can_play(&g, (g.current + 1) % GN_PLAYERS, 0));
+
+	/* Arrastre: asistir y montar */
+	gn_init(&g, 7);
+	g.deck.count = 0;
+	g.trump = SUIT_OROS;
+	g.leader = g.current = 0;
+	g.played_in_trick = 1;
+	g.trick[0] = card_make(SUIT_COPAS, RANK_REY);
+	g.trick_played[0] = true;
+	g.current = 1;
+	g.hand_count[1] = 3;
+	g.hands[1][0] = card_make(SUIT_COPAS, 2);
+	g.hands[1][1] = card_make(SUIT_COPAS, 1);
+	g.hands[1][2] = card_make(SUIT_OROS, 5);
+	CHECK(!gn_can_play(&g, 1, 0)); /* puede montar con el as */
+	CHECK(gn_can_play(&g, 1, 1));
+	CHECK(!gn_can_play(&g, 1, 2)); /* tiene copas: no puede fallar */
+	/* Sin copas: hay que fallar */
+	g.hands[1][0] = card_make(SUIT_ESPADAS, 2);
+	g.hands[1][1] = card_make(SUIT_BASTOS, 1);
+	CHECK(!gn_can_play(&g, 1, 0) && !gn_can_play(&g, 1, 1) && gn_can_play(&g, 1, 2));
+	/* Si gana el compañero no hay obligación de fallar */
+	g.leader = 3;
+	g.played_in_trick = 2;
+	g.trick[3] = card_make(SUIT_COPAS, 1);
+	g.trick[0] = card_make(SUIT_COPAS, 2);
+	g.trick_played[3] = true;
+	g.current = 1;
+	CHECK(gn_trick_leader_now(&g) == 3);
+	CHECK(gn_can_play(&g, 1, 0) && gn_can_play(&g, 1, 1));
+	/* Montar el fallo: si ya han fallado, hay que fallar por encima */
+	g.leader = 0;
+	g.played_in_trick = 2;
+	g.trick[0] = card_make(SUIT_COPAS, 4);
+	g.trick[1] = card_make(SUIT_OROS, 6);
+	g.trick_played[1] = true;
+	g.current = 2;
+	g.hand_count[2] = 3;
+	g.hands[2][0] = card_make(SUIT_OROS, 4);
+	g.hands[2][1] = card_make(SUIT_OROS, 7);
+	g.hands[2][2] = card_make(SUIT_ESPADAS, 7);
+	CHECK(!gn_can_play(&g, 2, 0) && gn_can_play(&g, 2, 1) && !gn_can_play(&g, 2, 2));
+
+	/* Cantes y cambio del 7 */
+	gn_init(&g, 9);
+	g.trump = SUIT_BASTOS;
+	g.trump_card = card_make(SUIT_BASTOS, 1);
+	g.deck.cards[0] = g.trump_card;
+	g.current = 2;
+	g.last_trick_team = 0;
+	g.hands[2][0] = card_make(SUIT_COPAS, RANK_REY);
+	g.hands[2][1] = card_make(SUIT_COPAS, RANK_SOTA);
+	g.hands[2][2] = card_make(SUIT_BASTOS, RANK_REY);
+	g.hands[2][3] = card_make(SUIT_BASTOS, RANK_SOTA);
+	g.hands[2][4] = card_make(SUIT_BASTOS, 7);
+	g.hands[2][5] = card_make(SUIT_ESPADAS, 2);
+	g.points[0] = 0;
+	for (int s = 0; s < NUM_SUITS; s++)
+		g.sung[s] = false;
+	CHECK(gn_cante_suit(&g, 2) == SUIT_BASTOS); /* primero las cuarenta */
+	CHECK(gn_cante(&g, 2) && g.points[0] == 40);
+	CHECK(gn_cante(&g, 2) && g.points[0] == 60 && g.last_cante_suit == SUIT_COPAS);
+	CHECK(!gn_cante(&g, 2));
+	CHECK(gn_swap_index(&g, 2) == 4);
+	CHECK(gn_swap(&g, 2));
+	CHECK(g.hands[2][4].rank == 1 && g.trump_card.rank == 7 && g.deck.cards[0].rank == 7);
+	g.last_trick_team = 1; /* sin ganar baza no se canta ni se cambia */
+	CHECK(gn_cante_suit(&g, 2) < 0 && gn_swap_index(&g, 2) < 0);
+}
+
+/* Partidas completas: las reglas se cumplen y la IA gana a jugadas al azar. */
+static void test_gn_simulation(void)
+{
+	int wins[2] = { 0, 0 };
+	for (int game = 0; game < 300; game++) {
+		Guinote g;
+		gn_init(&g, 5000 + game);
+		Rng r;
+		rng_seed(&r, 77 + game);
+		int guard = 0;
+		while (g.phase != GN_PHASE_GAME_OVER && guard++ < 2000) {
+			if (g.phase == GN_PHASE_HAND_OVER) {
+				CHECK(g.hand_count[0] == 0 && g.deck.count == 0);
+				gn_new_hand(&g);
+				continue;
+			}
+			if (g.phase == GN_PHASE_TRICK_DONE) {
+				CHECK(gn_collect(&g));
+				continue;
+			}
+			int p = g.current;
+			if (gn_team(p) == 0) {
+				/* La pareja 0 juega con la IA, canta y cambia el 7 */
+				gn_swap(&g, p);
+				while (gn_cante(&g, p))
+					;
+				int i = gn_ai_choose(&g, p);
+				CHECK(i >= 0 && gn_can_play(&g, p, i));
+				CHECK(gn_play(&g, i));
+			} else {
+				int legal[GN_HAND_SIZE], n = 0;
+				for (int i = 0; i < g.hand_count[p]; i++)
+					if (gn_can_play(&g, p, i))
+						legal[n++] = i;
+				CHECK(n > 0);
+				if (n == 0)
+					break;
+				CHECK(gn_play(&g, legal[rng_range(&r, n)]));
+			}
+		}
+		CHECK(g.phase == GN_PHASE_GAME_OVER);
+		int w = gn_game_winner(&g);
+		CHECK(w == 0 || w == 1);
+		CHECK(g.score[w] >= GN_GAME_POINTS);
+		if (w >= 0)
+			wins[w]++;
+	}
+	printf("  guiñote: IA %d - azar %d\n", wins[0], wins[1]);
+	CHECK(wins[0] > wins[1] * 2);
+}
+
+/* Una mano completa reparte 130 puntos más los cantes */
+static void test_gn_points(void)
+{
+	for (int seed = 0; seed < 200; seed++) {
+		Guinote g;
+		gn_init(&g, seed);
+		while (g.phase == GN_PHASE_PLAYING || g.phase == GN_PHASE_TRICK_DONE) {
+			if (g.phase == GN_PHASE_TRICK_DONE)
+				gn_collect(&g);
+			else
+				gn_play(&g, gn_ai_choose(&g, g.current));
+		}
+		CHECK(g.points[0] + g.points[1] == 120 + GN_LAST_TRICK);
+	}
+}
+
+/* ---------------------------------------------------------------------------
+ * Solitario
+ * ------------------------------------------------------------------------- */
+
+static int sol_count_cards(const Solitario* g)
+{
+	int n = g->stock_count + g->waste_count;
+	for (int s = 0; s < NUM_SUITS; s++)
+		n += g->foundation[s];
+	for (int k = 0; k < SOL_COLUMNS; k++)
+		n += g->col[k].count;
+	return n;
+}
+
+static void test_sol_rules(void)
+{
+	Solitario g;
+	sol_init(&g, 3);
+	CHECK(g.stock_count == SOL_STOCK && g.waste_count == 0);
+	for (int k = 0; k < SOL_COLUMNS; k++)
+		CHECK(g.col[k].count == k + 1 && g.col[k].hidden == k);
+	CHECK(sol_count_cards(&g) == DECK_SIZE);
+
+	/* Colocar en columnas: descendente y cambiando de palo */
+	for (int k = 0; k < SOL_COLUMNS; k++)
+		g.col[k].count = g.col[k].hidden = 0;
+	g.col[0].count = 1;
+	g.col[0].cards[0] = card_make(SUIT_OROS, RANK_CABALLO);
+	g.col[1].count = 1;
+	g.col[1].cards[0] = card_make(SUIT_COPAS, RANK_SOTA);
+	g.col[2].count = 1;
+	g.col[2].cards[0] = card_make(SUIT_OROS, RANK_SOTA);
+	g.col[3].count = 1;
+	g.col[3].cards[0] = card_make(SUIT_BASTOS, 7);
+	CHECK(sol_can_move(&g, SOL_PILE_COLUMN + 1, 0, SOL_PILE_COLUMN + 0)); /* sota de copas sobre caballo de oros */
+	CHECK(!sol_can_move(&g, SOL_PILE_COLUMN + 2, 0, SOL_PILE_COLUMN + 0)); /* mismo palo */
+	CHECK(sol_can_move(&g, SOL_PILE_COLUMN + 3, 0, SOL_PILE_COLUMN + 1));  /* el 7 va sobre la sota */
+	CHECK(!sol_can_move(&g, SOL_PILE_COLUMN + 3, 0, SOL_PILE_COLUMN + 4)); /* en vacía solo reyes */
+	CHECK(sol_move(&g, SOL_PILE_COLUMN + 1, 0, SOL_PILE_COLUMN + 0));
+	CHECK(sol_move(&g, SOL_PILE_COLUMN + 3, 0, SOL_PILE_COLUMN + 0));
+	CHECK(g.col[0].count == 3 && g.col[1].count == 0);
+	/* Un grupo ordenado se mueve entero: caballo, sota y 7 sobre un rey */
+	g.col[4].count = 1;
+	g.col[4].cards[0] = card_make(SUIT_ESPADAS, RANK_REY);
+	CHECK(sol_first_movable(&g, 0) == 0);
+	CHECK(sol_move(&g, SOL_PILE_COLUMN + 0, 0, SOL_PILE_COLUMN + 4));
+	CHECK(g.col[4].count == 4 && g.col[0].count == 0);
+	/* Los palos empiezan por el as */
+	g.waste_count = 1;
+	g.waste[0] = card_make(SUIT_COPAS, 2);
+	CHECK(!sol_can_move(&g, SOL_PILE_WASTE, 0, SOL_PILE_FOUNDATION + SUIT_COPAS));
+	g.waste[0] = card_make(SUIT_COPAS, 1);
+	CHECK(sol_best_target(&g, SOL_PILE_WASTE, 0) == SOL_PILE_FOUNDATION + SUIT_COPAS);
+	CHECK(sol_move(&g, SOL_PILE_WASTE, 0, SOL_PILE_FOUNDATION + SUIT_COPAS));
+	CHECK(g.foundation[SUIT_COPAS] == 1);
+
+	/* Al mover se descubre la carta de debajo */
+	sol_init(&g, 11);
+	g.col[1].hidden = 1;
+	g.col[1].cards[1] = card_make(SUIT_OROS, RANK_REY);
+	g.col[0].count = 0;
+	g.col[0].hidden = 0;
+	CHECK(sol_move(&g, SOL_PILE_COLUMN + 1, 1, SOL_PILE_COLUMN + 0));
+	CHECK(g.col[1].count == 1 && g.col[1].hidden == 0);
+
+	/* El mazo da la vuelta cuando se acaba */
+	sol_init(&g, 5);
+	for (int i = 0; i < SOL_STOCK; i++)
+		CHECK(sol_draw(&g));
+	CHECK(g.stock_count == 0 && g.waste_count == SOL_STOCK);
+	Card first = g.waste[0];
+	CHECK(sol_draw(&g) && g.passes == 1 && g.stock_count == SOL_STOCK);
+	CHECK(sol_draw(&g) && card_equal(g.waste[0], first));
+}
+
+/* Jugador sencillo: sube a los palos, descubre cartas y saca del mazo. */
+static bool sol_greedy_step(Solitario* g)
+{
+	if (sol_auto_step(g))
+		return true;
+	for (int k = 0; k < SOL_COLUMNS; k++) {
+		int from = SOL_PILE_COLUMN + k;
+		int i = sol_first_movable(g, k);
+		if (i < 0 || (i == 0 && g->col[k].hidden == 0 && g->col[k].cards[0].rank == RANK_REY))
+			continue;
+		/* Solo si descubre algo o deja la columna libre */
+		if (i > g->col[k].hidden && i != 0)
+			continue;
+		int to = sol_best_target(g, from, i);
+		if (to >= SOL_PILE_COLUMN && sol_move(g, from, i, to))
+			return true;
+	}
+	if (g->waste_count > 0) {
+		int to = sol_best_target(g, SOL_PILE_WASTE, g->waste_count - 1);
+		if (to >= 0 && sol_move(g, SOL_PILE_WASTE, g->waste_count - 1, to))
+			return true;
+	}
+	return false;
+}
+
+static void test_sol_simulation(void)
+{
+	int won = 0;
+	for (int game = 0; game < 300; game++) {
+		Solitario g;
+		sol_init(&g, 900 + game);
+		int idle = 0;
+		for (int step = 0; step < 3000 && !g.won; step++) {
+			if (sol_greedy_step(&g)) {
+				idle = 0;
+			} else {
+				if (++idle > SOL_STOCK * 2 + 4 || !sol_draw(&g))
+					break;
+			}
+			CHECK(sol_count_cards(&g) == DECK_SIZE);
+			if (sol_can_finish(&g))
+				while (sol_auto_step(&g))
+					;
+		}
+		won += g.won;
+	}
+	printf("  solitario: %d de 300 ganadas por un jugador sencillo\n", won);
+	CHECK(won > 0);
+}
+
+/* ---------------------------------------------------------------------------
+ * Solitario en pirámide
+ * ------------------------------------------------------------------------- */
+
+static void test_pyr_rules(void)
+{
+	CHECK(pyr_index(6, 0) == 21 && pyr_row(21) == 6 && pyr_row(20) == 5 && pyr_row(0) == 0);
+	Piramide g;
+	pyr_init(&g, 4);
+	CHECK(g.stock_count == PYR_STOCK && g.left == PYR_CARDS);
+	int exposed = 0;
+	for (int i = 0; i < PYR_CARDS; i++)
+		exposed += pyr_exposed(&g, i);
+	CHECK(exposed == PYR_ROWS); /* solo la base */
+
+	/* Una carta se descubre cuando no tiene ninguna de las dos de debajo */
+	int top6 = pyr_index(5, 0);
+	g.removed[pyr_index(6, 0)] = true;
+	CHECK(!pyr_exposed(&g, top6));
+	g.removed[pyr_index(6, 1)] = true;
+	CHECK(pyr_exposed(&g, top6));
+
+	/* Quitar una carta igual a la del mazo */
+	pyr_init(&g, 4);
+	Card c;
+	CHECK(!pyr_current(&g, &c));
+	CHECK(pyr_draw(&g) && pyr_current(&g, &c));
+	int base = pyr_index(6, 3);
+	g.card[base] = card_make(SUIT_ESPADAS, c.rank);
+	g.card[pyr_index(5, 2)] = card_make(SUIT_ESPADAS, c.rank == 1 ? 2 : 1);
+	CHECK(pyr_can_take(&g, base));
+	CHECK(!pyr_can_take(&g, pyr_index(5, 2))); /* tapada */
+	CHECK(pyr_take(&g, base) && g.left == PYR_CARDS - 1 && !pyr_take(&g, base));
+
+	/* Quitar dos iguales de la base */
+	g.card[pyr_index(6, 0)] = card_make(SUIT_OROS, RANK_CABALLO);
+	g.card[pyr_index(6, 6)] = card_make(SUIT_COPAS, RANK_CABALLO);
+	g.card[pyr_index(6, 1)] = card_make(SUIT_COPAS, RANK_REY);
+	CHECK(pyr_can_pair(&g, pyr_index(6, 0), pyr_index(6, 6)));
+	CHECK(!pyr_can_pair(&g, pyr_index(6, 0), pyr_index(6, 1)));
+	CHECK(pyr_pair(&g, pyr_index(6, 0), pyr_index(6, 6)) && g.left == PYR_CARDS - 3);
+
+	/* Tres pasadas del mazo y se acabó */
+	pyr_init(&g, 8);
+	int draws = 0;
+	while (pyr_draw(&g))
+		draws++;
+	CHECK(draws == PYR_STOCK * PYR_PASSES && g.pass == PYR_PASSES);
+}
+
+static void test_pyr_simulation(void)
+{
+	int won = 0;
+	for (int game = 0; game < 1000; game++) {
+		Piramide g;
+		pyr_init(&g, 3000 + game);
+		for (int step = 0; step < 500 && !pyr_won(&g) && !pyr_stuck(&g); step++) {
+			bool done = false;
+			/* Primero con la carta del mazo; luego parejas de la pirámide */
+			for (int i = PYR_CARDS - 1; i >= 0 && !done; i--)
+				done = pyr_take(&g, i);
+			for (int i = PYR_CARDS - 1; i >= 0 && !done; i--)
+				for (int j = i - 1; j >= 0 && !done; j--)
+					done = pyr_pair(&g, i, j);
+			if (!done)
+				CHECK(pyr_draw(&g));
+		}
+		CHECK(pyr_won(&g) || pyr_stuck(&g));
+		won += pyr_won(&g);
+	}
+	printf("  pirámide: %d de 1000 ganadas por un jugador sencillo\n", won);
+	CHECK(won > 0);
+}
+
 int main(void)
 {
 	printf("Ejecutando tests...\n");
@@ -1117,10 +1517,18 @@ int main(void)
 	test_mus_simulation();
 	test_mus_senas();
 	test_mus_senas_simulation();
+	test_gn_rules();
+	test_gn_points();
+	test_gn_simulation();
+	test_sol_rules();
+	test_sol_simulation();
+	test_pyr_rules();
+	test_pyr_simulation();
 	test_profile();
 	test_mii_parts();
 	test_cardback();
 	test_profile_v1();
+	test_profile_v2();
 	test_rivals();
 	printf("%d comprobaciones, %d fallos\n", checks, failures);
 	return failures ? 1 : 0;

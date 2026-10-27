@@ -27,6 +27,12 @@ static const Scene* scene_for(SceneId id)
 		return &scene_chinchon;
 	case SCENE_MUS:
 		return &scene_mus;
+	case SCENE_GUINOTE:
+		return &scene_guinote;
+	case SCENE_SOLITARIO:
+		return &scene_solitario;
+	case SCENE_PIRAMIDE:
+		return &scene_piramide;
 	case SCENE_PROFILE:
 		return &scene_profile;
 	case SCENE_RIVALS:

@@ -11,6 +11,9 @@ typedef enum {
 	SCENE_ESCOBA,
 	SCENE_CHINCHON,
 	SCENE_MUS,
+	SCENE_GUINOTE,
+	SCENE_SOLITARIO,
+	SCENE_PIRAMIDE,
 	SCENE_PROFILE,
 	SCENE_RIVALS,
 	SCENE_CARDBACK,
@@ -33,6 +36,9 @@ extern const Scene scene_brisca;
 extern const Scene scene_escoba;
 extern const Scene scene_chinchon;
 extern const Scene scene_mus;
+extern const Scene scene_guinote;
+extern const Scene scene_solitario;
+extern const Scene scene_piramide;
 extern const Scene scene_profile;
 extern const Scene scene_rivals;
 extern const Scene scene_cardback;

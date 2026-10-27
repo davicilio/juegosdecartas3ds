@@ -15,6 +15,10 @@ para Nintendo 3DS con [devkitPro](https://devkitpro.org) (libctru + citro2d).
 |:---:|:---:|:---:|:---:|
 | ![Chinchón](docs/chinchon.png) | ![Cierre](docs/chinchon_fin.png) | ![Mus](docs/mus.png) | ![Recuento](docs/mus_fin.png) |
 
+| Guiñote | Solitario | Solitario en pirámide |
+|:---:|:---:|:---:|
+| ![Guiñote](docs/guinote.png) | ![Solitario](docs/solitario.png) | ![Pirámide](docs/piramide.png) |
+
 | Tu perfil | Tus rivales (Miis de la consola) | Señas del mus | Editor del dorso |
 |:---:|:---:|:---:|:---:|
 | ![Perfil](docs/perfil.png) | ![Rivales](docs/rivales.png) | ![Señas](docs/mus_senas.png) | ![Dorso](docs/dorso.png) |
@@ -85,13 +89,15 @@ pueden jugar; la lista se desplaza con la cruceta) y, en pequeño, **Configuraci
 | Escoba | ✅ Disponible |
 | Mus | ✅ Disponible |
 | Chinchón | ✅ Disponible |
+| Guiñote | ✅ Disponible |
+| Solitario tradicional | ✅ Disponible |
+| Solitario en pirámide | ✅ Disponible |
 | Tute | 🕓 Próximamente |
 | Culo | 🕓 Próximamente |
 | Mentiroso | 🕓 Próximamente |
 | Mierda | 🕓 Próximamente |
 | Burro | 🕓 Próximamente |
 | As, 2, 3 | 🕓 Próximamente |
-| Guiñote | 🕓 Próximamente |
 | Tute subastado | 🕓 Próximamente |
 | Tute cabrón | 🕓 Próximamente |
 | Julepe | 🕓 Próximamente |
@@ -106,8 +112,6 @@ pueden jugar; la lista se desplaza con la cruceta) y, en pequeño, **Configuraci
 | La mona | 🕓 Próximamente |
 | Cucú | 🕓 Próximamente |
 | Pumba | 🕓 Próximamente |
-| Solitario tradicional | 🕓 Próximamente |
-| Solitario en pirámide | 🕓 Próximamente |
 
 ### Siete y media
 Te enfrentas a la banca. Las cartas del 1 al 7 valen su número y las figuras
@@ -203,6 +207,38 @@ Tu compañero te hace señas y las tiene en cuenta para jugar; pulsa **SELECT** 
 toca **Señas**) para ver la última que te ha hecho y para hacerle tú una. Los dos
 rivales también se hacen señas entre ellos: si estás atento a sus caras, ¡puedes
 pillarlas!
+
+### Guiñote
+Por parejas: tú y tu compañero (arriba) contra los dos rivales de los lados. Cada
+uno recibe seis cartas y la muestra marca el triunfo. Orden: as, tres, rey, sota,
+caballo, 7, 6, 5, 4, 2 (en el guiñote la sota gana al caballo). Puntos: as 11,
+tres 10, rey 4, sota 3, caballo 2, más 10 de últimas.
+
+Mientras queda mazo se juega cualquier carta. La pareja que gana una baza puede
+**cantar** (Ⓧ) rey y sota del mismo palo: **las veinte**, o **las cuarenta** si son
+de triunfo, y **cambiar el 7** de triunfo por la muestra (Ⓨ). Cuando se acaba el
+mazo llega el **arrastre**: hay que asistir al palo y matar si se puede, o fallar
+con triunfo; si la baza la gana tu compañero no hace falta. Las cartas que no
+puedes jugar se ven oscurecidas. Gana la pareja que llegue a **101**; si nadie
+llega, se juega otra mano "de vueltas" sumando los puntos.
+
+### Solitario tradicional
+Siete columnas y 12 cartas en el mazo. Lleva las 40 cartas a sus palos, del as al
+rey. En las columnas se baja de una en una cambiando de palo (sobre un caballo de
+oros, una sota de otro palo) y en una columna vacía solo entra un rey. Toca una
+carta para cogerla (con las de encima) y toca dónde dejarla; si la vuelves a tocar,
+va sola a su sitio. Con la cruceta: Ⓐ coger/dejar, Ⓧ mandar a su sitio, R sacar del
+mazo, L deshacer y Y nueva partida. Cuando ya está todo descubierto, las cartas
+suben solas.
+
+### Solitario en pirámide
+Una pirámide de 28 cartas en la pantalla táctil: las siete de la base están
+descubiertas y las de arriba, tapadas. Saca cartas de tu mazo (Ⓧ) y quita de la
+base las que sean iguales a la que ha salido (si sacas un caballo, un caballo).
+También puedes quitar a la vez dos cartas descubiertas iguales. Una carta se
+destapa cuando ya no tiene ninguna de las dos de debajo. Las cartas que quitas
+pasan a tus descartes y vuelven a salir en la siguiente pasada; el mazo se puede
+pasar cuatro veces. Ganas si vacías la pirámide.
 
 ## Controles
 
