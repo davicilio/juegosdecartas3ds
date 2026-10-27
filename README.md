@@ -202,11 +202,16 @@ Cada vez que se suben cambios, GitHub Actions compila el juego y publica
 
 Para actualizarlo basta con instalar el `.cia` nuevo encima.
 
-> Mientras el repositorio sea privado, el enlace de la release solo funciona con
-> tu sesión de GitHub, así que hay que descargarlo y copiarlo a la SD. Si el
-> repositorio fuera público, se podría instalar directamente con **FBI → Remote
-> Install → Scan QR Code** usando un QR del enlace
-> `https://github.com/davicilio/juegosdecartas3ds/releases/download/ultima-version/JuegosDeCartas.cia`.
+#### Con un QR (FBI → Remote Install → Scan QR Code)
+
+![QR del .cia](docs/qr_cia.png)
+
+El QR apunta a
+`https://github.com/davicilio/juegosdecartas3ds/releases/download/ultima-version/JuegosDeCartas.cia`,
+que siempre es la última versión. **Solo funciona si el repositorio es público**:
+mientras sea privado, GitHub pide iniciar sesión y FBI no puede descargarlo, así
+que hay que usar los pasos anteriores. Se puede regenerar con
+`python3 tools/gen_qr.py URL docs/qr_cia.png`.
 
 ### Desde el Homebrew Launcher (.3dsx)
 
