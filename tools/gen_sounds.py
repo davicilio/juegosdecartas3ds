@@ -90,6 +90,17 @@ def save(name, samples):
             f.write(struct.pack("<h", v))
 
 
+def save_wav(path, samples, rate=RATE):
+    """WAV de 16 bits mono, para el sonido del banner del .cia."""
+    import wave
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+    with wave.open(path, "wb") as w:
+        w.setnchannels(1)
+        w.setsampwidth(2)
+        w.setframerate(rate)
+        w.writeframes(b"".join(struct.pack("<h", int(max(-1.0, min(1.0, s)) * 32767)) for s in samples))
+
+
 def main():
     save("card", mix(sweep_noise(0.09, 0.9, 3), noise(0.03, 0.4, decay=0.01, lowpass=0.9, seed=4)))
     save("flip", concat(noise(0.025, 0.6, decay=0.008, lowpass=0.7, seed=5), silence(0.03),
@@ -106,6 +117,10 @@ def main():
                        tone(notes[-1], 0.4, 0.4, decay=0.2, shape="tri")))
     save("lose", concat(tone(392, 0.15, 0.35, decay=0.12, shape="tri"), tone(330, 0.15, 0.35, decay=0.12, shape="tri"),
                         tone(262, 0.4, 0.35, decay=0.25, shape="tri")))
+    # Melodía del banner del menú HOME (unos 2,5 segundos)
+    melody = [(659, 0.18), (784, 0.18), (1047, 0.18), (988, 0.18), (784, 0.18), (880, 0.36), (1047, 0.8)]
+    tune = concat(*[tone(f, d, 0.35, decay=d * 0.6, shape="tri") for f, d in melody])
+    save_wav(os.path.join(ROOT, "cia", "banner.wav"), tune)
     print("Sonidos generados en", OUT)
 
 

@@ -26,3 +26,52 @@ jobs:
         with:
           name: JuegosDeCartas
           path: JuegosDeCartas.3dsx
+      - name: Guardar lo necesario para el .cia
+        uses: actions/upload-artifact@v4
+        with:
+          name: compilado
+          path: |
+            JuegosDeCartas.3dsx
+            JuegosDeCartas.elf
+            JuegosDeCartas.smdh
+            romfs/
+
+  cia:
+    name: Crear el .cia
+    runs-on: ubuntu-latest
+    needs: build-3ds
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: compilado
+      - name: Compilar makerom y bannertool
+        run: |
+          git clone https://github.com/3DSGuy/Project_CTR.git /tmp/ctr
+          git -C /tmp/ctr checkout d52c2b0e788c2d085763d7c5dcc4b2edd9ffb7d8
+          make -C /tmp/ctr/makerom deps
+          make -C /tmp/ctr/makerom -j"$(nproc)"
+          git clone https://github.com/carstene1ns/3ds-bannertool.git /tmp/bannertool
+          git -C /tmp/bannertool checkout 734d33be79fd3f8c29c6296158f06ac7c5ca9dcb
+          cmake -S /tmp/bannertool -B /tmp/bannertool/build -DCMAKE_BUILD_TYPE=Release
+          cmake --build /tmp/bannertool/build -j"$(nproc)"
+      - name: Empaquetar
+        run: |
+          MAKEROM=/tmp/ctr/makerom/bin/makerom BANNERTOOL=/tmp/bannertool/build/bannertool tools/make_cia.sh
+      - name: Subir JuegosDeCartas.cia
+        uses: actions/upload-artifact@v4
+        with:
+          name: JuegosDeCartas-cia
+          path: JuegosDeCartas.cia
+      - name: Publicar en la release "ultima-version"
+        if: github.event_name == 'push' && github.ref == format('refs/heads/{0}', github.event.repository.default_branch)
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release delete ultima-version --repo "$GITHUB_REPOSITORY" --cleanup-tag --yes || true
+          gh release create ultima-version JuegosDeCartas.cia JuegosDeCartas.3dsx \
+            --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" --prerelease \
+            --title "Última versión" \
+            --notes "Compilada automáticamente desde ${GITHUB_SHA::7}. Instala JuegosDeCartas.cia con FBI o abre JuegosDeCartas.3dsx desde el Homebrew Launcher."

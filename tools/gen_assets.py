@@ -559,6 +559,24 @@ def write_t3s(name, files, fmt, border="none"):
             f.write(fn + "\n")
 
 
+def make_banner():
+    """Imagen del banner del menú HOME para el .cia (256x128)."""
+    w, h = 256, 128
+    img = sunburst(w, h, (170, 28, 34), (192, 44, 48), rays=28, center=(w / 2, h * 0.55)).convert("RGBA")
+    d = ImageDraw.Draw(img)
+    for i, y in enumerate(range(h - 9, h, 3)):
+        d.line([(0, y), (w, y)], fill=(230, 170, 40) if i % 2 == 0 else (150, 90, 15))
+    # abanico de cartas a cada lado
+    cards = [("oros", 1), ("copas", 12), ("espadas", 7), ("bastos", 10)]
+    for k, (s, r) in enumerate(cards):
+        c = make_card(s, r).resize((40, 60), Image.LANCZOS).rotate(18 - k * 12, expand=True, resample=Image.BICUBIC)
+        x = 6 + k * 14 if k < 2 else w - 70 + (k - 2) * 14
+        img.alpha_composite(c, (int(x), 56 - k % 2 * 4))
+    logo = make_logo().resize((224, 59), Image.LANCZOS)
+    img.alpha_composite(logo, ((w - 224) // 2, 6))
+    return img
+
+
 def main():
     os.makedirs(GFX, exist_ok=True)
     card_files = []
@@ -596,6 +614,8 @@ def main():
     write_t3s("backgrounds.t3s", [fn for fn, _ in bgs], "rgb565")
 
     make_icon().save(os.path.join(ROOT, "icon.png"))
+    os.makedirs(os.path.join(ROOT, "cia"), exist_ok=True)
+    make_banner().save(os.path.join(ROOT, "cia", "banner.png"))
     print("Gráficos generados en", GFX)
 
 

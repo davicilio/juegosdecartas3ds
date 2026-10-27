@@ -185,12 +185,33 @@ pillarlas!
 
 ## Instalar en la consola
 
-Necesitas una 3DS con [homebrew](https://3ds.hacks.guide/) instalado.
+Necesitas una 3DS con [homebrew](https://3ds.hacks.guide/) instalado (Luma3DS y
+FBI).
 
-1. Descarga `JuegosDeCartas.3dsx` (de la pestaña *Actions* del repositorio o
-   compilándolo tú mismo).
-2. Cópialo en la carpeta `/3ds/` de la tarjeta SD.
-3. Ábrelo desde el **Homebrew Launcher**.
+### Como aplicación del menú HOME (.cia, recomendado)
+
+Cada vez que se suben cambios, GitHub Actions compila el juego y publica
+`JuegosDeCartas.cia` y `JuegosDeCartas.3dsx` en la release
+[**ultima-version**](../../releases/tag/ultima-version) del repositorio.
+
+1. Descarga `JuegosDeCartas.cia` de esa release (también está como artefacto
+   *JuegosDeCartas-cia* en la pestaña *Actions*).
+2. Cópialo a la tarjeta SD, por ejemplo a `/cias/`.
+3. En la consola abre **FBI → SD → cias → JuegosDeCartas.cia → Install CIA**.
+4. El juego aparece en el menú HOME con su icono y su banner ("Baraja Española").
+
+Para actualizarlo basta con instalar el `.cia` nuevo encima.
+
+> Mientras el repositorio sea privado, el enlace de la release solo funciona con
+> tu sesión de GitHub, así que hay que descargarlo y copiarlo a la SD. Si el
+> repositorio fuera público, se podría instalar directamente con **FBI → Remote
+> Install → Scan QR Code** usando un QR del enlace
+> `https://github.com/davicilio/juegosdecartas3ds/releases/download/ultima-version/JuegosDeCartas.cia`.
+
+### Desde el Homebrew Launcher (.3dsx)
+
+1. Copia `JuegosDeCartas.3dsx` a la carpeta `/3ds/` de la tarjeta SD.
+2. Ábrelo desde el **Homebrew Launcher**.
 
 El sonido necesita el firmware del DSP (`/3ds/dspfirm.cdc`), que se obtiene con
 [DSP1](https://github.com/zoogie/DSP1). Sin él el juego funciona igual, pero en
@@ -213,6 +234,17 @@ docker run --rm -v "$PWD":/src -w /src devkitpro/devkitarm make
 ```
 
 Se genera `JuegosDeCartas.3dsx` en la raíz del proyecto.
+
+Para crear también el `.cia` hacen falta
+[makerom](https://github.com/3DSGuy/Project_CTR) y
+[bannertool](https://github.com/carstene1ns/3ds-bannertool):
+
+```sh
+MAKEROM=/ruta/makerom BANNERTOOL=/ruta/bannertool tools/make_cia.sh
+```
+
+El banner y la melodía del menú HOME están en `cia/` (se generan con los scripts
+de `tools/`) y la configuración del `.cia` en `cia/app.rsf`.
 
 ### Tests
 
