@@ -40,10 +40,12 @@ El juego usa **los Miis que ya tienes en la consola**; no crea Miis nuevos:
 La cara de cada Mii se dibuja con el **renderizador oficial de Nintendo, Mii
 Studio** (`studio.mii.nintendo.com`), con expresiones oficiales (sonrisa,
 tristeza, sorpresa, enfado, guiño, ojos cerrados...). Cada cara se descarga una
-sola vez con la conexión a internet de la consola, mediante su servicio HTTPS que
-comprueba el certificado del servidor, y se guarda en `/3ds/JuegosDeCartas/miis/`
-de la SD. Mientras no está disponible (sin conexión, o con la opción **Miis
-oficiales** desactivada) se ve una versión simplificada dibujada por el juego.
+sola vez con la conexión a internet de la consola y se guarda en
+`/3ds/JuegosDeCartas/miis/` de la SD; después funciona sin conexión. La conexión
+es HTTPS y el certificado del servidor se comprueba con los certificados raíz de
+Mozilla que lleva el juego (`romfs/cacert.pem`). Mientras una cara no está
+disponible se ve una silueta gris; si la descarga falla, **Mi perfil** muestra el
+motivo y permite reintentarla.
 
 El perfil guarda tus estadísticas en `/3ds/JuegosDeCartas/perfil.dat` y los
 rivales que elijas a mano en `/3ds/JuegosDeCartas/rivales.dat`.

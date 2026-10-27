@@ -1,6 +1,8 @@
 #include "ui/miiface.h"
 
 #include <3ds.h>
+#include <curl/curl.h>
+#include <malloc.h>
 #include <png.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -13,6 +15,8 @@
 #define MAX_DOWNLOAD  (256 * 1024)
 #define MAX_REDIRECTS 3
 #define MAX_FAILURES  3 /* tras varios fallos seguidos se deja de intentar */
+#define SOC_BUF_SIZE  0x100000
+#define CA_BUNDLE     "romfs:/cacert.pem"
 
 typedef enum {
 	FACE_EMPTY,
@@ -42,51 +46,66 @@ static volatile bool s_quit;
 static bool s_net;
 static volatile int s_failures;
 static int s_loads_this_frame;
+static u32* s_soc_buf;
+static char s_last_error[96];
 
 /* ---------------------------------------------------------------------------
  * Descargas (hilo aparte)
  * ------------------------------------------------------------------------- */
 
-/* GET con el servicio httpc de la consola, siguiendo redirecciones. */
-static bool http_get(const char* first_url, uint8_t* buf, u32* size)
+typedef struct {
+	uint8_t* data;
+	size_t size;
+} Buffer;
+
+static size_t write_cb(char* ptr, size_t size, size_t nmemb, void* user)
 {
-	char url[512];
-	snprintf(url, sizeof url, "%s", first_url);
-	for (int hop = 0; hop <= MAX_REDIRECTS; hop++) {
-		httpcContext ctx;
-		if (R_FAILED(httpcOpenContext(&ctx, HTTPC_METHOD_GET, url, 1)))
-			return false;
-		httpcAddRequestHeaderField(&ctx, "User-Agent", "JuegosDeCartas3DS/1.0");
-		httpcSetKeepAlive(&ctx, HTTPC_KEEPALIVE_DISABLED);
-		u32 status = 0;
-		if (R_FAILED(httpcBeginRequest(&ctx)) || R_FAILED(httpcGetResponseStatusCode(&ctx, &status))) {
-			httpcCloseContext(&ctx);
-			return false;
-		}
-		if (status >= 301 && status <= 308 && status != 304) {
-			char location[512];
-			Result r = httpcGetResponseHeader(&ctx, "Location", location, sizeof location);
-			httpcCloseContext(&ctx);
-			if (R_FAILED(r))
-				return false;
-			snprintf(url, sizeof url, "%s", location);
-			continue;
-		}
-		bool ok = false;
-		if (status == 200) {
-			u32 total = 0, got = 0;
-			Result r;
-			do {
-				r = httpcDownloadData(&ctx, buf + total, MAX_DOWNLOAD - total, &got);
-				total += got;
-			} while (r == (Result)HTTPC_RESULTCODE_DOWNLOADPENDING && total < MAX_DOWNLOAD);
-			ok = R_SUCCEEDED(r) && total > 0;
-			*size = total;
-		}
-		httpcCloseContext(&ctx);
-		return ok;
+	Buffer* b = user;
+	size_t n = size * nmemb;
+	if (b->size + n > MAX_DOWNLOAD)
+		return 0;
+	memcpy(b->data + b->size, ptr, n);
+	b->size += n;
+	return n;
+}
+
+/* GET por HTTPS con curl y mbedTLS. El certificado del servidor se comprueba
+ * con los certificados raíz de Mozilla que van en el romfs del juego. */
+static bool http_get(const char* url, uint8_t* buf, u32* size)
+{
+	CURL* curl = curl_easy_init();
+	if (!curl) {
+		snprintf(s_last_error, sizeof s_last_error, "No se pudo iniciar la conexión");
+		return false;
 	}
-	return false;
+	Buffer b = { buf, 0 };
+	char err[CURL_ERROR_SIZE] = "";
+	curl_easy_setopt(curl, CURLOPT_URL, url);
+	curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, write_cb);
+	curl_easy_setopt(curl, CURLOPT_WRITEDATA, &b);
+	curl_easy_setopt(curl, CURLOPT_ERRORBUFFER, err);
+	curl_easy_setopt(curl, CURLOPT_USERAGENT, "Mozilla/5.0 (Nintendo 3DS) JuegosDeCartas/1.0");
+	curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1L);
+	curl_easy_setopt(curl, CURLOPT_MAXREDIRS, (long)MAX_REDIRECTS);
+	curl_easy_setopt(curl, CURLOPT_CONNECTTIMEOUT, 15L);
+	curl_easy_setopt(curl, CURLOPT_TIMEOUT, 30L);
+	curl_easy_setopt(curl, CURLOPT_NOSIGNAL, 1L);
+	curl_easy_setopt(curl, CURLOPT_CAINFO, CA_BUNDLE);
+	CURLcode res = curl_easy_perform(curl);
+	long status = 0;
+	curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &status);
+	curl_easy_cleanup(curl);
+	if (res != CURLE_OK) {
+		snprintf(s_last_error, sizeof s_last_error, "Error de conexión %d: %.60s", (int)res,
+			err[0] ? err : curl_easy_strerror(res));
+		return false;
+	}
+	if (status != 200) {
+		snprintf(s_last_error, sizeof s_last_error, "Mii Studio respondió HTTP %ld", status);
+		return false;
+	}
+	*size = b.size;
+	return b.size > 0;
 }
 
 static bool download(Face* f)
@@ -100,7 +119,11 @@ static bool download(Face* f)
 		return false;
 	u32 size = 0;
 	static const uint8_t PNG_SIG[8] = { 0x89, 'P', 'N', 'G', '\r', '\n', 0x1A, '\n' };
-	bool ok = http_get(url, buf, &size) && size > 8 && memcmp(buf, PNG_SIG, 8) == 0;
+	bool ok = http_get(url, buf, &size);
+	if (ok && (size <= 8 || memcmp(buf, PNG_SIG, 8) != 0)) {
+		snprintf(s_last_error, sizeof s_last_error, "Mii Studio no devolvió una imagen");
+		ok = false;
+	}
 	if (ok) {
 		FILE* out = fopen(f->path, "wb");
 		ok = out && fwrite(buf, 1, size, out) == size;
@@ -131,6 +154,8 @@ static void worker(void* arg)
 		}
 		bool ok = s_failures < MAX_FAILURES && download(job);
 		s_failures = ok ? 0 : s_failures + 1;
+		if (ok)
+			s_last_error[0] = '\0';
 		LightLock_Lock(&s_lock);
 		job->state = ok ? FACE_FILE : FACE_FAILED;
 		LightLock_Unlock(&s_lock);
@@ -210,15 +235,21 @@ void miiface_init(void)
 	mkdir("sdmc:/3ds/JuegosDeCartas", 0777);
 	mkdir(CACHE_DIR, 0777);
 
-	s_net = R_SUCCEEDED(httpcInit(0));
+	s_soc_buf = memalign(0x1000, SOC_BUF_SIZE);
+	if (s_soc_buf && R_SUCCEEDED(socInit(s_soc_buf, SOC_BUF_SIZE))) {
+		s_net = curl_global_init(CURL_GLOBAL_DEFAULT) == CURLE_OK;
+	} else {
+		free(s_soc_buf);
+		s_soc_buf = NULL;
+		snprintf(s_last_error, sizeof s_last_error, "No se pudo iniciar la red");
+	}
 	if (s_net) {
 		s32 prio = 0x30;
 		svcGetThreadPriority(&prio, CUR_THREAD_HANDLE);
-		s_thread = threadCreate(worker, NULL, 0x8000, prio + 1, -2, false);
-		if (!s_thread) {
-			httpcExit();
+		/* El saludo TLS necesita bastante pila */
+		s_thread = threadCreate(worker, NULL, 0x20000, prio + 1, -2, false);
+		if (!s_thread)
 			s_net = false;
-		}
 	}
 }
 
@@ -232,7 +263,12 @@ void miiface_exit(void)
 		s_thread = NULL;
 	}
 	if (s_net)
-		httpcExit();
+		curl_global_cleanup();
+	if (s_soc_buf) {
+		socExit();
+		free(s_soc_buf);
+		s_soc_buf = NULL;
+	}
 	for (int i = 0; i < MAX_FACES; i++)
 		if (s_faces[i].state == FACE_READY)
 			C3D_TexDelete(&s_faces[i].tex);
@@ -312,6 +348,11 @@ int miiface_pending(void)
 		if (s_faces[i].state == FACE_QUEUED || s_faces[i].state == FACE_DOWNLOADING)
 			n++;
 	return n;
+}
+
+const char* miiface_last_error(void)
+{
+	return s_last_error;
 }
 
 bool miiface_online(void)

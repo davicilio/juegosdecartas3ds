@@ -81,6 +81,10 @@ int main(void)
 				current = pending;
 				scene = scene_for(current);
 				scene->enter();
+				/* Una actualización sin entrada antes del primer dibujo, para
+				 * que la escena tenga todo preparado (botones, textos...) */
+				Input none = { 0 };
+				scene->update(&none, 0.0f);
 			}
 		} else {
 			if (fade > 0.0f)

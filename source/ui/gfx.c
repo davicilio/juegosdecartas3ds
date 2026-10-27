@@ -131,15 +131,31 @@ void gfx_card(Card c, float cx, float cy, float scale, float flip, float angle, 
 	gfx_sprite_ex(id, cx, cy, scale * width, scale, angle, depth, dim > 0.0f ? &tint : NULL);
 }
 
+/* Por debajo de este tamaño la fuente del sistema se lee mal en la consola */
+#define MIN_TEXT_SCALE 0.45f
+
+static float text_scale(float scale)
+{
+	return scale < MIN_TEXT_SCALE ? MIN_TEXT_SCALE : scale;
+}
+
 void gfx_text(const char* str, float x, float y, float depth, float scale, u32 color, u32 align)
 {
+	if (!str || !*str)
+		return;
 	C2D_Text text;
 	C2D_TextParse(&text, s_textbuf, str);
 	C2D_TextOptimize(&text);
-	float dx = gfx_dx(depth);
-	float so = scale > 0.6f ? 2.0f : 1.0f;
-	C2D_DrawText(&text, C2D_WithColor | align, x + dx + so, y + so, 0.5f, scale, scale, COLOR_SHADOW);
-	C2D_DrawText(&text, C2D_WithColor | align, x + dx, y, 0.5f, scale, scale, color);
+	scale = text_scale(scale);
+	/* Posiciones en píxeles enteros: el texto sale más nítido */
+	x = floorf(x + gfx_dx(depth) + 0.5f);
+	y = floorf(y + 0.5f);
+	/* Sombra solo hacia abajo y suave en el texto pequeño, para no emborronarlo */
+	if (scale > 0.6f)
+		C2D_DrawText(&text, C2D_WithColor | align, x + 2, y + 2, 0.5f, scale, scale, COLOR_SHADOW);
+	else
+		C2D_DrawText(&text, C2D_WithColor | align, x, y + 1, 0.5f, scale, scale, C2D_Color32(0, 0, 0, 110));
+	C2D_DrawText(&text, C2D_WithColor | align, x, y, 0.5f, scale, scale, color);
 }
 
 void gfx_textf(float x, float y, float depth, float scale, u32 color, u32 align, const char* fmt, ...)
@@ -154,18 +170,25 @@ void gfx_textf(float x, float y, float depth, float scale, u32 color, u32 align,
 
 void gfx_text_wrap(const char* str, float x, float y, float depth, float scale, u32 color, float width)
 {
+	if (!str || !*str)
+		return;
 	C2D_Text text;
 	C2D_TextParse(&text, s_textbuf, str);
 	C2D_TextOptimize(&text);
-	float dx = gfx_dx(depth);
-	C2D_DrawText(&text, C2D_WithColor | C2D_WordWrap, x + dx + 1, y + 1, 0.5f, scale, scale, COLOR_SHADOW, width);
-	C2D_DrawText(&text, C2D_WithColor | C2D_WordWrap, x + dx, y, 0.5f, scale, scale, color, width);
+	scale = text_scale(scale);
+	x = floorf(x + gfx_dx(depth) + 0.5f);
+	y = floorf(y + 0.5f);
+	C2D_DrawText(&text, C2D_WithColor | C2D_WordWrap, x, y + 1, 0.5f, scale, scale, C2D_Color32(0, 0, 0, 110), width);
+	C2D_DrawText(&text, C2D_WithColor | C2D_WordWrap, x, y, 0.5f, scale, scale, color, width);
 }
 
 float gfx_text_width(const char* str, float scale)
 {
 	C2D_Text text;
 	float w = 0.0f, h = 0.0f;
+	if (!str || !*str)
+		return 0.0f;
+	scale = text_scale(scale);
 	C2D_TextParse(&text, s_textbuf, str);
 	C2D_TextGetDimensions(&text, scale, scale, &w, &h);
 	return w;

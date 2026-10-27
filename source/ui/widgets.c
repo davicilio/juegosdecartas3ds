@@ -58,7 +58,7 @@ void button_draw(const Button* b, bool highlight)
 	gfx_rrect(b->x + 2, y + 2, b->w - 4, b->h - 4, 6, 0, base);
 	gfx_rrect(b->x + 3, y + 3, b->w - 6, (b->h - 6) * 0.48f, 5, 0, C2D_Color32(255, 255, 255, 60));
 
-	float scale = b->h >= 30 ? 0.6f : 0.5f;
+	float scale = b->h >= 28 ? 0.6f : 0.5f;
 	gfx_text(b->label, b->x + b->w / 2, y + b->h / 2 - scale * 15.0f, 0, scale,
 		b->enabled ? COLOR_WHITE : C2D_Color32(200, 200, 200, 255), C2D_AlignCenter);
 }

@@ -6,9 +6,9 @@
 #include "core/avatar.h"
 #include "core/profile.h"
 
-/* Dibujo de los Miis: la cara oficial (renderizada por Mii Studio de
- * Nintendo y guardada en la SD) o, mientras no está disponible, una versión
- * simplificada dibujada por código. También el perfil del jugador. */
+/* Dibujo de los Miis con su cara oficial (renderizada por Mii Studio de
+ * Nintendo y guardada en la SD); mientras no está disponible se ve una
+ * silueta. También el perfil del jugador y sus rivales. */
 
 typedef enum {
 	EXPR_NORMAL,
@@ -49,8 +49,6 @@ void profile_store(void);
 void profile_record_game(GameId game, bool won);
 /* Abre el selector de Miis de la consola. Devuelve true si se ha elegido uno. */
 bool profile_pick_console_mii(void);
-/* Abre el teclado de la consola para cambiar el nombre. */
-bool profile_edit_name(void);
 /* Rivales: cada puesto de la CPU lo ocupa un Mii de la consola (leídos de
  * su base de datos de Miis) o el que el jugador elija con el selector de
  * Miis del sistema, que también ofrece los Miis invitados. */
