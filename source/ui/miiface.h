@@ -21,6 +21,8 @@ void miiface_frame(void);
  * "smile"...), o NULL si todavía no está. Si download es true y no está en
  * la SD, se pide al servidor. */
 const C2D_Image* miiface_get(const MiiParts* mii, const char* expression, bool download);
+/* Igual, con el tipo de imagen de Mii Studio: "face" o "all_body" (cuerpo entero). */
+const C2D_Image* miiface_get_type(const MiiParts* mii, const char* type, const char* expression, bool download);
 /* Vuelve a intentar las caras que fallaron (por ejemplo, sin conexión). */
 void miiface_retry(void);
 /* Caras pendientes de descargar, para mostrar el progreso. */

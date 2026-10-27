@@ -77,6 +77,29 @@ void mii_draw(const Avatar* a, float cx, float cy, float r, float d, Expression 
 	gfx_ellipse(cx, cy, r * 0.8f, r * 0.9f, d, C2D_Color32(255, 255, 255, 40));
 }
 
+void mii_draw_body(const Avatar* a, float cx, float bottom, float height, float d, Expression e)
+{
+	const C2D_Image* img = NULL;
+	if (a->official) {
+		img = miiface_get_type(&a->mii, "all_body", mii_studio_expression(e), true);
+		if (!img && e != EXPR_NORMAL)
+			img = miiface_get_type(&a->mii, "all_body", "normal", true);
+	}
+	if (img) {
+		float scale = height / img->subtex->height;
+		C2D_DrawImageAtRotated(*img, cx + gfx_dx(d), bottom - height / 2.0f, 0.5f, 0.0f, NULL, scale, scale);
+		return;
+	}
+	/* Silueta de cuerpo entero mientras se descarga */
+	float pulse = miiface_pending() > 0 ? 0.5f + 0.5f * sinf(gfx_time() * 4.0f) : 0.0f;
+	u32 fill = C2D_Color32(150 + (u8)(40 * pulse), 160 + (u8)(40 * pulse), 175 + (u8)(40 * pulse), 230);
+	float u = height / 10.0f;
+	gfx_ellipse(cx, bottom - u * 8.0f, u * 1.6f, u * 1.7f, d, fill);           /* cabeza */
+	gfx_rrect(cx - u * 1.5f, bottom - u * 6.1f, u * 3.0f, u * 3.4f, u * 0.8f, d, fill); /* cuerpo */
+	gfx_rrect(cx - u * 1.3f, bottom - u * 3.0f, u * 1.1f, u * 3.0f, u * 0.4f, d, fill); /* piernas */
+	gfx_rrect(cx + u * 0.2f, bottom - u * 3.0f, u * 1.1f, u * 3.0f, u * 0.4f, d, fill);
+}
+
 void mood_set(Mood* m, Expression e, float seconds)
 {
 	m->expr = e;

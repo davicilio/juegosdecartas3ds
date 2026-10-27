@@ -117,8 +117,8 @@ static void menu_draw_top(void)
 	const Avatar* me = &profile_get()->avatar;
 	if (e->scene == SCENE_PROFILE) {
 		/* En "Mi perfil" se ve tu Mii en lugar de las cartas */
-		gfx_ellipse(78, 214, 46, 9, DEPTH_TABLE, C2D_Color32(0, 0, 0, 90));
-		mii_draw(me, 78, 150 + sinf(t * 2.0f) * 2.0f, 26, DEPTH_CARDS + 1.0f, mood_expr(&s_mood), true);
+		gfx_ellipse(78, 214, 40, 8, DEPTH_TABLE, C2D_Color32(0, 0, 0, 90));
+		mii_draw_body(me, 78, 216, 118, DEPTH_CARDS + 1.0f, mood_expr(&s_mood));
 	}
 	/* Abanico de cartas del juego seleccionado */
 	for (int i = 0; i < 3 && e->scene != SCENE_PROFILE; i++) {

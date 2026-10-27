@@ -81,15 +81,16 @@ static void rivals_draw_top(void)
 		snprintf(status, sizeof status, "Elige a tus rivales con el selector de Miis");
 	gfx_text(status, 200, 30, DEPTH_UI, 0.45f, COLOR_CREAM, C2D_AlignCenter);
 
+	/* Los siete Miis de cuerpo entero: los pies en la línea de cada fila */
 	static const float X[CPU_COUNT] = { 62, 154, 246, 338, 108, 200, 292 };
-	static const float Y[CPU_COUNT] = { 84, 84, 84, 84, 172, 172, 172 };
+	static const float FEET[CPU_COUNT] = { 118, 118, 118, 118, 208, 208, 208 };
 	for (int i = 0; i < CPU_COUNT; i++) {
 		bool sel = i == s_row;
-		float bob = sel ? sinf(gfx_time() * 4.0f) * 2.0f : 0.0f;
-		if (sel)
-			gfx_ellipse(X[i], Y[i] + 2, 30, 30, DEPTH_UI, C2D_Color32(255, 220, 90, 90));
-		mii_draw(cpu_avatar((CpuId)i), X[i], Y[i] - 4 + bob, 20, DEPTH_BANNER, mood_expr(&s_mood[i]), false);
-		gfx_text(cpu_name((CpuId)i), X[i], Y[i] + 24, DEPTH_UI, 0.45f, sel ? COLOR_GOLD : COLOR_WHITE, C2D_AlignCenter);
+		float hop = sel ? fabsf(sinf(gfx_time() * 4.0f)) * 4.0f : 0.0f;
+		gfx_ellipse(X[i], FEET[i], 20, 4, DEPTH_TABLE,
+			sel ? C2D_Color32(255, 220, 90, 160) : C2D_Color32(0, 0, 0, 80));
+		mii_draw_body(cpu_avatar((CpuId)i), X[i], FEET[i] - hop, 72, DEPTH_BANNER, mood_expr(&s_mood[i]));
+		gfx_text(cpu_name((CpuId)i), X[i], FEET[i] + 4, DEPTH_UI, 0.45f, sel ? COLOR_GOLD : COLOR_WHITE, C2D_AlignCenter);
 	}
 }
 

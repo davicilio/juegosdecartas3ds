@@ -11,7 +11,9 @@
 
 #define CACHE_DIR     "sdmc:/3ds/JuegosDeCartas/miis"
 #define MAX_FACES     72
-#define FACE_PX       128
+#define REQUEST_PX    270 /* tamaño que se pide a Mii Studio (el de su web) */
+#define FACE_PX       128 /* tamaño máximo de las texturas de cara */
+#define BODY_PX       256 /* y de las de cuerpo entero */
 #define MAX_DOWNLOAD  (256 * 1024)
 #define MAX_REDIRECTS 3
 #define MAX_FAILURES  3 /* tras varios fallos seguidos se deja de intentar */
@@ -31,7 +33,9 @@ typedef struct {
 	uint32_t key;
 	volatile FaceState state;
 	char code[MII_STUDIO_HEX];
+	char plain[2 * MII_STUDIO_SIZE + 1]; /* los mismos datos sin ofuscar */
 	char expression[24];
+	char type[12]; /* "face" o "all_body" */
 	char path[96];
 	C3D_Tex tex;
 	Tex3DS_SubTexture sub;
@@ -110,16 +114,21 @@ static bool http_get(const char* url, uint8_t* buf, u32* size)
 
 static bool download(Face* f)
 {
-	char url[256];
-	snprintf(url, sizeof url,
-		"https://studio.mii.nintendo.com/miis/image.png?data=%s&type=face&expression=%s&width=%d&bgColor=FFFFFF00",
-		f->code, f->expression, FACE_PX);
+	char url[320];
 	uint8_t* buf = malloc(MAX_DOWNLOAD);
 	if (!buf)
 		return false;
 	u32 size = 0;
 	static const uint8_t PNG_SIG[8] = { 0x89, 'P', 'N', 'G', '\r', '\n', 0x1A, '\n' };
-	bool ok = http_get(url, buf, &size);
+	/* Mii Studio acepta los datos ofuscados (como su web) o tal cual; si
+	 * rechaza una forma se prueba la otra. */
+	bool ok = false;
+	for (int attempt = 0; attempt < 2 && !ok; attempt++) {
+		snprintf(url, sizeof url,
+			"https://studio.mii.nintendo.com/miis/image.png?data=%s&type=%s&expression=%s&width=%d&bgColor=FFFFFF00",
+			attempt == 0 ? f->code : f->plain, f->type, f->expression, REQUEST_PX);
+		ok = http_get(url, buf, &size);
+	}
 	if (ok && (size <= 8 || memcmp(buf, PNG_SIG, 8) != 0)) {
 		snprintf(s_last_error, sizeof s_last_error, "Mii Studio no devolvió una imagen");
 		ok = false;
@@ -174,6 +183,49 @@ static unsigned next_pow2(unsigned v)
 	return p;
 }
 
+/* Reduce la imagen para que quepa en max_px, promediando cada zona y dando
+ * más peso a los píxeles opacos (el fondo transparente no aclara los bordes). */
+static uint8_t* shrink(const uint8_t* src, unsigned w, unsigned h, unsigned max_px, unsigned* ow, unsigned* oh)
+{
+	float f = (float)max_px / (w > h ? w : h);
+	unsigned nw = (unsigned)(w * f), nh = (unsigned)(h * f);
+	if (nw < 1)
+		nw = 1;
+	if (nh < 1)
+		nh = 1;
+	uint8_t* dst = malloc(nw * nh * 4);
+	if (!dst)
+		return NULL;
+	for (unsigned y = 0; y < nh; y++) {
+		unsigned y0 = y * h / nh, y1 = (y + 1) * h / nh;
+		if (y1 <= y0)
+			y1 = y0 + 1;
+		for (unsigned x = 0; x < nw; x++) {
+			unsigned x0 = x * w / nw, x1 = (x + 1) * w / nw;
+			if (x1 <= x0)
+				x1 = x0 + 1;
+			unsigned long r = 0, g = 0, b = 0, a = 0, n = 0;
+			for (unsigned sy = y0; sy < y1; sy++)
+				for (unsigned sx = x0; sx < x1; sx++) {
+					const uint8_t* p = &src[(sy * w + sx) * 4];
+					r += p[0] * p[3];
+					g += p[1] * p[3];
+					b += p[2] * p[3];
+					a += p[3];
+					n++;
+				}
+			uint8_t* d = &dst[(y * nw + x) * 4];
+			d[0] = a ? r / a : 0;
+			d[1] = a ? g / a : 0;
+			d[2] = a ? b / a : 0;
+			d[3] = a / n;
+		}
+	}
+	*ow = nw;
+	*oh = nh;
+	return dst;
+}
+
 static bool load_texture(Face* f)
 {
 	png_image png;
@@ -193,6 +245,17 @@ static bool load_texture(Face* f)
 		return false;
 	}
 	unsigned w = png.width, h = png.height;
+	unsigned max_px = strcmp(f->type, "face") == 0 ? FACE_PX : BODY_PX;
+	if (w > max_px || h > max_px) {
+		unsigned nw, nh;
+		uint8_t* small = shrink(rgba, w, h, max_px, &nw, &nh);
+		free(rgba);
+		if (!small)
+			return false;
+		rgba = small;
+		w = nw;
+		h = nh;
+	}
 	unsigned tw = next_pow2(w), th = next_pow2(h);
 	if (!C3D_TexInit(&f->tex, tw, th, GPU_RGBA8)) {
 		free(rgba);
@@ -279,17 +342,24 @@ void miiface_frame(void)
 	s_loads_this_frame = 0;
 }
 
-static uint32_t face_key(const MiiParts* mii, const char* expression)
+static uint32_t face_key(const MiiParts* mii, const char* type, const char* expression)
 {
 	uint32_t h = mii_parts_hash(mii);
-	for (const char* c = expression; *c; c++)
+	char tag[48];
+	snprintf(tag, sizeof tag, "%s/%s/%d", type, expression, REQUEST_PX);
+	for (const char* c = tag; *c; c++)
 		h = (h ^ (uint8_t)*c) * 16777619u;
 	return h ? h : 1;
 }
 
 const C2D_Image* miiface_get(const MiiParts* mii, const char* expression, bool want_download)
 {
-	uint32_t key = face_key(mii, expression);
+	return miiface_get_type(mii, "face", expression, want_download);
+}
+
+const C2D_Image* miiface_get_type(const MiiParts* mii, const char* type, const char* expression, bool want_download)
+{
+	uint32_t key = face_key(mii, type, expression);
 	Face* f = NULL;
 	for (int i = 0; i < MAX_FACES; i++)
 		if (s_faces[i].state != FACE_EMPTY && s_faces[i].key == key) {
@@ -302,10 +372,15 @@ const C2D_Image* miiface_get(const MiiParts* mii, const char* expression, bool w
 			if (s_faces[i].state == FACE_EMPTY)
 				f = &s_faces[i];
 		if (!f)
-			return NULL; /* caché llena: se usa el dibujo simplificado */
+			return NULL; /* caché llena: se ve la silueta */
 		f->key = key;
 		snprintf(f->expression, sizeof f->expression, "%s", expression);
+		snprintf(f->type, sizeof f->type, "%s", type);
 		mii_studio_code(mii, 0, f->code);
+		uint8_t raw[MII_STUDIO_SIZE];
+		mii_studio_data(mii, raw);
+		for (int i = 0; i < MII_STUDIO_SIZE; i++)
+			snprintf(f->plain + 2 * i, 3, "%02x", raw[i]);
 		snprintf(f->path, sizeof f->path, CACHE_DIR "/%08lx.png", (unsigned long)key);
 		struct stat st;
 		FaceState s = stat(f->path, &st) == 0              ? FACE_FILE

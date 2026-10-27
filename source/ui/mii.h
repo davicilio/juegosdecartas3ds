@@ -29,6 +29,9 @@ typedef enum {
  * personaje es un Mii de verdad se usa su cara oficial cuando ya está
  * descargada. */
 void mii_draw(const Avatar* a, float cx, float cy, float size, float depth, Expression e, bool bust);
+/* Mii de cuerpo entero (renderizado por Mii Studio), con los pies en bottom
+ * y la altura indicada. */
+void mii_draw_body(const Avatar* a, float cx, float bottom, float height, float depth, Expression e);
 
 /* Estado de ánimo de un personaje: una expresión que dura un tiempo y un
  * parpadeo de vez en cuando para que parezca vivo. */

@@ -63,12 +63,11 @@ static void profile_draw_top(void)
 	const PlayerProfile* p = profile_get();
 	gfx_background(BG_TITLE_TOP);
 
-	/* Pedestal y Mii */
-	float bob = sinf(gfx_time() * 2.0f) * 2.0f;
-	gfx_ellipse(110, 214, 70, 12, DEPTH_TABLE, C2D_Color32(0, 0, 0, 90));
-	mii_draw(&p->avatar, 110, 92 + bob, 44, DEPTH_BANNER, mood_expr(&s_mood), true);
-	gfx_panel(30, 192, 160, 32, DEPTH_UI, C2D_Color32(110, 20, 25, 230), COLOR_GOLD);
-	gfx_text(p->avatar.official ? p->avatar.name : "Sin Mii", 110, 197, DEPTH_UI, 0.6f, COLOR_CREAM, C2D_AlignCenter);
+	/* Tu Mii de cuerpo entero sobre un pedestal */
+	gfx_ellipse(110, 196, 56, 10, DEPTH_TABLE, C2D_Color32(0, 0, 0, 90));
+	mii_draw_body(&p->avatar, 110, 198, 182, DEPTH_BANNER, mood_expr(&s_mood));
+	gfx_panel(30, 200, 160, 28, DEPTH_UI, C2D_Color32(110, 20, 25, 230), COLOR_GOLD);
+	gfx_text(p->avatar.official ? p->avatar.name : "Sin Mii", 110, 204, DEPTH_UI, 0.55f, COLOR_CREAM, C2D_AlignCenter);
 
 	/* Estadísticas */
 	gfx_panel(210, 16, 178, 208, DEPTH_UI, C2D_Color32(40, 8, 12, 210), C2D_Color32(230, 170, 50, 255));
@@ -96,30 +95,18 @@ static void profile_draw_bottom(void)
 	gfx_background(BG_MENU_BOTTOM);
 	button_draw(&s_btn_pick, true);
 
-	/* Estado de la cara oficial del Mii */
-	const char* status;
-	u32 color = COLOR_CREAM;
-	if (!p->avatar.official) {
+	/* Estado de las imágenes de los Miis. El detalle técnico de un fallo
+	 * solo se ve manteniendo L y R (para poder diagnosticarlo). */
+	const char* status = NULL;
+	if (!p->avatar.official)
 		status = "Todavía no has elegido tu Mii";
-	} else if (miiface_get(&p->avatar.mii, "normal", true)) {
-		status = "Cara oficial del Mii cargada";
-		color = COLOR_GOLD;
-	} else if (miiface_pending() > 0) {
-		status = "Descargando la cara de Mii Studio...";
-	} else if (has_error()) {
-		status = "No se ha podido descargar la cara:";
-		color = C2D_Color32(255, 170, 160, 255);
-	} else {
-		status = "Cargando la cara del Mii...";
-	}
-	gfx_text(status, BOTTOM_W / 2, 74, 0, 0.5f, color, C2D_AlignCenter);
-	if (has_error()) {
+	else if (miiface_pending() > 0)
+		status = "Preparando a tu Mii...";
+	if (status)
+		gfx_text(status, BOTTOM_W / 2, 74, 0, 0.5f, COLOR_CREAM, C2D_AlignCenter);
+	if (has_error() && (hidKeysHeld() & (KEY_L | KEY_R)) == (KEY_L | KEY_R)) {
 		gfx_text_wrap(miiface_last_error(), 20, 94, 0, 0.45f, C2D_Color32(255, 200, 190, 255), 280);
 		button_draw(&s_btn_retry, false);
-	} else {
-		gfx_text_wrap("Las caras de los Miis las dibuja Mii Studio de Nintendo: se descargan una vez "
-		              "(hace falta internet) y se guardan en la SD.",
-			20, 96, 0, 0.45f, C2D_Color32(220, 210, 200, 255), 280);
 	}
 
 	button_draw(&s_btn_rivals, false);
