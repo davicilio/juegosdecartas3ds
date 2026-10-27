@@ -34,8 +34,9 @@ static const MenuEntry entries[] = {
 	  "Cuentan cartas, oros, sietes y el siete de oros. Gana quien llegue a 21.",
 	  SCENE_ESCOBA, SUIT_BASTOS, { C(OROS, 7), C(BASTOS, 5), C(COPAS, 3) } },
 	{ "Mus",
-	  "Grande, chica, pares y juego, por parejas y con señas. Próximamente.",
-	  SCENE_COUNT, SUIT_BASTOS, { C(OROS, RANK_REY), C(BASTOS, RANK_REY), C(COPAS, 3) } },
+	  "Por parejas: tú y Lola contra Paco y Manolo. Mus, descartes y los cuatro lances: grande, chica, "
+	  "pares y juego. Envida, quiere... ¡o lánzate al órdago! A 40 piedras.",
+	  SCENE_MUS, SUIT_BASTOS, { C(OROS, RANK_REY), C(BASTOS, RANK_REY), C(COPAS, 3) } },
 	{ "Chinchón",
 	  "Forma tríos y escaleras del mismo palo. Cierra con todo ligado (menos diez) o con una suelta "
 	  "pequeña. Siete seguidas del mismo palo: ¡chinchón! Pierde quien pase de 100.",

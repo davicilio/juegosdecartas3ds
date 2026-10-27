@@ -11,9 +11,9 @@ para Nintendo 3DS con [devkitPro](https://devkitpro.org) (libctru + citro2d).
 |:---:|:---:|:---:|
 | ![Brisca](docs/brisca.png) | ![Escoba](docs/escoba.png) | ![Marcador](docs/escoba_fin.png) |
 
-| Chinchón | Cierre del chinchón |
-|:---:|:---:|
-| ![Chinchón](docs/chinchon.png) | ![Cierre](docs/chinchon_fin.png) |
+| Chinchón | Cierre del chinchón | Mus | Recuento del mus |
+|:---:|:---:|:---:|:---:|
+| ![Chinchón](docs/chinchon.png) | ![Cierre](docs/chinchon_fin.png) | ![Mus](docs/mus.png) | ![Recuento](docs/mus_fin.png) |
 
 ## Juegos
 
@@ -23,7 +23,7 @@ para Nintendo 3DS con [devkitPro](https://devkitpro.org) (libctru + citro2d).
 | Cinquillo | ✅ Disponible |
 | Brisca | ✅ Disponible |
 | Escoba | ✅ Disponible |
-| Mus | 🔜 Próximamente |
+| Mus | ✅ Disponible |
 | Chinchón | ✅ Disponible |
 
 ### Siete y media
@@ -83,6 +83,26 @@ que cierra. Cerrar con todo combinado resta 10 puntos, y cerrar con siete cartas
 seguidas del mismo palo es **chinchón**: partida ganada. Pierde quien pase de 100.
 Si se acaba el mazo, se barajan los descartes.
 
+### Mus
+Por parejas: tú y Lola contra Paco y Manolo, a ocho reyes (los treses cuentan como
+reyes y los doses como ases). Cada uno tiene cuatro cartas. Primero se pide **mus**:
+si los cuatro lo quieren, cada uno cambia las cartas que elija; en cuanto alguien
+dice **no hay mus** se juegan los cuatro lances:
+
+- **Grande**: gana la jugada más alta (rey, caballo, sota, 7... as).
+- **Chica**: gana la más baja.
+- **Pares**: pareja (1 piedra), medias (trío, 2) y duples (dos parejas, 3). Solo se
+  envida si las dos parejas tienen pares.
+- **Juego**: 31 o más contando las figuras a 10 (31 vale 3 y el resto 2; el orden es
+  31, 32, 40, 37, 36, 35, 34, 33). Si nadie tiene juego se juega al **Punto**.
+
+En cada lance se puede pasar, envidar, subir, querer, no querer o echar un
+**órdago**, que decide la partida. Los empates los gana quien está más cerca de la
+mano. Lo que no se quiere da el "deje" al que envidó; lo querido y lo que queda en
+paso se cuenta al descubrir las cartas, junto con los tantos de pares y juego.
+Gana la pareja que llegue a 40 piedras. En la pantalla de abajo siempre ves tu
+grande, tus pares y tu juego para no tener que contar.
+
 ## Controles
 
 | Botón | Acción |
@@ -90,9 +110,9 @@ Si se acaba el mazo, se barajan los descartes.
 | Cruceta / Circle Pad | Moverse por los menús y por tus cartas |
 | A | Aceptar, pedir carta, jugar carta |
 | B | Plantarse / volver |
-| X | Pasar (cinquillo); robar del mazo (chinchón) |
-| Y | Cambiar el 7 (o el 2) por la muestra (brisca); coger el descarte o cerrar (chinchón) |
-| L / R | Bajar / subir la apuesta (siete y media); elegir qué cartas te llevas (escoba) |
+| X | Pasar (cinquillo); robar del mazo (chinchón); envidar o marcar cartas para el mus |
+| Y | Cambiar el 7 (o el 2) por la muestra (brisca); coger el descarte o cerrar (chinchón); órdago (mus) |
+| L / R | Bajar / subir la apuesta (siete y media); elegir qué cartas te llevas (escoba); cuánto envidas (mus) |
 | START | Volver al menú (en el menú: salir) |
 | Pantalla táctil | Todos los botones y las cartas se pueden tocar (en la escoba y el chinchón, el primer toque elige la carta y el segundo la juega o la descarta) |
 
@@ -102,7 +122,8 @@ Si se acaba el mazo, se barajan los descartes.
 - **3D estereoscópico**: las cartas en vuelo, los marcadores y los carteles de
   resultado salen de la pantalla al subir el regulador 3D.
 - Animaciones de reparto, giro de cartas, bazas que vuelan al montón del
-  ganador, carteles de "¡Escoba!", "¡Menos diez!" y "¡Chinchón!", botones con brillo y fundidos entre pantallas.
+  ganador, carteles de "¡Escoba!", "¡Menos diez!", "¡Chinchón!" y "¡Órdago!", bocadillos con lo
+  que dice cada jugador, botones con brillo y fundidos entre pantallas.
 - Glifos de botones de la fuente del sistema (Ⓐ, Ⓑ, Ⓧ...) y efectos de sonido.
 - Cartas dibujadas a mano por código, con los cortes tradicionales del marco que
   indican el palo (oros sin cortes, copas uno, espadas dos y bastos tres).
@@ -175,7 +196,7 @@ tests/       Tests de la lógica
 tools/       Generadores de gráficos y sonidos
 ```
 
-### Añadir un juego nuevo (mus...)
+### Añadir un juego nuevo
 
 1. Escribe las reglas en `source/games/<juego>.c/.h` sin usar nada de la 3DS y
    añade tests en `tests/test_main.c`.

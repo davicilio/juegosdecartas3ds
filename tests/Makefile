@@ -5,7 +5,7 @@ SRC     := ../source
 OBJS    := test_main.c $(SRC)/core/cards.c $(SRC)/core/rng.c \
            $(SRC)/games/sieteymedia.c $(SRC)/games/cinquillo.c \
            $(SRC)/games/brisca.c $(SRC)/games/escoba.c \
-           $(SRC)/games/chinchon.c
+           $(SRC)/games/chinchon.c $(SRC)/games/mus.c
 
 .PHONY: all run clean
 

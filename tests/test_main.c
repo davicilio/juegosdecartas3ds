@@ -9,6 +9,7 @@
 #include "games/chinchon.h"
 #include "games/cinquillo.h"
 #include "games/escoba.h"
+#include "games/mus.h"
 #include "games/sieteymedia.h"
 
 static int failures = 0;
@@ -632,6 +633,186 @@ static void test_ch_simulation(void)
 	CHECK(wins[1] > wins[0]);
 }
 
+
+static void set_hand(Mus* g, int p, Card a, Card b, Card c, Card d)
+{
+	g->hands[p][0] = a;
+	g->hands[p][1] = b;
+	g->hands[p][2] = c;
+	g->hands[p][3] = d;
+}
+
+static void test_mus_values(void)
+{
+	Card h[4] = { CARD(OROS, 3), CARD(COPAS, RANK_REY), CARD(BASTOS, 2), CARD(ESPADAS, 1) };
+	/* A ocho reyes: tres = rey y dos = as -> duples de reyes y ases */
+	CHECK(mus_pares_kind(h) == 3);
+	CHECK(mus_juego_sum(h) == 22);
+	char buf[48];
+	mus_describe(h, MUS_LANCE_PARES, false, buf, sizeof buf);
+	CHECK(strcmp(buf, "Duples reyes y ases") == 0);
+
+	Card j31[4] = { CARD(OROS, RANK_REY), CARD(COPAS, RANK_SOTA), CARD(BASTOS, RANK_CABALLO), CARD(ESPADAS, 1) };
+	Card j32[4] = { CARD(OROS, RANK_REY), CARD(COPAS, RANK_SOTA), CARD(BASTOS, 5), CARD(ESPADAS, 7) };
+	Card j40[4] = { CARD(OROS, RANK_REY), CARD(COPAS, RANK_SOTA), CARD(BASTOS, RANK_CABALLO), CARD(ESPADAS, 3) };
+	Card j33[4] = { CARD(OROS, RANK_REY), CARD(COPAS, RANK_SOTA), CARD(BASTOS, 6), CARD(ESPADAS, 7) };
+	CHECK(mus_juego_sum(j31) == 31 && mus_juego_value(j31) == 3);
+	CHECK(mus_juego_sum(j40) == 40 && mus_juego_value(j40) == 2);
+	CHECK(mus_compare(MUS_LANCE_JUEGO, false, j31, j32) > 0);
+	CHECK(mus_compare(MUS_LANCE_JUEGO, false, j32, j40) > 0);
+	CHECK(mus_compare(MUS_LANCE_JUEGO, false, j40, j33) > 0);
+
+	/* Grande: R R 7 4 gana a R C C C; chica: A A 4 5 gana a A 4 4 7 */
+	Card g1[4] = { CARD(OROS, 3), CARD(COPAS, RANK_REY), CARD(BASTOS, 7), CARD(ESPADAS, 4) };
+	Card g2[4] = { CARD(OROS, RANK_REY), CARD(COPAS, RANK_CABALLO), CARD(BASTOS, RANK_CABALLO),
+		CARD(ESPADAS, RANK_CABALLO) };
+	CHECK(mus_compare(MUS_LANCE_GRANDE, false, g1, g2) > 0);
+	Card c1[4] = { CARD(OROS, 1), CARD(COPAS, 2), CARD(BASTOS, 4), CARD(ESPADAS, 5) };
+	Card c2[4] = { CARD(OROS, 1), CARD(COPAS, 4), CARD(BASTOS, 4), CARD(ESPADAS, 7) };
+	CHECK(mus_compare(MUS_LANCE_CHICA, false, c1, c2) > 0);
+	/* Pares: medias ganan a pareja, duples a medias */
+	CHECK(mus_compare(MUS_LANCE_PARES, false, g2, g1) > 0);
+	CHECK(mus_compare(MUS_LANCE_PARES, false, h, g2) > 0);
+}
+
+static void test_mus_lances(void)
+{
+	Mus g;
+	mus_init(&g, 21);
+	CHECK(g.mano == 0 && g.current == 0 && g.phase == MUS_PHASE_MUS);
+	/* Manos preparadas: nosotros (0 y 2) contra ellos (1 y 3) */
+	set_hand(&g, 0, CARD(OROS, RANK_REY), CARD(COPAS, RANK_REY), CARD(BASTOS, RANK_SOTA), CARD(ESPADAS, 1)); /* pareja reyes, 31 */
+	set_hand(&g, 1, CARD(OROS, 1), CARD(COPAS, 2), CARD(BASTOS, 4), CARD(ESPADAS, 5));                       /* chica, pareja ases */
+	set_hand(&g, 2, CARD(OROS, 6), CARD(COPAS, 7), CARD(BASTOS, 5), CARD(ESPADAS, 4));                       /* nada */
+	set_hand(&g, 3, CARD(OROS, 7), CARD(COPAS, 7), CARD(BASTOS, 7), CARD(ESPADAS, 6));                       /* medias de sietes, 27 */
+
+	/* El 0 corta: empieza la grande */
+	CHECK(mus_say_mus(&g, false));
+	CHECK(g.phase == MUS_PHASE_BET && g.lance == MUS_LANCE_GRANDE && g.current == 0);
+	/* Grande: 0 envida 2, 1 no quiere -> deje de 1 para nosotros */
+	CHECK(mus_bet(&g, MUS_ACT_ENVIDO, 2));
+	CHECK(g.current == 1 && mus_responding(&g));
+	CHECK(!mus_bet(&g, MUS_ACT_PASO, 0));
+	CHECK(mus_bet(&g, MUS_ACT_NO_QUIERO, 0));
+	CHECK(g.score[0] == 1);
+	/* Chica: todos pasan */
+	CHECK(g.lance == MUS_LANCE_CHICA && g.current == 0);
+	for (int i = 0; i < 4; i++)
+		CHECK(mus_bet(&g, MUS_ACT_PASO, 0));
+	/* Pares: juegan 0 (pareja de reyes), 1 (pareja de ases) y 3 (medias) */
+	CHECK(g.lance == MUS_LANCE_PARES);
+	CHECK(g.eligible[0] && g.eligible[1] && !g.eligible[2] && g.eligible[3]);
+	CHECK(g.current == 0);
+	CHECK(mus_bet(&g, MUS_ACT_PASO, 0));
+	CHECK(g.current == 1);
+	CHECK(mus_bet(&g, MUS_ACT_ENVIDO, 2));     /* ellos envidan 2 */
+	CHECK(g.current == 0);                     /* responde el único de nosotros con pares */
+	CHECK(mus_bet(&g, MUS_ACT_ENVIDO, 3));     /* reenvido: 5 */
+	CHECK(g.bet_pending == 5 && g.bet_accepted == 2);
+	CHECK(g.current == 1);
+	CHECK(mus_bet(&g, MUS_ACT_QUIERO, 0));
+	/* Juego: solo el 0 tiene juego -> cobra sus tantos sin envites */
+	CHECK(g.results[MUS_LANCE_JUEGO].kind == MUS_RES_SINGLE);
+	CHECK(g.phase == MUS_PHASE_HAND_OVER);
+
+	/* Recuento: grande deje 1 (ya cobrado); chica en paso para ellos (1);
+	 * pares querido 5 para ellos (medias) + tantos 1 (pareja ases) + 2 (medias) = 8;
+	 * juego: 31 de nuestro jugador 0 = 3 */
+	CHECK(g.results[MUS_LANCE_CHICA].points[1] == 1);
+	CHECK(g.results[MUS_LANCE_PARES].points[1] == 8);
+	CHECK(g.results[MUS_LANCE_JUEGO].points[0] == 3);
+	CHECK(g.score[0] == 4 && g.score[1] == 9);
+	CHECK(mus_next_hand(&g));
+	CHECK(g.mano == 1);
+}
+
+static void test_mus_ordago(void)
+{
+	Mus g;
+	mus_init(&g, 22);
+	set_hand(&g, 0, CARD(OROS, RANK_REY), CARD(COPAS, RANK_REY), CARD(BASTOS, 3), CARD(ESPADAS, 3));
+	set_hand(&g, 1, CARD(OROS, 1), CARD(COPAS, 2), CARD(BASTOS, 4), CARD(ESPADAS, 5));
+	set_hand(&g, 2, CARD(OROS, 6), CARD(COPAS, 7), CARD(BASTOS, 5), CARD(ESPADAS, 4));
+	set_hand(&g, 3, CARD(OROS, 7), CARD(COPAS, 7), CARD(BASTOS, 7), CARD(ESPADAS, RANK_CABALLO));
+	mus_say_mus(&g, false);
+	CHECK(mus_bet(&g, MUS_ACT_ORDAGO, 0));
+	CHECK(!mus_bet(&g, MUS_ACT_ENVIDO, 2)); /* a un órdago no se le reenvida */
+	CHECK(mus_bet(&g, MUS_ACT_QUIERO, 0));
+	CHECK(g.phase == MUS_PHASE_GAME_OVER);
+	CHECK(g.winner_team == 0);
+}
+
+static void test_mus_discard(void)
+{
+	Mus g;
+	mus_init(&g, 23);
+	for (int p = 0; p < 4; p++)
+		CHECK(mus_say_mus(&g, true));
+	CHECK(g.phase == MUS_PHASE_DISCARD);
+	CHECK(!mus_discard(&g, 0));
+	Card before = g.hands[0][1];
+	CHECK(mus_discard(&g, 0x2));
+	CHECK(!card_equal(before, g.hands[0][1]));
+	for (int p = 1; p < 4; p++)
+		CHECK(mus_discard(&g, 0xF));
+	CHECK(g.phase == MUS_PHASE_MUS && g.mus_rounds == 1);
+	CHECK(g.deck.count + g.discard_count + 16 == DECK_SIZE);
+}
+
+static void test_mus_simulation(void)
+{
+	int wins[2] = { 0 }, hands = 0, ordagos = 0;
+	for (uint32_t seed = 1; seed <= 300; seed++) {
+		Mus g;
+		mus_init(&g, seed);
+		Rng r;
+		rng_seed(&r, seed * 5);
+		int guard = 0;
+		while (g.phase != MUS_PHASE_GAME_OVER && guard++ < 20000) {
+			int p = g.current;
+			bool random_player = mus_team(p) == 0; /* nosotros al azar, ellos con IA */
+			switch (g.phase) {
+			case MUS_PHASE_MUS:
+				CHECK(mus_say_mus(&g, random_player ? rng_range(&r, 3) > 0 : mus_ai_wants_mus(&g, p)));
+				break;
+			case MUS_PHASE_DISCARD:
+				CHECK(mus_discard(&g, random_player ? 1u + rng_range(&r, 15) : mus_ai_discard(&g, p)));
+				break;
+			case MUS_PHASE_BET: {
+				int amount = 2;
+				MusAction a;
+				if (random_player) {
+					if (mus_responding(&g))
+						a = rng_range(&r, 2) ? MUS_ACT_QUIERO : MUS_ACT_NO_QUIERO;
+					else
+						a = rng_range(&r, 3) ? MUS_ACT_PASO : MUS_ACT_ENVIDO;
+				} else {
+					a = mus_ai_bet(&g, p, &amount);
+				}
+				CHECK(mus_bet(&g, a, amount));
+				break;
+			}
+			case MUS_PHASE_HAND_OVER:
+				hands++;
+				for (int l = 0; l < MUS_NUM_LANCES; l++)
+					CHECK(g.results[l].kind != MUS_RES_PENDING);
+				CHECK(mus_next_hand(&g));
+				break;
+			default:
+				break;
+			}
+			CHECK(g.deck.count + g.discard_count + 16 == DECK_SIZE);
+		}
+		CHECK(g.phase == MUS_PHASE_GAME_OVER);
+		CHECK(g.winner_team == 0 || g.winner_team == 1);
+		if (g.winner_team >= 0)
+			wins[g.winner_team]++;
+		ordagos += g.ordago_played;
+	}
+	printf("  mus: %d manos, %d órdagos, azar %d - IA %d\n", hands, ordagos, wins[0], wins[1]);
+	CHECK(wins[1] > wins[0]);
+}
+
 int main(void)
 {
 	printf("Ejecutando tests...\n");
@@ -652,6 +833,11 @@ int main(void)
 	test_ch_close();
 	test_ch_chinchon();
 	test_ch_simulation();
+	test_mus_values();
+	test_mus_lances();
+	test_mus_ordago();
+	test_mus_discard();
+	test_mus_simulation();
 	printf("%d comprobaciones, %d fallos\n", checks, failures);
 	return failures ? 1 : 0;
 }
