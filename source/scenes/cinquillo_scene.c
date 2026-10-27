@@ -17,7 +17,6 @@
 #define SLOT_STEP   21.0f
 #define MAX_FLYING  48
 
-static const char* const NAMES[CQ_PLAYERS] = { "Tú", "Paco", "Lola", "Manolo" };
 /* Desde dónde salen volando las cartas de cada jugador (pantalla superior). */
 static const float ORIGIN_X[CQ_PLAYERS] = { 200, 351, 49, 49 };
 static const float ORIGIN_Y[CQ_PLAYERS] = { 290, 65, 65, 165 };
@@ -27,6 +26,11 @@ static const float BADGE_Y[CQ_PLAYERS] = { 0, 20, 20, 120 };
 
 /* Mii de cada jugador de la CPU */
 static const CpuId MIIS[CQ_PLAYERS] = { CPU_PACO, CPU_PACO, CPU_LOLA, CPU_MANOLO };
+
+static const char* seat_name(int p)
+{
+	return p == 0 ? "Tú" : cpu_name(MIIS[p]);
+}
 
 static Cinquillo s_game;
 static Mood s_mood[CQ_PLAYERS];
@@ -143,13 +147,13 @@ static void on_action(void)
 		if (p == 0)
 			snprintf(buf, sizeof buf, "Juegas %s", card);
 		else
-			snprintf(buf, sizeof buf, "%s juega %s", NAMES[p], card);
+			snprintf(buf, sizeof buf, "%s juega %s", seat_name(p), card);
 		set_message(buf);
 	} else if (s_game.last_action == CQ_ACTION_PASS) {
 		s_pass_bubble[p] = 1.2f;
 		mood_set(&s_mood[p], EXPR_SAD, 1.2f);
 		audio_play(SFX_CHIP);
-		snprintf(buf, sizeof buf, "%s pasa%s", p == 0 ? "Tú" : NAMES[p], p == 0 ? "s" : "");
+		snprintf(buf, sizeof buf, "%s pasa%s", seat_name(p), p == 0 ? "s" : "");
 		set_message(buf);
 	}
 }
@@ -350,7 +354,7 @@ static void draw_badge(int p)
 	if (turn)
 		gfx_rrect(x - 3, y - 3, 80, 96, 10, DEPTH_UI, C2D_Color32(255, 220, 90, (u8)(80 + 100 * lift)));
 	gfx_panel(x, y, 74, 90, DEPTH_UI, C2D_Color32(10, 50, 25, 210), border);
-	gfx_text(NAMES[p], x + 37, y + 3, DEPTH_UI, 0.48f, turn ? COLOR_GOLD : COLOR_CREAM, C2D_AlignCenter);
+	gfx_text(seat_name(p), x + 37, y + 3, DEPTH_UI, 0.48f, turn ? COLOR_GOLD : COLOR_CREAM, C2D_AlignCenter);
 
 	/* Su Mii y las cartas que le quedan */
 	mii_draw(cpu_avatar(MIIS[p]), x + 24, y + 42, 14, DEPTH_UI + 0.4f, mood_expr(&s_mood[p]), false);
@@ -383,12 +387,12 @@ static void draw_banner(void)
 				"¡Has ganado con %d fichas!", s_game.chips[0]);
 		else
 			gfx_textf(200, 120, DEPTH_BANNER, 0.55f, COLOR_CREAM, C2D_AlignCenter, "Gana %s con %d fichas",
-				NAMES[leader], s_game.chips[leader]);
+				seat_name(leader), s_game.chips[leader]);
 	} else {
 		if (w == 0)
 			gfx_text("¡Ganas la ronda!", 200, 92, DEPTH_BANNER, 0.8f, COLOR_GOLD, C2D_AlignCenter);
 		else
-			gfx_textf(200, 92, DEPTH_BANNER, 0.8f, COLOR_CREAM, C2D_AlignCenter, "%s gana la ronda", NAMES[w]);
+			gfx_textf(200, 92, DEPTH_BANNER, 0.8f, COLOR_CREAM, C2D_AlignCenter, "%s gana la ronda", seat_name(w));
 		gfx_textf(200, 122, DEPTH_BANNER, 0.55f, COLOR_GOLD, C2D_AlignCenter, "Se lleva el bote: %d fichas",
 			s_round_prize);
 	}
@@ -444,7 +448,7 @@ static void cq_scene_draw_bottom(void)
 		gfx_text("¡Tu turno!", BOTTOM_W / 2, 34, 0, 0.55f, COLOR_GOLD, C2D_AlignCenter);
 	else if (s_game.phase == CQ_PHASE_PLAYING)
 		gfx_textf(BOTTOM_W / 2, 34, 0, 0.5f, COLOR_CREAM, C2D_AlignCenter, "Turno de %s...",
-			NAMES[s_game.current]);
+			seat_name(s_game.current));
 
 	/* Brillo bajo la carta seleccionada */
 	if (my_turn && s_game.hand_count[0] > 0) {

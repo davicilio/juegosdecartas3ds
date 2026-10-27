@@ -12,7 +12,7 @@
 #include "ui/mii.h"
 #include "ui/widgets.h"
 
-#define RIVAL_NAME   "Pepe"
+#define RIVAL CPU_PEPE /* su nombre es el del Mii que ocupe el puesto */
 #define RIVAL_Y      36.0f
 #define RIVAL_SCALE  0.55f
 #define TABLE_SCALE  0.6f
@@ -112,10 +112,16 @@ static void reset_visuals(void)
 static void announce_round(void)
 {
 	if (s_game.deal_escobas > 0) {
-		set_message(s_game.dealer == 0 ? "¡Escoba al repartir!" : RIVAL_NAME " hace escoba al repartir");
+		char buf[96];
+		snprintf(buf, sizeof buf, s_game.dealer == 0 ? "¡Escoba al repartir!" : "%s hace escoba al repartir",
+			cpu_name(RIVAL));
+		set_message(buf);
 		s_escoba_time = 1.5f;
 	} else {
-		set_message(s_game.current == 0 ? "Nueva ronda: sales tú" : "Nueva ronda: sale " RIVAL_NAME);
+		char buf[96];
+		snprintf(buf, sizeof buf, s_game.current == 0 ? "Nueva ronda: sales tú" : "Nueva ronda: sale %s",
+			cpu_name(RIVAL));
+		set_message(buf);
 	}
 }
 
@@ -179,14 +185,17 @@ static void on_action(void)
 			mood_set(&s_rival_mood, p == 1 ? EXPR_HAPPY : EXPR_SURPRISED, 2.0f);
 			mood_set(&s_my_mood, p == 0 ? EXPR_HAPPY : EXPR_SURPRISED, 2.0f);
 			audio_play(SFX_WIN);
-			snprintf(buf, sizeof buf, "%s", p == 0 ? "¡Escoba!" : RIVAL_NAME " hace escoba");
+			snprintf(buf, sizeof buf, p == 0 ? "¡Escoba!" : "%s hace escoba", cpu_name(RIVAL));
 		} else if (p == 0) {
 			snprintf(buf, sizeof buf, "Te llevas %d cartas", s_game.last_captured_count + 1);
 		} else {
-			snprintf(buf, sizeof buf, RIVAL_NAME " se lleva %d cartas", s_game.last_captured_count + 1);
+			snprintf(buf, sizeof buf, "%s se lleva %d cartas", cpu_name(RIVAL), s_game.last_captured_count + 1);
 		}
 	} else {
-		snprintf(buf, sizeof buf, p == 0 ? "Dejas %s" : RIVAL_NAME " deja %s", card);
+		if (p == 0)
+			snprintf(buf, sizeof buf, "Dejas %s", card);
+		else
+			snprintf(buf, sizeof buf, "%s deja %s", cpu_name(RIVAL), card);
 	}
 	set_message(buf);
 }
@@ -490,8 +499,10 @@ static void draw_scoreboard(void)
 
 	if (over) {
 		int w = es_winner(&s_game);
-		gfx_text(w == 0 ? "¡Ganas la partida!" : "Gana " RIVAL_NAME, 200, 28, d, 0.7f, w == 0 ? COLOR_GOLD : COLOR_RED,
-			C2D_AlignCenter);
+		if (w == 0)
+			gfx_text("¡Ganas la partida!", 200, 28, d, 0.7f, COLOR_GOLD, C2D_AlignCenter);
+		else
+			gfx_textf(200, 28, d, 0.7f, COLOR_RED, C2D_AlignCenter, "Gana %s", cpu_name(RIVAL));
 	} else {
 		gfx_textf(200, 28, d, 0.65f, COLOR_GOLD, C2D_AlignCenter, "Fin de la ronda %d", s_game.round);
 	}
@@ -499,7 +510,7 @@ static void draw_scoreboard(void)
 	const float x0 = 50, xa = 262, xb = 326;
 	float y = 58;
 	gfx_text("Tú", xa, y, d, 0.45f, COLOR_CREAM, C2D_AlignCenter);
-	gfx_text(RIVAL_NAME, xb, y, d, 0.45f, COLOR_CREAM, C2D_AlignCenter);
+	gfx_text(cpu_name(RIVAL), xb, y, d, 0.45f, COLOR_CREAM, C2D_AlignCenter);
 	y += 18;
 
 	char va[16], vb[16];
@@ -546,12 +557,12 @@ static void es_scene_draw_top(void)
 	gfx_panel(14, 14, 84, 52, DEPTH_UI, C2D_Color32(10, 50, 25, 210), C2D_Color32(20, 60, 30, 255));
 	gfx_textf(56, 17, DEPTH_UI, 0.4f, COLOR_CREAM, C2D_AlignCenter, "A %d puntos", ES_GAME_POINTS);
 	mii_draw(&profile_get()->avatar, 28, 40, 6, DEPTH_UI, mood_expr(&s_my_mood), false);
-	mii_draw(cpu_avatar(CPU_PEPE), 28, 54, 6, DEPTH_UI, mood_expr(&s_rival_mood), false);
+	mii_draw(cpu_avatar(RIVAL), 28, 54, 6, DEPTH_UI, mood_expr(&s_rival_mood), false);
 	gfx_textf(40, 33, DEPTH_UI, 0.45f, COLOR_WHITE, C2D_AlignLeft, "Tú %d", s_game.score[0]);
-	gfx_textf(40, 47, DEPTH_UI, 0.45f, COLOR_WHITE, C2D_AlignLeft, RIVAL_NAME " %d", s_game.score[1]);
+	gfx_textf(40, 47, DEPTH_UI, 0.45f, COLOR_WHITE, C2D_AlignLeft, "%s %d", cpu_name(RIVAL), s_game.score[1]);
 
 	/* Pepe, junto a sus cartas */
-	mii_draw(cpu_avatar(CPU_PEPE), 132, 34, 16, DEPTH_UI, mood_expr(&s_rival_mood), false);
+	mii_draw(cpu_avatar(RIVAL), 132, 34, 16, DEPTH_UI, mood_expr(&s_rival_mood), false);
 
 	/* Mazo */
 	if (s_game.deck.count > 0) {
@@ -608,7 +619,7 @@ static void es_scene_draw_bottom(void)
 	if (my_turn)
 		gfx_text("¡Tu turno!", BOTTOM_W / 2, 30, 0, 0.55f, COLOR_GOLD, C2D_AlignCenter);
 	else if (s_game.phase == ES_PHASE_PLAYING)
-		gfx_text("Turno de " RIVAL_NAME "...", BOTTOM_W / 2, 30, 0, 0.5f, COLOR_CREAM, C2D_AlignCenter);
+		gfx_textf(BOTTOM_W / 2, 30, 0, 0.5f, COLOR_CREAM, C2D_AlignCenter, "Turno de %s...", cpu_name(RIVAL));
 
 	if (my_turn && s_game.hand_count[0] > 0 && !busy()) {
 		const VisCard* v = &s_hand[card_index(s_game.hands[0][s_selected])];

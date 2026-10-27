@@ -15,32 +15,38 @@ para Nintendo 3DS con [devkitPro](https://devkitpro.org) (libctru + citro2d).
 |:---:|:---:|:---:|:---:|
 | ![Chinchón](docs/chinchon.png) | ![Cierre](docs/chinchon_fin.png) | ![Mus](docs/mus.png) | ![Recuento](docs/mus_fin.png) |
 
-| Tu perfil Mii | Señas del mus |
-|:---:|:---:|
-| ![Perfil](docs/perfil.png) | ![Señas](docs/mus_senas.png) |
+| Tu perfil Mii | Tus rivales (Miis de la consola) | Señas del mus |
+|:---:|:---:|:---:|
+| ![Perfil](docs/perfil.png) | ![Rivales](docs/rivales.png) | ![Señas](docs/mus_senas.png) |
 
-## Tu Mii y los rivales
+## Tu Mii y los rivales: los Miis de tu consola
 
-Todos los personajes son **Miis de verdad**: tienen las mismas piezas que crea el
-editor de Miis de Nintendo (peinado, ojos, cejas, nariz, boca, gafas, barba,
-lunar, colores, altura y complexión) y su cara se dibuja con el **renderizador
-oficial de Nintendo, Mii Studio** (`studio.mii.nintendo.com`), con expresiones
-oficiales: sonrisa, tristeza, sorpresa, enfado, guiño, ojos cerrados...
+El juego usa **los Miis que ya tienes en la consola**; no crea Miis nuevos:
 
-- La primera vez que abres el juego creas tu **perfil**. Con **Usar un Mii de la
-  consola** se abre el selector de Miis del sistema y se copian todas las piezas
-  de tu Mii, así que en las mesas aparece tu Mii tal cual lo tienes en la consola.
-- Los rivales (Don Ramón, Paco, Lola, Manolo, Carmen, Pepe y Lucía) también son
-  Miis completos.
-- Cada cara se descarga **una sola vez** con la conexión a internet de la consola y
-  se guarda en `/3ds/JuegosDeCartas/miis/` de la SD; después funciona sin conexión.
-  La descarga usa el servicio HTTPS de la propia consola, que comprueba el
-  certificado del servidor.
-- Mientras no está la cara oficial (sin conexión, o si se desactiva la opción
-  **Miis oficiales** en Mi perfil) se ve una versión simplificada dibujada por el
-  juego. Esa versión también se puede retocar a mano en Mi perfil.
+- **Tu Mii**: la primera vez eliges tu Mii con el **selector de Miis del sistema**
+  (la pantalla oficial de Nintendo que usan los juegos para elegir un Mii). Puedes
+  elegir uno de tus Miis o uno de los **Miis invitados**.
+- **Tus rivales**: al arrancar, el juego lee la lista de Miis de la consola (la base
+  de datos del editor de Miis, `CFL_DB.dat`, en los datos compartidos del sistema)
+  y los reparte entre los puestos de la CPU: la banca de la siete y media, los tres
+  de la mesa de cinquillo y mus, y los rivales de brisca, escoba y chinchón. Cada
+  rival se llama como su Mii. Tu propio Mii nunca hace de rival.
+- En **Mi perfil → Tus rivales** ves quién ocupa cada puesto y puedes cambiar
+  cualquiera con el selector de Miis, también por Miis invitados. Con **Miis de la
+  consola** vuelves al reparto automático.
+- Si la consola no tiene Miis (o no se puede leer la lista), se usan unos Miis de
+  reserva hasta que elijas los tuyos o Miis invitados con el selector.
 
-El perfil guarda tus estadísticas de cada juego en `/3ds/JuegosDeCartas/perfil.dat`.
+La cara de cada Mii se dibuja con el **renderizador oficial de Nintendo, Mii
+Studio** (`studio.mii.nintendo.com`), con expresiones oficiales (sonrisa,
+tristeza, sorpresa, enfado, guiño, ojos cerrados...). Cada cara se descarga una
+sola vez con la conexión a internet de la consola, mediante su servicio HTTPS que
+comprueba el certificado del servidor, y se guarda en `/3ds/JuegosDeCartas/miis/`
+de la SD. Mientras no está disponible (sin conexión, o con la opción **Miis
+oficiales** desactivada) se ve una versión simplificada dibujada por el juego.
+
+El perfil guarda tus estadísticas en `/3ds/JuegosDeCartas/perfil.dat` y los
+rivales que elijas a mano en `/3ds/JuegosDeCartas/rivales.dat`.
 
 Los Miis parpadean, se alegran cuando ganan, se entristecen cuando pierden y se
 sorprenden con una escoba, un chinchón o un órdago.
@@ -66,7 +72,7 @@ en cada mano.
 La banca no hace trampas: tu primera carta está boca abajo y solo ve las demás.
 
 ### Cinquillo
-Partida a cuatro jugadores (tú contra Paco, Lola y Manolo). Se reparten las 40
+Partida a cuatro jugadores (tú contra tres Miis). Se reparten las 40
 cartas; sale quien tenga el cinco de oros. En cada turno hay que colocar una carta
 si se puede: un cinco abre un palo nuevo y en los palos abiertos se continúa la
 escalera hacia abajo (4, 3, 2, 1) o hacia arriba (6, 7, sota, caballo, rey). Si no
@@ -75,7 +81,7 @@ gana la ronda y se lleva el bote. La partida dura 10 rondas o hasta que alguien
 se arruine.
 
 ### Brisca
-Partida a dos contra Carmen. Cada uno tiene tres cartas y la muestra (la carta
+Partida a dos contra un Mii. Cada uno tiene tres cartas y la muestra (la carta
 que queda boca arriba bajo el mazo) marca el palo de triunfo. No es obligatorio
 asistir: gana la baza el triunfo más alto o, si no hay, la carta más alta del palo
 que salió. El orden es as, tres, rey, caballo, sota, 7, 6, 5, 4 y 2, y los puntos
@@ -87,7 +93,7 @@ un tres o una figura; si la muestra es más baja, se cambia con el 2. El cambio 
 hace al salir, mientras quede mazo.
 
 ### Escoba
-Partida a dos contra Pepe. Las cartas valen su número, salvo sota 8, caballo 9 y
+Partida a dos contra un Mii. Las cartas valen su número, salvo sota 8, caballo 9 y
 rey 10. Hay cuatro cartas en la mesa y tres en cada mano. Si tu carta suma 15 con
 una o varias de la mesa, te las llevas (si puede sumar 15, tiene que llevárselas;
 si hay varias combinaciones, eliges cuál). Si no suma 15, la carta se queda en la
@@ -99,7 +105,7 @@ Cada ronda da un punto por escoba, por tener más cartas, más oros, más sietes
 por el siete de oros. Gana la partida quien llegue antes a 21.
 
 ### Chinchón
-Partida a dos contra Lucía, con siete cartas cada uno. En tu turno robas una carta
+Partida a dos contra un Mii, con siete cartas cada uno. En tu turno robas una carta
 (del mazo o la de arriba de los descartes) y descartas otra. Se combinan **tríos o
 cuartetos** del mismo número y **escaleras** de tres o más cartas seguidas del
 mismo palo (1-7, sota, caballo, rey). Tu mano se ordena sola: las combinaciones
@@ -114,7 +120,7 @@ seguidas del mismo palo es **chinchón**: partida ganada. Pierde quien pase de 1
 Si se acaba el mazo, se barajan los descartes.
 
 ### Mus
-Por parejas: tú y Lola contra Paco y Manolo, a ocho reyes (los treses cuentan como
+Por parejas (tú y un Mii compañero contra dos Miis rivales), a ocho reyes (los treses cuentan como
 reyes y los doses como ases). Cada uno tiene cuatro cartas. Primero se pide **mus**:
 si los cuatro lo quieren, cada uno cambia las cartas que elija; en cuanto alguien
 dice **no hay mus** se juegan los cuatro lances:
@@ -146,9 +152,9 @@ verás en los Miis (cada seña es una expresión oficial de los Miis):
 | Guiñar un ojo | 31 de juego |
 | Cerrar los ojos | Ciego: nada |
 
-Lola te hace señas y las tiene en cuenta para jugar; pulsa **SELECT** (o toca
-**Señas**) para ver la última que te ha hecho y para hacerle tú una a ella. Paco y
-Manolo también se hacen señas entre ellos: si estás atento a sus caras, ¡puedes
+Tu compañero te hace señas y las tiene en cuenta para jugar; pulsa **SELECT** (o
+toca **Señas**) para ver la última que te ha hecho y para hacerle tú una. Los dos
+rivales también se hacen señas entre ellos: si estás atento a sus caras, ¡puedes
 pillarlas!
 
 ## Controles

@@ -28,7 +28,7 @@ static const MenuEntry entries[] = {
 	  "El primero que se quede sin cartas se lleva el bote.",
 	  SCENE_CINQUILLO, SUIT_COPAS, { C(BASTOS, 5), C(OROS, 5), C(COPAS, 5) }, { CPU_PACO, CPU_LOLA, CPU_MANOLO } },
 	{ "Brisca",
-	  "Juego de bazas contra Carmen. La muestra marca el triunfo; ases y treses valen más que el rey. "
+	  "Juego de bazas contra un Mii. La muestra marca el triunfo; ases y treses valen más que el rey. "
 	  "Suma más de 60 de los 120 puntos para ganar.",
 	  SCENE_BRISCA, SUIT_ESPADAS, { C(OROS, 1), C(COPAS, 3), C(ESPADAS, RANK_REY) }, { CPU_CARMEN, -1, -1 } },
 	{ "Escoba",
@@ -36,16 +36,16 @@ static const MenuEntry entries[] = {
 	  "Cuentan cartas, oros, sietes y el siete de oros. Gana quien llegue a 21.",
 	  SCENE_ESCOBA, SUIT_BASTOS, { C(OROS, 7), C(BASTOS, 5), C(COPAS, 3) }, { CPU_PEPE, -1, -1 } },
 	{ "Mus",
-	  "Tú y Lola contra Paco y Manolo. Mus, descartes, grande, chica, pares y juego. "
-	  "Hazle señas a tu compañera con SELECT... ¡y vigila las de los rivales! A 40 piedras.",
+	  "Por parejas, con tus Miis. Mus, descartes, grande, chica, pares y juego. "
+	  "Hazle señas a tu compañero con SELECT... ¡y vigila las de los rivales! A 40 piedras.",
 	  SCENE_MUS, SUIT_BASTOS, { C(OROS, RANK_REY), C(BASTOS, RANK_REY), C(COPAS, 3) }, { CPU_LOLA, CPU_PACO, CPU_MANOLO } },
 	{ "Chinchón",
 	  "Forma tríos y escaleras del mismo palo. Cierra con todo ligado (menos diez) o con una suelta "
 	  "pequeña. Siete seguidas del mismo palo: ¡chinchón! Pierde quien pase de 100.",
 	  SCENE_CHINCHON, SUIT_OROS, { C(ESPADAS, 4), C(ESPADAS, 5), C(ESPADAS, 6) }, { CPU_LUCIA, -1, -1 } },
 	{ "Mi perfil",
-	  "Tu Mii y tus estadísticas. Usa un Mii de la consola o diséñalo a tu gusto: "
-	  "peinado, colores, gafas, barba...",
+	  "Tu Mii, tus estadísticas y tus rivales: los Miis de tu consola (o los Miis invitados) "
+	  "que juegan contra ti en cada mesa.",
 	  SCENE_PROFILE, SUIT_OROS, { C(OROS, 1), C(OROS, 1), C(OROS, 1) }, { -1, -1, -1 } },
 };
 

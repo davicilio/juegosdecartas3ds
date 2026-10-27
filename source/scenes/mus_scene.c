@@ -18,13 +18,17 @@
 #define MIN_BET    2
 #define MAX_BET    10
 
-static const char* const NAMES[MUS_PLAYERS] = { "Tú", "Paco", "Lola", "Manolo" };
 /* Posición de las cartas de cada jugador en la pantalla superior */
 static const float SEAT_X[MUS_PLAYERS] = { 200, 352, 200, 48 };
 static const float SEAT_Y[MUS_PLAYERS] = { 290, 98, 36, 98 };
 
 /* Mii de cada asiento (el 0 eres tú, con tu perfil) */
 static const CpuId MIIS[MUS_PLAYERS] = { CPU_PACO, CPU_PACO, CPU_LOLA, CPU_MANOLO };
+
+static const char* seat_name(int p)
+{
+	return p == 0 ? "Tú" : cpu_name(MIIS[p]);
+}
 
 static Mus s_game;
 static bool s_started;
@@ -124,7 +128,9 @@ static void update_senas(float dt)
 		mood_set(&s_mood[p], sena_expr(sena), 1.4f);
 		if (p == 2) {
 			s_lola_sena = sena;
-			set_message("Lola te hace una seña");
+			char buf[64];
+			snprintf(buf, sizeof buf, "%s te hace una seña", seat_name(2));
+			set_message(buf);
 		}
 	}
 }
@@ -143,7 +149,7 @@ static void reset_visuals(void)
 	s_seen_phase = s_game.phase;
 	memset(s_bubble_time, 0, sizeof s_bubble_time);
 	char buf[96];
-	snprintf(buf, sizeof buf, "Nueva mano. Es mano %s", s_game.mano == 0 ? "tú" : NAMES[s_game.mano]);
+	snprintf(buf, sizeof buf, "Nueva mano. Es mano %s", s_game.mano == 0 ? "tú" : seat_name(s_game.mano));
 	set_message(buf);
 }
 
@@ -202,7 +208,7 @@ static void on_action(void)
 		break;
 	case MUS_ACT_NO_MUS:
 		say(p, "No hay mus");
-		snprintf(buf, sizeof buf, "%s corta el mus", p == 0 ? "Tú" : NAMES[p]);
+		snprintf(buf, sizeof buf, "%s corta el mus", seat_name(p));
 		set_message(buf);
 		audio_play(SFX_CONFIRM);
 		break;
@@ -355,7 +361,7 @@ static void choose_sena(MusSena sena)
 	mus_make_sena(&s_game, 0, sena);
 	mood_set(&s_mood[0], sena_expr(sena), 1.4f);
 	char buf[96];
-	snprintf(buf, sizeof buf, "Seña a Lola: %s", mus_sena_meaning(sena));
+	snprintf(buf, sizeof buf, "Seña a %s: %s", seat_name(2), mus_sena_meaning(sena));
 	set_message(buf);
 	audio_play(SFX_CONFIRM);
 	s_senas_open = false;
@@ -585,7 +591,7 @@ static void draw_seat(int p)
 	float nx = p == 2 ? cx + 110 : cx, ny = p == 2 ? cy - 12 : cy + 32;
 	u32 border = turn ? COLOR_GOLD : mus_team(p) == 0 ? C2D_Color32(60, 120, 200, 255) : C2D_Color32(190, 60, 50, 255);
 	gfx_panel(nx - 38, ny, 76, 22, DEPTH_UI, out ? C2D_Color32(40, 40, 40, 200) : C2D_Color32(10, 50, 25, 220), border);
-	gfx_text(NAMES[p], nx, ny + 4, DEPTH_UI, 0.45f, out ? C2D_Color32(150, 150, 150, 255) : COLOR_CREAM,
+	gfx_text(seat_name(p), nx, ny + 4, DEPTH_UI, 0.45f, out ? C2D_Color32(150, 150, 150, 255) : COLOR_CREAM,
 		C2D_AlignCenter);
 	if (s_game.mano == p)
 		gfx_text("mano", nx + (p == 2 ? 50 : 0), ny + (p == 2 ? 4 : 24), DEPTH_UI, 0.38f, COLOR_GOLD, C2D_AlignCenter);
@@ -720,7 +726,9 @@ static void mus_scene_draw_top(void)
 	if (s_game.phase == MUS_PHASE_GAME_OVER && s_result_time > 0.0f && s_ordago_time <= 0.0f) {
 		if (banner_draw(s_result_time, 200, 124, 300, 60)) {
 			bool won = s_game.winner_team == 0;
-			gfx_text(won ? "¡Ganáis la partida!" : "Ganan Paco y Manolo", 200, 100, DEPTH_BANNER, 0.75f,
+			char who[80];
+			snprintf(who, sizeof who, "Ganan %s y %s", seat_name(1), seat_name(3));
+			gfx_text(won ? "¡Ganáis la partida!" : who, 200, 100, DEPTH_BANNER, 0.75f,
 				won ? COLOR_GOLD : COLOR_RED, C2D_AlignCenter);
 			if (s_game.ordago_played)
 				gfx_text(ordago_label(), 200, 128, DEPTH_BANNER, 0.5f, COLOR_CREAM, C2D_AlignCenter);
@@ -754,7 +762,7 @@ static void mus_scene_draw_bottom(void)
 		}
 		gfx_text(prompt, BOTTOM_W / 2, 30, 0, 0.5f, COLOR_GOLD, C2D_AlignCenter);
 	} else if (s_game.phase <= MUS_PHASE_BET) {
-		gfx_textf(BOTTOM_W / 2, 30, 0, 0.5f, COLOR_CREAM, C2D_AlignCenter, "Habla %s...", NAMES[s_game.current]);
+		gfx_textf(BOTTOM_W / 2, 30, 0, 0.5f, COLOR_CREAM, C2D_AlignCenter, "Habla %s...", seat_name(s_game.current));
 	}
 
 	if (s_game.phase == MUS_PHASE_DISCARD && my_turn && !busy()) {
@@ -781,8 +789,8 @@ static void mus_scene_draw_bottom(void)
 		gfx_text("Marca con " GLYPH_X " o tocando · " GLYPH_A " para cambiarlas", BOTTOM_W / 2, 177, 0, 0.42f,
 			C2D_Color32(200, 230, 200, 255), C2D_AlignCenter);
 	else
-		gfx_text("Tú y Lola contra Paco y Manolo", BOTTOM_W / 2, 177, 0, 0.42f, C2D_Color32(200, 230, 200, 255),
-			C2D_AlignCenter);
+		gfx_textf(BOTTOM_W / 2, 177, 0, 0.42f, C2D_Color32(200, 230, 200, 255), C2D_AlignCenter,
+			"Tú y %s contra %s y %s", seat_name(2), seat_name(1), seat_name(3));
 
 	for (int i = 0; i < s_btn_count; i++)
 		button_draw(&s_btn[i], i == 0 && s_btn[i].enabled);
@@ -794,13 +802,13 @@ static void mus_scene_draw_bottom(void)
 	/* Panel de señas */
 	gfx_rect(0, 0, BOTTOM_W, SCREEN_H, 0, C2D_Color32(0, 0, 0, 150));
 	gfx_panel(4, 4, BOTTOM_W - 8, SCREEN_H - 8, 0, C2D_Color32(20, 45, 90, 245), COLOR_GOLD);
-	gfx_text("Señas para Lola", BOTTOM_W / 2, 9, 0, 0.55f, COLOR_GOLD, C2D_AlignCenter);
+	gfx_textf(BOTTOM_W / 2, 9, 0, 0.55f, COLOR_GOLD, C2D_AlignCenter, "Señas para %s", seat_name(2));
 	char buf[96];
 	if (s_lola_sena != MUS_SENA_NONE)
-		snprintf(buf, sizeof buf, "Lola te dice: %s (%s)", mus_sena_meaning(s_lola_sena),
+		snprintf(buf, sizeof buf, "%s te dice: %s (%s)", seat_name(2), mus_sena_meaning(s_lola_sena),
 			mus_sena_gesture(s_lola_sena));
 	else
-		snprintf(buf, sizeof buf, "Lola aún no te ha hecho ninguna seña");
+		snprintf(buf, sizeof buf, "%s aún no te ha hecho ninguna seña", seat_name(2));
 	gfx_text(buf, BOTTOM_W / 2, 30, 0, 0.42f, COLOR_CREAM, C2D_AlignCenter);
 	for (int i = 0; i < MUS_NUM_SENAS - 1; i++) {
 		MusSena sena = (MusSena)(i + 1);

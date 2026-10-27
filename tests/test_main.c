@@ -998,6 +998,58 @@ static void test_profile_v1(void)
 	remove(path);
 }
 
+
+static void make_pool_mii(Avatar* a, const char* name, int hair)
+{
+	MiiParts m;
+	mii_parts_default(&m, false);
+	m.hair_type = (uint8_t)hair;
+	avatar_from_mii(a, &m, name);
+}
+
+static void test_rivals(void)
+{
+	/* Sin Miis de la consola: todos los puestos usan los de reserva */
+	CHECK(cpu_assign_pool(NULL, 0, NULL) == 0);
+	for (int i = 0; i < CPU_COUNT; i++)
+		CHECK(cpu_is_fallback((CpuId)i));
+	CHECK(strcmp(cpu_name(CPU_LOLA), "Lola") == 0);
+
+	/* Cuatro Miis en la consola, uno de ellos es el jugador */
+	Avatar pool[4];
+	make_pool_mii(&pool[0], "Ana", 10);
+	make_pool_mii(&pool[1], "Yo", 20);
+	make_pool_mii(&pool[2], "Luis", 30);
+	make_pool_mii(&pool[3], "Marta", 40);
+	CHECK(cpu_assign_pool(pool, 4, &pool[1]) == 3);
+	/* Los tres puestos de la mesa de cinquillo y mus son Miis distintos */
+	CHECK(strcmp(cpu_name(CPU_PACO), "Ana") == 0);
+	CHECK(strcmp(cpu_name(CPU_LOLA), "Luis") == 0);
+	CHECK(strcmp(cpu_name(CPU_MANOLO), "Marta") == 0);
+	for (int i = 0; i < CPU_COUNT; i++) {
+		CHECK(!cpu_is_fallback((CpuId)i));
+		CHECK(strcmp(cpu_name((CpuId)i), "Yo") != 0);
+	}
+
+	/* Un Mii elegido a mano (por ejemplo un invitado) manda sobre el reparto */
+	Avatar guest;
+	make_pool_mii(&guest, "Invitado A", 50);
+	cpu_set_manual(CPU_CARMEN, &guest);
+	cpu_assign_pool(pool, 4, &pool[1]);
+	CHECK(cpu_is_manual(CPU_CARMEN));
+	CHECK(strcmp(cpu_name(CPU_CARMEN), "Invitado A") == 0);
+	/* Si se elige a mano un Mii de la consola, no se repite en otro puesto */
+	cpu_set_manual(CPU_RAMON, &pool[0]);
+	CHECK(cpu_assign_pool(pool, 4, &pool[1]) == 2);
+	CHECK(strcmp(cpu_name(CPU_PACO), "Luis") == 0);
+
+	/* Se deja todo como estaba para el resto de tests */
+	cpu_set_manual(CPU_CARMEN, NULL);
+	cpu_set_manual(CPU_RAMON, NULL);
+	cpu_assign_pool(NULL, 0, NULL);
+	CHECK(cpu_is_fallback(CPU_CARMEN));
+}
+
 int main(void)
 {
 	printf("Ejecutando tests...\n");
@@ -1028,6 +1080,7 @@ int main(void)
 	test_profile();
 	test_mii_studio();
 	test_profile_v1();
+	test_rivals();
 	printf("%d comprobaciones, %d fallos\n", checks, failures);
 	return failures ? 1 : 0;
 }

@@ -12,7 +12,7 @@
 #include "ui/mii.h"
 #include "ui/widgets.h"
 
-#define RIVAL_NAME  "Lucía"
+#define RIVAL CPU_LUCIA /* su nombre es el del Mii que ocupe el puesto */
 #define RIVAL_Y     38.0f
 #define RIVAL_SCALE 0.55f
 #define DECK_X      158.0f
@@ -101,7 +101,9 @@ static void reset_visuals(void)
 	s_result_time = 0.0f;
 	s_banner_time = 0.0f;
 	s_cached_count = -1;
-	set_message(s_game.current == 0 ? "Empiezas tú: roba una carta" : "Empieza " RIVAL_NAME);
+	char buf[64];
+	snprintf(buf, sizeof buf, s_game.current == 0 ? "Empiezas tú: roba una carta" : "Empieza %s", cpu_name(RIVAL));
+	set_message(buf);
 }
 
 static void ch_scene_enter(void)
@@ -154,10 +156,11 @@ static void do_draw(bool from_discard)
 	else if (p == 1) {
 		if (from_discard) {
 			card_describe_article(top, card, sizeof card);
-			snprintf(buf, sizeof buf, RIVAL_NAME " coge %s", card);
+			snprintf(buf, sizeof buf, "%s coge %s", cpu_name(RIVAL), card);
 			set_message(buf);
 		} else {
-			set_message(RIVAL_NAME " roba del mazo");
+			snprintf(buf, sizeof buf, "%s roba del mazo", cpu_name(RIVAL));
+			set_message(buf);
 		}
 	} else {
 		set_message("Ahora descarta una carta");
@@ -187,13 +190,13 @@ static void do_discard(int idx, bool close)
 	card_describe_article(c, card, sizeof card);
 	if (close) {
 		if (s_game.chinchon) {
-			snprintf(buf, sizeof buf, "%s", p == 0 ? "¡Chinchón! Ganas la partida" : "¡Chinchón de " RIVAL_NAME "!");
+			snprintf(buf, sizeof buf, p == 0 ? "¡Chinchón! Ganas la partida" : "¡Chinchón de %s!", cpu_name(RIVAL));
 			s_banner_time = 2.0f;
 		} else if (s_game.menos_diez) {
-			snprintf(buf, sizeof buf, "%s", p == 0 ? "¡Cierras con menos diez!" : RIVAL_NAME " cierra con menos diez");
+			snprintf(buf, sizeof buf, p == 0 ? "¡Cierras con menos diez!" : "%s cierra con menos diez", cpu_name(RIVAL));
 			s_banner_time = 2.0f;
 		} else {
-			snprintf(buf, sizeof buf, "%s", p == 0 ? "Cierras la ronda" : RIVAL_NAME " cierra la ronda");
+			snprintf(buf, sizeof buf, p == 0 ? "Cierras la ronda" : "%s cierra la ronda", cpu_name(RIVAL));
 		}
 		audio_play(p == 0 ? SFX_WIN : SFX_LOSE);
 		Expression closer = s_game.chinchon || s_game.menos_diez ? EXPR_SURPRISED : EXPR_HAPPY;
@@ -202,7 +205,10 @@ static void do_discard(int idx, bool close)
 		if (s_game.phase == CH_PHASE_GAME_OVER)
 			profile_record_game(GAME_CHINCHON, ch_winner(&s_game) == 0);
 	} else {
-		snprintf(buf, sizeof buf, p == 0 ? "Descartas %s" : RIVAL_NAME " descarta %s", card);
+		if (p == 0)
+			snprintf(buf, sizeof buf, "Descartas %s", card);
+		else
+			snprintf(buf, sizeof buf, "%s descarta %s", cpu_name(RIVAL), card);
 	}
 	set_message(buf);
 	if (s_selected >= s_game.hand_count[0])
@@ -450,17 +456,20 @@ static void draw_result(void)
 	int closer = s_game.closer;
 	if (over) {
 		int w = ch_winner(&s_game);
-		gfx_text(w == 0 ? "¡Ganas la partida!" : "Gana " RIVAL_NAME, 200, 106, d, 0.7f, w == 0 ? COLOR_GOLD : COLOR_RED,
-			C2D_AlignCenter);
+		if (w == 0)
+			gfx_text("¡Ganas la partida!", 200, 106, d, 0.7f, COLOR_GOLD, C2D_AlignCenter);
+		else
+			gfx_textf(200, 106, d, 0.7f, COLOR_RED, C2D_AlignCenter, "Gana %s", cpu_name(RIVAL));
 	} else {
-		gfx_text(closer == 0 ? "Cierras tú" : "Cierra " RIVAL_NAME, 200, 106, d, 0.7f, COLOR_GOLD, C2D_AlignCenter);
+		gfx_textf(200, 106, d, 0.7f, COLOR_GOLD, C2D_AlignCenter, closer == 0 ? "Cierras tú" : "Cierra %s",
+			cpu_name(RIVAL));
 	}
 	if (s_game.chinchon) {
 		gfx_text("con chinchón: ¡partida ganada!", 200, 134, d, 0.5f, COLOR_CREAM, C2D_AlignCenter);
 		return;
 	}
 	gfx_textf(130, 134, d, 0.5f, COLOR_CREAM, C2D_AlignCenter, "Tú %+d", s_game.round_points[0]);
-	gfx_textf(270, 134, d, 0.5f, COLOR_CREAM, C2D_AlignCenter, RIVAL_NAME " %+d", s_game.round_points[1]);
+	gfx_textf(270, 134, d, 0.5f, COLOR_CREAM, C2D_AlignCenter, "%s %+d", cpu_name(RIVAL), s_game.round_points[1]);
 	gfx_textf(130, 156, d, 0.6f, COLOR_WHITE, C2D_AlignCenter, "%d", s_game.score[0]);
 	gfx_textf(270, 156, d, 0.6f, COLOR_WHITE, C2D_AlignCenter, "%d", s_game.score[1]);
 	gfx_textf(200, 182, d, 0.4f, C2D_Color32(200, 230, 200, 255), C2D_AlignCenter, "Pierde quien pase de %d",
@@ -475,13 +484,13 @@ static void ch_scene_draw_top(void)
 	gfx_panel(14, 14, 84, 52, DEPTH_UI, C2D_Color32(10, 50, 25, 210), C2D_Color32(20, 60, 30, 255));
 	gfx_textf(56, 17, DEPTH_UI, 0.4f, COLOR_CREAM, C2D_AlignCenter, "Límite %d", CH_LIMIT);
 	mii_draw(&profile_get()->avatar, 28, 40, 6, DEPTH_UI, mood_expr(&s_my_mood), false);
-	mii_draw(cpu_avatar(CPU_LUCIA), 28, 54, 6, DEPTH_UI, mood_expr(&s_rival_mood), false);
+	mii_draw(cpu_avatar(RIVAL), 28, 54, 6, DEPTH_UI, mood_expr(&s_rival_mood), false);
 	gfx_textf(40, 33, DEPTH_UI, 0.45f, COLOR_WHITE, C2D_AlignLeft, "Tú %d", s_game.score[0]);
-	gfx_textf(40, 47, DEPTH_UI, 0.45f, COLOR_WHITE, C2D_AlignLeft, RIVAL_NAME " %d", s_game.score[1]);
+	gfx_textf(40, 47, DEPTH_UI, 0.45f, COLOR_WHITE, C2D_AlignLeft, "%s %d", cpu_name(RIVAL), s_game.score[1]);
 	gfx_panel(300, 14, 86, 48, DEPTH_UI, C2D_Color32(10, 50, 25, 210),
 		s_game.current == 1 && s_game.phase < CH_PHASE_ROUND_OVER ? COLOR_GOLD : C2D_Color32(20, 60, 30, 255));
-	mii_draw(cpu_avatar(CPU_LUCIA), 318, 38, 13, DEPTH_UI + 0.4f, mood_expr(&s_rival_mood), false);
-	gfx_text(RIVAL_NAME, 360, 19, DEPTH_UI, 0.48f, COLOR_CREAM, C2D_AlignCenter);
+	mii_draw(cpu_avatar(RIVAL), 318, 38, 13, DEPTH_UI + 0.4f, mood_expr(&s_rival_mood), false);
+	gfx_text(cpu_name(RIVAL), 360, 19, DEPTH_UI, 0.48f, COLOR_CREAM, C2D_AlignCenter);
 	gfx_textf(360, 39, DEPTH_UI, 0.4f, COLOR_CREAM, C2D_AlignCenter, "Ronda %d", s_game.round);
 
 	draw_piles();
@@ -504,7 +513,7 @@ static void ch_scene_draw_bottom(void)
 		gfx_text(s_game.phase == CH_PHASE_DRAW ? "¡Tu turno! Roba una carta" : "Elige la carta que descartas",
 			BOTTOM_W / 2, 30, 0, 0.5f, COLOR_GOLD, C2D_AlignCenter);
 	else if (s_game.phase < CH_PHASE_ROUND_OVER)
-		gfx_text("Turno de " RIVAL_NAME "...", BOTTOM_W / 2, 30, 0, 0.5f, COLOR_CREAM, C2D_AlignCenter);
+		gfx_textf(BOTTOM_W / 2, 30, 0, 0.5f, COLOR_CREAM, C2D_AlignCenter, "Turno de %s...", cpu_name(RIVAL));
 
 	/* Barras doradas bajo cada combinación */
 	const ChAnalysis* a = hand_analysis();

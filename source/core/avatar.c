@@ -120,7 +120,11 @@ static void ramon(MiiParts* m)
 	m->mouth_type = 30;
 }
 
-const Avatar* cpu_avatar(CpuId id)
+static Avatar s_seat[CPU_COUNT];  /* quién ocupa cada puesto */
+static bool s_manual[CPU_COUNT];
+static bool s_from_pool[CPU_COUNT];
+
+static const Avatar* fallback_avatar(CpuId id)
 {
 	static Avatar roster[CPU_COUNT];
 	static bool ready;
@@ -135,6 +139,86 @@ const Avatar* cpu_avatar(CpuId id)
 		ready = true;
 	}
 	return &roster[id < CPU_COUNT ? id : 0];
+}
+
+const Avatar* cpu_avatar(CpuId id)
+{
+	if (id >= CPU_COUNT)
+		id = 0;
+	if (s_manual[id] || s_from_pool[id])
+		return &s_seat[id];
+	return fallback_avatar(id);
+}
+
+const char* cpu_name(CpuId id)
+{
+	return cpu_avatar(id)->name;
+}
+
+const char* cpu_role(CpuId id)
+{
+	static const char* const roles[CPU_COUNT] = {
+		[CPU_PACO] = "Cinquillo y mus (rival)",
+		[CPU_LOLA] = "Cinquillo y mus (compañero)",
+		[CPU_MANOLO] = "Cinquillo y mus (rival)",
+		[CPU_CARMEN] = "Brisca",
+		[CPU_PEPE] = "Escoba",
+		[CPU_LUCIA] = "Chinchón",
+		[CPU_RAMON] = "Banca de la siete y media",
+	};
+	return roles[id < CPU_COUNT ? id : 0];
+}
+
+void cpu_set_manual(CpuId id, const Avatar* a)
+{
+	if (id >= CPU_COUNT)
+		return;
+	s_manual[id] = a != NULL;
+	if (a) {
+		s_seat[id] = *a;
+		avatar_sanitize(&s_seat[id]);
+	}
+}
+
+bool cpu_is_manual(CpuId id)
+{
+	return id < CPU_COUNT && s_manual[id];
+}
+
+bool cpu_is_fallback(CpuId id)
+{
+	return id < CPU_COUNT && !s_manual[id] && !s_from_pool[id];
+}
+
+static bool same_mii(const Avatar* a, const Avatar* b)
+{
+	return a->official && b->official && mii_parts_hash(&a->mii) == mii_parts_hash(&b->mii);
+}
+
+int cpu_assign_pool(const Avatar* pool, int n, const Avatar* exclude)
+{
+	/* Candidatos: los de la consola que no son el jugador ni están ya elegidos */
+	int usable[64];
+	int count = 0;
+	for (int i = 0; i < n && count < 64; i++) {
+		bool skip = exclude && same_mii(&pool[i], exclude);
+		for (int s = 0; s < CPU_COUNT && !skip; s++)
+			if (s_manual[s] && same_mii(&pool[i], &s_seat[s]))
+				skip = true;
+		if (!skip)
+			usable[count++] = i;
+	}
+	int k = 0;
+	for (int s = 0; s < CPU_COUNT; s++) {
+		s_from_pool[s] = false;
+		if (s_manual[s] || count == 0)
+			continue;
+		s_seat[s] = pool[usable[k % count]];
+		avatar_sanitize(&s_seat[s]);
+		s_from_pool[s] = true;
+		k++;
+	}
+	return count < CPU_COUNT ? count : CPU_COUNT;
 }
 
 void avatar_from_mii(Avatar* a, const MiiParts* mii, const char* name)

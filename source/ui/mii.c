@@ -4,6 +4,7 @@
 #include <math.h>
 #include <stdio.h>
 #include <string.h>
+#include <stdlib.h>
 #include <sys/stat.h>
 
 #include "ui/gfx.h"
@@ -350,26 +351,169 @@ static void parts_from_console(MiiParts* m, const MiiData* mii)
 	mii_parts_sanitize(m);
 }
 
-bool profile_pick_console_mii(void)
+static void avatar_from_console(Avatar* a, const MiiData* mii, const char* name)
+{
+	MiiParts parts;
+	parts_from_console(&parts, mii);
+	avatar_from_mii(a, &parts, name);
+}
+
+/* Selector de Miis del sistema (la API oficial de Nintendo para elegir un
+ * Mii): muestra los Miis de la consola y, si guests, los Miis invitados. */
+static bool pick_mii(Avatar* out, const char* title, bool guests)
 {
 	MiiSelectorConf conf;
 	MiiSelectorReturn ret;
 	miiSelectorInit(&conf);
-	miiSelectorSetTitle(&conf, "Elige tu Mii");
-	miiSelectorSetOptions(&conf, MIISELECTOR_CANCEL);
+	miiSelectorSetTitle(&conf, title);
+	miiSelectorSetOptions(&conf, MIISELECTOR_CANCEL | (guests ? MIISELECTOR_GUESTS : 0));
+	if (guests)
+		miiSelectorWhitelistGuestMii(&conf, MIISELECTOR_GUESTMII_SLOTS);
 	miiSelectorLaunch(&conf, &ret);
 	if (ret.no_mii_selected || !miiSelectorChecksumIsValid(&ret))
 		return false;
 	char name[AVATAR_NAME_MAX];
 	miiSelectorReturnGetName(&ret, name, sizeof name);
+	avatar_from_console(out, &ret.mii, name);
+	return true;
+}
+
+bool profile_pick_console_mii(void)
+{
 	PlayerProfile* p = profile_get();
-	MiiParts parts;
-	parts_from_console(&parts, &ret.mii);
-	avatar_from_mii(&p->avatar, &parts, name);
+	Avatar picked;
+	if (!pick_mii(&picked, "Elige tu Mii", true))
+		return false;
+	p->avatar = picked;
 	p->from_console = 1;
 	p->created = 1;
 	profile_store();
+	rivals_refresh();
 	return true;
+}
+
+/* ---------------------------------------------------------------------------
+ * Rivales: los Miis de la consola
+ * ------------------------------------------------------------------------- */
+
+#define RIVALS_PATH  PROFILE_DIR "/rivales.dat"
+#define RIVALS_MAGIC 0x52495631u /* "RIV1" */
+#define CFL_DB_MIIS  100
+#define CFL_DB_FIRST 0x8 /* los Miis empiezan tras la cabecera "CFOG" */
+
+_Static_assert(sizeof(MiiData) == 0x5C, "MiiData debe ocupar 0x5C bytes como en CFL_DB.dat");
+
+typedef struct {
+	uint32_t magic;
+	uint8_t manual[CPU_COUNT];
+	Avatar seat[CPU_COUNT];
+} RivalsFile;
+
+static Avatar s_pool[CFL_DB_MIIS];
+static int s_pool_count = -1; /* -1: no se ha podido leer la base de datos */
+
+/* Lee la base de datos de Miis de la consola (CFL_DB.dat), que está en los
+ * datos compartidos del sistema 0xF000000B junto a las Monedas de juego. */
+static int read_console_miis(Avatar* out, int max)
+{
+	static const u32 extdata[3] = { MEDIATYPE_NAND, 0xF000000B, 0x00048000 };
+	FS_Archive archive;
+	FS_Path apath = { PATH_BINARY, sizeof extdata, extdata };
+	if (R_FAILED(FSUSER_OpenArchive(&archive, ARCHIVE_SHARED_EXTDATA, apath)))
+		return -1;
+	Handle file;
+	int count = -1;
+	if (R_SUCCEEDED(FSUSER_OpenFile(&file, archive, fsMakePath(PATH_ASCII, "/CFL_DB.dat"), FS_OPEN_READ, 0))) {
+		const u32 size = CFL_DB_FIRST + CFL_DB_MIIS * sizeof(MiiData);
+		u8* buf = malloc(size);
+		u32 got = 0;
+		if (buf && R_SUCCEEDED(FSFILE_Read(file, &got, 0, buf, size)) && got == size) {
+			count = 0;
+			for (int i = 0; i < CFL_DB_MIIS && count < max; i++) {
+				MiiData mii;
+				memcpy(&mii, buf + CFL_DB_FIRST + i * sizeof(MiiData), sizeof mii);
+				/* Huecos vacíos: sin identificador o sin nombre */
+				if (mii.version != 3 || mii.mii_id == 0 || mii.mii_name[0] == 0)
+					continue;
+				char name[AVATAR_NAME_MAX];
+				u16 name16[11] = { 0 };
+				memcpy(name16, mii.mii_name, sizeof mii.mii_name);
+				ssize_t n = utf16_to_utf8((uint8_t*)name, name16, sizeof name - 1);
+				name[n < 0 ? 0 : n] = '\0';
+				avatar_from_console(&out[count++], &mii, name);
+			}
+		}
+		free(buf);
+		FSFILE_Close(file);
+	}
+	FSUSER_CloseArchive(archive);
+	return count;
+}
+
+static void rivals_store(void)
+{
+	RivalsFile f;
+	memset(&f, 0, sizeof f);
+	f.magic = RIVALS_MAGIC;
+	for (int i = 0; i < CPU_COUNT; i++)
+		if (cpu_is_manual((CpuId)i)) {
+			f.manual[i] = 1;
+			f.seat[i] = *cpu_avatar((CpuId)i);
+		}
+	mkdir("sdmc:/3ds", 0777);
+	mkdir(PROFILE_DIR, 0777);
+	FILE* out = fopen(RIVALS_PATH, "wb");
+	if (out) {
+		fwrite(&f, 1, sizeof f, out);
+		fclose(out);
+	}
+}
+
+void rivals_refresh(void)
+{
+	const PlayerProfile* p = profile_get();
+	cpu_assign_pool(s_pool, s_pool_count > 0 ? s_pool_count : 0, p->avatar.official ? &p->avatar : NULL);
+}
+
+void rivals_init(void)
+{
+	RivalsFile f;
+	FILE* in = fopen(RIVALS_PATH, "rb");
+	if (in) {
+		if (fread(&f, 1, sizeof f, in) == sizeof f && f.magic == RIVALS_MAGIC)
+			for (int i = 0; i < CPU_COUNT; i++)
+				if (f.manual[i])
+					cpu_set_manual((CpuId)i, &f.seat[i]);
+		fclose(in);
+	}
+	s_pool_count = read_console_miis(s_pool, CFL_DB_MIIS);
+	rivals_refresh();
+}
+
+int rivals_console_count(void)
+{
+	return s_pool_count;
+}
+
+bool rivals_pick(CpuId id)
+{
+	char title[64];
+	snprintf(title, sizeof title, "Rival: %s", cpu_role(id));
+	Avatar picked;
+	if (!pick_mii(&picked, title, true))
+		return false;
+	cpu_set_manual(id, &picked);
+	rivals_store();
+	rivals_refresh();
+	return true;
+}
+
+void rivals_reset(void)
+{
+	for (int i = 0; i < CPU_COUNT; i++)
+		cpu_set_manual((CpuId)i, NULL);
+	remove(RIVALS_PATH);
+	rivals_refresh();
 }
 
 bool profile_edit_name(void)

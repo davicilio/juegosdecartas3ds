@@ -12,7 +12,7 @@
 #include "ui/mii.h"
 #include "ui/widgets.h"
 
-#define RIVAL_NAME   "Carmen"
+#define RIVAL CPU_CARMEN /* su nombre es el del Mii que ocupe el puesto */
 #define RIVAL_Y      36.0f
 #define RIVAL_SCALE  0.6f
 #define TRICK_SCALE  0.8f
@@ -70,7 +70,13 @@ static void reset_visuals(void)
 	s_trick_timer = 0.0f;
 	s_result_time = 0.0f;
 	s_prev_phase = s_game.phase;
-	set_message(s_game.current == 0 ? "Sales tú" : "Sale " RIVAL_NAME);
+	if (s_game.current == 0) {
+		set_message("Sales tú");
+	} else {
+		char buf[64];
+		snprintf(buf, sizeof buf, "Sale %s", cpu_name(RIVAL));
+		set_message(buf);
+	}
 }
 
 static void br_scene_enter(void)
@@ -171,7 +177,7 @@ static void after_play(int p)
 		if (w == 0)
 			snprintf(buf, sizeof buf, "Te llevas la baza (+%d)", s_game.trick_points);
 		else
-			snprintf(buf, sizeof buf, RIVAL_NAME " se lleva la baza (+%d)", s_game.trick_points);
+			snprintf(buf, sizeof buf, "%s se lleva la baza (+%d)", cpu_name(RIVAL), s_game.trick_points);
 		set_message(buf);
 		s_trick_timer = 0.0f;
 	}
@@ -273,7 +279,9 @@ static SceneId br_scene_update(const Input* in, float dt)
 				if (br_swap_index(&s_game, 1) >= 0) {
 					br_swap(&s_game, 1);
 					audio_play(SFX_FLIP);
-					set_message(RIVAL_NAME " cambia la muestra");
+					char buf[64];
+					snprintf(buf, sizeof buf, "%s cambia la muestra", cpu_name(RIVAL));
+					set_message(buf);
 				} else {
 					br_play(&s_game, br_ai_choose(&s_game, 1));
 					after_play(1);
@@ -357,11 +365,11 @@ static void draw_banner(void)
 	if (w == 0)
 		gfx_text("¡Ganas la partida!", 200, 92, DEPTH_BANNER, 0.8f, COLOR_GOLD, C2D_AlignCenter);
 	else if (w == 1)
-		gfx_text("Gana " RIVAL_NAME, 200, 92, DEPTH_BANNER, 0.8f, COLOR_RED, C2D_AlignCenter);
+		gfx_textf(200, 92, DEPTH_BANNER, 0.8f, COLOR_RED, C2D_AlignCenter, "Gana %s", cpu_name(RIVAL));
 	else
 		gfx_text("Empate a 60", 200, 92, DEPTH_BANNER, 0.8f, COLOR_CREAM, C2D_AlignCenter);
-	gfx_textf(200, 122, DEPTH_BANNER, 0.55f, COLOR_CREAM, C2D_AlignCenter, "Tú %d  -  %d " RIVAL_NAME,
-		s_game.points[0], s_game.points[1]);
+	gfx_textf(200, 122, DEPTH_BANNER, 0.55f, COLOR_CREAM, C2D_AlignCenter, "Tú %d  -  %d %s",
+		s_game.points[0], s_game.points[1], cpu_name(RIVAL));
 }
 
 static void br_scene_draw_top(void)
@@ -371,8 +379,8 @@ static void br_scene_draw_top(void)
 	/* Marcador del rival */
 	gfx_panel(14, 14, 104, 50, DEPTH_UI, C2D_Color32(10, 50, 25, 210),
 		s_game.current == 1 && s_game.phase == BR_PHASE_PLAYING ? COLOR_GOLD : C2D_Color32(20, 60, 30, 255));
-	mii_draw(cpu_avatar(CPU_CARMEN), 36, 40, 15, DEPTH_UI + 0.4f, mood_expr(&s_rival_mood), false);
-	gfx_text(RIVAL_NAME, 84, 20, DEPTH_UI, 0.5f, COLOR_CREAM, C2D_AlignCenter);
+	mii_draw(cpu_avatar(RIVAL), 36, 40, 15, DEPTH_UI + 0.4f, mood_expr(&s_rival_mood), false);
+	gfx_text(cpu_name(RIVAL), 84, 20, DEPTH_UI, 0.5f, COLOR_CREAM, C2D_AlignCenter);
 	gfx_textf(84, 40, DEPTH_UI, 0.38f, COLOR_CREAM, C2D_AlignCenter, "Partidas: %d", s_game.games_won[1]);
 
 	/* Mazo con la muestra atravesada debajo */

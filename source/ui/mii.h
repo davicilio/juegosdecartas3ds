@@ -51,6 +51,19 @@ void profile_record_game(GameId game, bool won);
 bool profile_pick_console_mii(void);
 /* Abre el teclado de la consola para cambiar el nombre. */
 bool profile_edit_name(void);
+/* Rivales: cada puesto de la CPU lo ocupa un Mii de la consola (leídos de
+ * su base de datos de Miis) o el que el jugador elija con el selector de
+ * Miis del sistema, que también ofrece los Miis invitados. */
+void rivals_init(void);
+/* Vuelve a repartir los Miis de la consola (por ejemplo, al cambiar tu Mii). */
+void rivals_refresh(void);
+/* Miis encontrados en la consola, o -1 si no se ha podido leer. */
+int rivals_console_count(void);
+/* Abre el selector de Miis para el puesto id. */
+bool rivals_pick(CpuId id);
+/* Olvida las elecciones a mano y vuelve a los Miis de la consola. */
+void rivals_reset(void);
+
 /* Expresión equivalente del renderizador de Mii Studio. */
 const char* mii_studio_expression(Expression e);
 

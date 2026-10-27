@@ -12,6 +12,7 @@ typedef enum {
 	SCENE_CHINCHON,
 	SCENE_MUS,
 	SCENE_PROFILE,
+	SCENE_RIVALS,
 	SCENE_COUNT,
 	SCENE_QUIT
 } SceneId;
@@ -32,5 +33,6 @@ extern const Scene scene_escoba;
 extern const Scene scene_chinchon;
 extern const Scene scene_mus;
 extern const Scene scene_profile;
+extern const Scene scene_rivals;
 
 #endif

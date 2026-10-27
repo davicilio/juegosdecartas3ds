@@ -32,7 +32,7 @@ typedef enum {
 
 static int s_row;
 static Mood s_mood;
-static Button s_btn_done;
+static Button s_btn_done, s_btn_rivals;
 static bool s_welcome;
 static float s_saved_flash;
 
@@ -41,7 +41,8 @@ static void profile_enter(void)
 	s_welcome = !profile_get()->created;
 	s_row = s_welcome ? ROW_NAME : ROW_CONSOLE;
 	mood_set(&s_mood, EXPR_HAPPY, 1.5f);
-	button_set(&s_btn_done, 60, 205, 200, 28, s_welcome ? GLYPH_A " ¡A jugar!" : GLYPH_B " Listo",
+	button_set(&s_btn_rivals, 12, 205, 140, 28, GLYPH_X " Tus rivales", C2D_Color32(60, 90, 160, 255), KEY_X);
+	button_set(&s_btn_done, 160, 205, 148, 28, s_welcome ? GLYPH_A " ¡A jugar!" : GLYPH_B " Listo",
 		C2D_Color32(40, 140, 60, 255), s_welcome ? 0 : KEY_B);
 }
 
@@ -144,6 +145,10 @@ static SceneId profile_update(const Input* in, float dt)
 		return finish();
 	if (button_update(&s_btn_done, in))
 		return finish();
+	if (button_update(&s_btn_rivals, in)) {
+		finish();
+		return SCENE_RIVALS;
+	}
 
 	for (int r = 0; r < ROW_COUNT; r++) {
 		float y = ROW_Y + r * ROW_STEP;
@@ -227,7 +232,7 @@ static void profile_draw_bottom(void)
 			gfx_rrect(ROW_X, y + ROW_H - 3, ROW_W, 3, 1, 0, COLOR_GOLD);
 		u32 ink = C2D_Color32(90, 15, 20, 255);
 		if (r == ROW_CONSOLE) {
-			gfx_text(GLYPH_A " Usar un Mii de la consola", ROW_X + ROW_W / 2, y + 1, 0, 0.43f, ink, C2D_AlignCenter);
+			gfx_text(GLYPH_A " Elegir mi Mii (de la consola o invitado)", ROW_X + ROW_W / 2, y + 1, 0, 0.43f, ink, C2D_AlignCenter);
 			continue;
 		}
 		if (r >= ROW_SEX && a->official)
@@ -278,6 +283,7 @@ static void profile_draw_bottom(void)
 			gfx_triangle(bx - 8, cy - 5, bx - 8, cy + 5, bx, cy, 0, ink);
 		}
 	}
+	button_draw(&s_btn_rivals, false);
 	button_draw(&s_btn_done, true);
 }
 
