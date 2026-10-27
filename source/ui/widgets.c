@@ -63,6 +63,14 @@ void button_draw(const Button* b, bool highlight)
 		b->enabled ? COLOR_WHITE : C2D_Color32(200, 200, 200, 255), C2D_AlignCenter);
 }
 
+bool banner_draw(float time, float cx, float cy, float w, float h)
+{
+	float t = fminf(1.0f, time / 0.35f);
+	float hh = h * ease_out_back(t);
+	gfx_rrect(cx - w / 2, cy - hh / 2, w, hh, 10, DEPTH_BANNER, C2D_Color32(0, 0, 0, 195));
+	return t >= 0.6f;
+}
+
 float approach(float value, float target, float speed, float dt)
 {
 	float k = 1.0f - expf(-speed * dt);

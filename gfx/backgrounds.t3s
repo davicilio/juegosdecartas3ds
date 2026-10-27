@@ -1,4 +1,4 @@
---atlas -f rgb565 -z auto
+--atlas -f rgb565 -z auto --border none
 bg_title_top.png
 bg_menu_bottom.png
 bg_table_top.png

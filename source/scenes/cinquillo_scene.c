@@ -361,11 +361,7 @@ static void draw_badge(int p)
 
 static void draw_banner(void)
 {
-	float t = fminf(1.0f, s_result_time / 0.35f);
-	float s = ease_out_back(t);
-	float h = 64 * s;
-	gfx_rrect(50, 120 - h / 2, 300, h, 10, DEPTH_BANNER, C2D_Color32(0, 0, 0, 200));
-	if (t < 0.6f)
+	if (!banner_draw(s_result_time, 200, 120, 300, 64))
 		return;
 	int w = s_game.round_winner;
 	if (s_game.phase == CQ_PHASE_GAME_OVER) {

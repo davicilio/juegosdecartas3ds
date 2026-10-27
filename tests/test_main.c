@@ -5,7 +5,9 @@
 #include <string.h>
 
 #include "core/cards.h"
+#include "games/brisca.h"
 #include "games/cinquillo.h"
+#include "games/escoba.h"
 #include "games/sieteymedia.h"
 
 static int failures = 0;
@@ -273,6 +275,195 @@ static void test_cq_simulation(void)
 		wins[0], wins[1], wins[2], wins[3]);
 }
 
+
+static void test_br_rules(void)
+{
+	int trump = SUIT_OROS;
+	/* Mismo palo: manda el orden de la brisca (el tres gana al rey). */
+	CHECK(br_beats(card_make(SUIT_COPAS, 3), card_make(SUIT_COPAS, RANK_REY), trump));
+	CHECK(!br_beats(card_make(SUIT_COPAS, 7), card_make(SUIT_COPAS, RANK_SOTA), trump));
+	CHECK(br_beats(card_make(SUIT_COPAS, 1), card_make(SUIT_COPAS, 3), trump));
+	/* Un triunfo cualquiera gana a otro palo; otro palo no triunfo pierde. */
+	CHECK(br_beats(card_make(SUIT_OROS, 2), card_make(SUIT_COPAS, 1), trump));
+	CHECK(!br_beats(card_make(SUIT_BASTOS, 1), card_make(SUIT_COPAS, 2), trump));
+
+	int total = 0;
+	for (int i = 0; i < DECK_SIZE; i++)
+		total += br_card_points(card_from_index(i));
+	CHECK(total == BR_TOTAL_POINTS);
+
+	Brisca g;
+	br_init(&g, 5);
+	CHECK(g.hand_count[0] == 3 && g.hand_count[1] == 3);
+	CHECK(g.deck.count == DECK_SIZE - 6);
+	CHECK(card_equal(g.deck.cards[0], g.trump_card));
+	CHECK(g.current == 0);
+
+	/* Cambio de la muestra: con muestra rey de copas se cambia el 7 de copas. */
+	g.trump_card = card_make(SUIT_COPAS, RANK_REY);
+	g.trump = SUIT_COPAS;
+	g.deck.cards[0] = g.trump_card;
+	g.hands[0][1] = card_make(SUIT_COPAS, 7);
+	CHECK(br_swap_index(&g, 0) == 1);
+	CHECK(br_swap_index(&g, 1) == -1);
+	CHECK(br_swap(&g, 0));
+	CHECK(card_equal(g.hands[0][1], card_make(SUIT_COPAS, RANK_REY)));
+	CHECK(card_equal(g.trump_card, card_make(SUIT_COPAS, 7)));
+	CHECK(card_equal(g.deck.cards[0], g.trump_card));
+	/* Ahora la muestra es un 7: se cambiaría con el 2. */
+	g.hands[0][0] = card_make(SUIT_COPAS, 2);
+	CHECK(br_swap_index(&g, 0) == 0);
+}
+
+static void test_br_simulation(void)
+{
+	int wins[2] = { 0 }, ties = 0;
+	for (uint32_t seed = 1; seed <= 500; seed++) {
+		Brisca g;
+		br_init(&g, seed);
+		Rng r;
+		rng_seed(&r, seed + 17);
+		int guard = 0;
+		while (g.phase != BR_PHASE_GAME_OVER && guard++ < 100) {
+			if (g.phase == BR_PHASE_TRICK_DONE) {
+				CHECK(br_collect(&g));
+				continue;
+			}
+			/* El jugador 0 juega al azar y la CPU con su IA. */
+			if (g.current == 0) {
+				if (br_swap_index(&g, 0) >= 0)
+					CHECK(br_swap(&g, 0));
+				CHECK(br_play(&g, rng_range(&r, g.hand_count[0])));
+			} else {
+				CHECK(br_play(&g, br_ai_choose(&g, 1)));
+			}
+		}
+		CHECK(g.phase == BR_PHASE_GAME_OVER);
+		CHECK(g.tricks == DECK_SIZE / 2);
+		CHECK(g.points[0] + g.points[1] == BR_TOTAL_POINTS);
+		CHECK(g.won_cards[0] + g.won_cards[1] == DECK_SIZE);
+		CHECK(g.deck.count == 0);
+		int w = br_game_winner(&g);
+		if (w < 0)
+			ties++;
+		else
+			wins[w]++;
+	}
+	printf("  brisca: azar %d - IA %d (empates %d)\n", wins[0], wins[1], ties);
+	CHECK(wins[1] > wins[0]); /* la IA debe jugar mejor que el azar */
+}
+
+static void test_es_rules(void)
+{
+	Escoba g;
+	es_init(&g, 3);
+	CHECK(es_card_value(card_make(SUIT_OROS, RANK_REY)) == 10);
+	CHECK(es_card_value(card_make(SUIT_OROS, RANK_SOTA)) == 8);
+
+	/* Mesa preparada a mano: 5, 3, 7 y sota (8). */
+	g.phase = ES_PHASE_PLAYING;
+	g.current = 0;
+	g.table_count = 4;
+	g.table[0] = card_make(SUIT_COPAS, 5);
+	g.table[1] = card_make(SUIT_BASTOS, 3);
+	g.table[2] = card_make(SUIT_OROS, 7);
+	g.table[3] = card_make(SUIT_ESPADAS, RANK_SOTA);
+	g.hand_count[0] = 2;
+	g.hands[0][0] = card_make(SUIT_OROS, 7); /* 7 + 5 + 3, o 7 + sota */
+	g.hands[0][1] = card_make(SUIT_COPAS, 1); /* no suma 15 con nada */
+	g.hand_count[1] = 1;
+	g.hands[1][0] = card_make(SUIT_BASTOS, 2);
+	g.won_count[0] = g.won_count[1] = 0;
+	g.deck.count = 0;
+
+	uint32_t masks[ES_MAX_OPTIONS];
+	int n = es_find_captures(&g, g.hands[0][0], masks, ES_MAX_OPTIONS);
+	CHECK(n == 2);
+	CHECK(es_find_captures(&g, g.hands[0][1], masks, ES_MAX_OPTIONS) == 0);
+	/* Capturar es obligatorio y la combinación ha de sumar 15. */
+	CHECK(!es_play(&g, 0, 0));
+	CHECK(!es_play(&g, 0, 0x1));
+	CHECK(!es_play(&g, 1, 0x1));
+	CHECK(es_play(&g, 0, 0x3)); /* 7 + 5 + 3 */
+	CHECK(g.table_count == 2);
+	CHECK(g.won_count[0] == 3);
+	CHECK(!g.last_escoba);
+	CHECK(g.last_captured_count == 2);
+}
+
+static void test_es_escoba(void)
+{
+	Escoba g;
+	es_init(&g, 3);
+	g.phase = ES_PHASE_PLAYING;
+	g.current = 0;
+	g.table_count = 2;
+	g.table[0] = card_make(SUIT_COPAS, 4);
+	g.table[1] = card_make(SUIT_BASTOS, 4);
+	g.hand_count[0] = 1;
+	g.hands[0][0] = card_make(SUIT_OROS, 7);
+	g.hand_count[1] = 1;
+	g.hands[1][0] = card_make(SUIT_ESPADAS, 2);
+	g.deck.count = 0;
+	int escobas = g.escobas[0];
+	CHECK(es_play(&g, 0, 0x3));
+	CHECK(g.last_escoba);
+	CHECK(g.escobas[0] == escobas + 1);
+	/* El rival deja su carta y termina la ronda: la mesa es del último que recogió. */
+	CHECK(es_play(&g, 0, 0));
+	CHECK(g.phase != ES_PHASE_PLAYING);
+	CHECK(g.round_score[0].siete_oros);
+	CHECK(g.round_score[0].pt_siete_oros == 1);
+}
+
+static void test_es_simulation(void)
+{
+	int wins[2] = { 0 }, escobas = 0, rounds = 0;
+	for (uint32_t seed = 1; seed <= 300; seed++) {
+		Escoba g;
+		es_init(&g, seed);
+		Rng r;
+		rng_seed(&r, seed * 7);
+		int guard = 0;
+		while (g.phase != ES_PHASE_GAME_OVER && guard++ < 5000) {
+			if (g.phase == ES_PHASE_ROUND_OVER) {
+				rounds++;
+				CHECK(es_next_round(&g));
+				continue;
+			}
+			int p = g.current;
+			uint32_t mask = 0;
+			int idx;
+			if (p == 0) {
+				/* Jugador "al azar" que respeta la obligación de capturar. */
+				idx = rng_range(&r, g.hand_count[0]);
+				uint32_t masks[ES_MAX_OPTIONS];
+				int n = es_find_captures(&g, g.hands[0][idx], masks, ES_MAX_OPTIONS);
+				if (n)
+					mask = masks[rng_range(&r, n)];
+			} else {
+				idx = es_ai_choose(&g, p, &mask);
+			}
+			CHECK(es_play(&g, idx, mask));
+			int cards = g.deck.count + g.table_count + g.won_count[0] + g.won_count[1] + g.hand_count[0] +
+				g.hand_count[1];
+			CHECK(cards == DECK_SIZE);
+			if (g.phase != ES_PHASE_PLAYING) {
+				CHECK(g.won_count[0] + g.won_count[1] == DECK_SIZE);
+				CHECK(g.round_score[0].oros + g.round_score[1].oros == RANKS_PER_SUIT);
+				CHECK(g.round_score[0].sietes + g.round_score[1].sietes == NUM_SUITS);
+				CHECK(g.round_score[0].pt_siete_oros + g.round_score[1].pt_siete_oros == 1);
+				escobas += g.escobas[0] + g.escobas[1];
+			}
+		}
+		CHECK(g.phase == ES_PHASE_GAME_OVER);
+		CHECK(es_winner(&g) >= 0);
+		wins[es_winner(&g)]++;
+	}
+	printf("  escoba: %d rondas, %d escobas, azar %d - IA %d\n", rounds, escobas, wins[0], wins[1]);
+	CHECK(wins[1] > wins[0]);
+}
+
 int main(void)
 {
 	printf("Ejecutando tests...\n");
@@ -284,6 +475,11 @@ int main(void)
 	test_sym_simulation();
 	test_cq_rules();
 	test_cq_simulation();
+	test_br_rules();
+	test_br_simulation();
+	test_es_rules();
+	test_es_escoba();
+	test_es_simulation();
 	printf("%d comprobaciones, %d fallos\n", checks, failures);
 	return failures ? 1 : 0;
 }

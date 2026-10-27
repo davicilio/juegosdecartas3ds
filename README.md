@@ -7,13 +7,18 @@ para Nintendo 3DS con [devkitPro](https://devkitpro.org) (libctru + citro2d).
 |:---:|:---:|:---:|:---:|
 | ![Menú](docs/menu.png) | ![Siete y media](docs/sym.png) | ![Resultado](docs/symres.png) | ![Cinquillo](docs/cq.png) |
 
+| Brisca | Escoba | Fin de ronda de la escoba |
+|:---:|:---:|:---:|
+| ![Brisca](docs/brisca.png) | ![Escoba](docs/escoba.png) | ![Marcador](docs/escoba_fin.png) |
+
 ## Juegos
 
 | Juego | Estado |
 |---|---|
 | Siete y media | ✅ Disponible |
 | Cinquillo | ✅ Disponible |
-| Brisca | 🔜 Próximamente |
+| Brisca | ✅ Disponible |
+| Escoba | ✅ Disponible |
 | Mus | 🔜 Próximamente |
 | Chinchón | 🔜 Próximamente |
 
@@ -35,6 +40,30 @@ puedes jugar, pasas y pagas una ficha al bote. Quien se queda antes sin cartas
 gana la ronda y se lleva el bote. La partida dura 10 rondas o hasta que alguien
 se arruine.
 
+### Brisca
+Partida a dos contra Carmen. Cada uno tiene tres cartas y la muestra (la carta
+que queda boca arriba bajo el mazo) marca el palo de triunfo. No es obligatorio
+asistir: gana la baza el triunfo más alto o, si no hay, la carta más alta del palo
+que salió. El orden es as, tres, rey, caballo, sota, 7, 6, 5, 4 y 2, y los puntos
+son as 11, tres 10, rey 4, caballo 3 y sota 2. Tras cada baza roba primero quien
+la gana, y sale en la siguiente. Gana quien pase de 60 de los 120 puntos.
+
+Quien tenga el 7 de triunfo puede cambiarlo por la muestra cuando esta es un as,
+un tres o una figura; si la muestra es más baja, se cambia con el 2. El cambio se
+hace al salir, mientras quede mazo.
+
+### Escoba
+Partida a dos contra Pepe. Las cartas valen su número, salvo sota 8, caballo 9 y
+rey 10. Hay cuatro cartas en la mesa y tres en cada mano. Si tu carta suma 15 con
+una o varias de la mesa, te las llevas (si puede sumar 15, tiene que llevárselas;
+si hay varias combinaciones, eliges cuál). Si no suma 15, la carta se queda en la
+mesa. Dejar la mesa vacía es una **escoba**. Cuando se acaban las manos se
+reparten otras tres hasta agotar el mazo, y lo que queda en la mesa es del último
+que recogió. Si al repartir la mesa suma 15 (o 30), el que reparte hace escoba.
+
+Cada ronda da un punto por escoba, por tener más cartas, más oros, más sietes y
+por el siete de oros. Gana la partida quien llegue antes a 21.
+
 ## Controles
 
 | Botón | Acción |
@@ -43,17 +72,18 @@ se arruine.
 | A | Aceptar, pedir carta, jugar carta |
 | B | Plantarse / volver |
 | X | Pasar (cinquillo) |
-| L / R | Bajar / subir la apuesta (siete y media) |
+| Y | Cambiar el 7 (o el 2) por la muestra (brisca) |
+| L / R | Bajar / subir la apuesta (siete y media); elegir qué cartas te llevas (escoba) |
 | START | Volver al menú (en el menú: salir) |
-| Pantalla táctil | Todos los botones y las cartas se pueden tocar |
+| Pantalla táctil | Todos los botones y las cartas se pueden tocar (en la escoba, el primer toque elige la carta y el segundo la juega) |
 
 ## Aspecto "de 3DS"
 
 - Las dos pantallas: la mesa arriba y los controles táctiles abajo.
 - **3D estereoscópico**: las cartas en vuelo, los marcadores y los carteles de
   resultado salen de la pantalla al subir el regulador 3D.
-- Animaciones de reparto, giro de cartas, botones con brillo y fundidos entre
-  pantallas.
+- Animaciones de reparto, giro de cartas, bazas que vuelan al montón del
+  ganador, cartel de "¡Escoba!", botones con brillo y fundidos entre pantallas.
 - Glifos de botones de la fuente del sistema (Ⓐ, Ⓑ, Ⓧ...) y efectos de sonido.
 - Cartas dibujadas a mano por código, con los cortes tradicionales del marco que
   indican el palo (oros sin cortes, copas uno, espadas dos y bastos tres).
@@ -126,7 +156,7 @@ tests/       Tests de la lógica
 tools/       Generadores de gráficos y sonidos
 ```
 
-### Añadir un juego nuevo (brisca, mus, chinchón...)
+### Añadir un juego nuevo (mus, chinchón...)
 
 1. Escribe las reglas en `source/games/<juego>.c/.h` sin usar nada de la 3DS y
    añade tests en `tests/test_main.c`.

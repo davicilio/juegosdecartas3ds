@@ -550,9 +550,11 @@ def make_icon():
     return img.resize((n, n), Image.LANCZOS)
 
 
-def write_t3s(name, files, fmt):
+def write_t3s(name, files, fmt, border="none"):
+    # Con -b transparent cada imagen lleva un borde transparente en el atlas, y
+    # el filtrado lineal no "sangra" píxeles de las imágenes vecinas al escalar.
     with open(os.path.join(GFX, name), "w", newline="\n") as f:
-        f.write("--atlas -f %s -z auto\n" % fmt)
+        f.write("--atlas -f %s -z auto --border %s\n" % (fmt, border))
         for fn in files:
             f.write(fn + "\n")
 
@@ -581,7 +583,7 @@ def main():
         im.save(os.path.join(GFX, fn))
         card_files.append(fn)
     # El orden de este fichero define los índices usados en source/ui/assets.h
-    write_t3s("sprites.t3s", card_files, "rgba8888")
+    write_t3s("sprites.t3s", card_files, "rgba8888", border="transparent")
 
     bgs = [
         ("bg_title_top.png", make_title_top()),

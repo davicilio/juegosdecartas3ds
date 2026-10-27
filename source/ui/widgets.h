@@ -22,6 +22,10 @@ void button_set(Button* b, float x, float y, float w, float h, const char* label
 bool button_update(Button* b, const Input* in);
 void button_draw(const Button* b, bool highlight);
 
+/* Fondo de cartel de resultado que aparece con un rebote, centrado en
+ * (cx, cy). Devuelve true cuando ya se puede escribir el texto encima. */
+bool banner_draw(float time, float cx, float cy, float w, float h);
+
 /* Carta animada: se desplaza suavemente hacia su destino y puede girarse. */
 typedef struct {
 	Card card;

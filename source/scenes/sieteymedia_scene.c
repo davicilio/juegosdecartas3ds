@@ -246,11 +246,7 @@ static void draw_banner(void)
 	default:
 		return;
 	}
-	float t = fminf(1.0f, s_result_time / 0.35f);
-	float s = ease_out_back(t);
-	float h = 42 * s;
-	gfx_rrect(40, 124 - h / 2, 320, h, 10, DEPTH_BANNER, C2D_Color32(0, 0, 0, 190));
-	if (t < 0.6f)
+	if (!banner_draw(s_result_time, 200, 124, 320, 42))
 		return;
 	gfx_text(title, 200, 103, DEPTH_BANNER, 0.7f, color, C2D_AlignCenter);
 	if (s_game.phase == SYM_PHASE_GAME_OVER)

@@ -7,6 +7,8 @@ typedef enum {
 	SCENE_MENU,
 	SCENE_SIETEYMEDIA,
 	SCENE_CINQUILLO,
+	SCENE_BRISCA,
+	SCENE_ESCOBA,
 	SCENE_COUNT,
 	SCENE_QUIT
 } SceneId;
@@ -22,5 +24,7 @@ typedef struct {
 extern const Scene scene_menu;
 extern const Scene scene_sieteymedia;
 extern const Scene scene_cinquillo;
+extern const Scene scene_brisca;
+extern const Scene scene_escoba;
 
 #endif

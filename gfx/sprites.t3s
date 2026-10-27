@@ -1,4 +1,4 @@
---atlas -f rgba8888 -z auto
+--atlas -f rgba8888 -z auto --border transparent
 card_oros_01.png
 card_oros_02.png
 card_oros_03.png

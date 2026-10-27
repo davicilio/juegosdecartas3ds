@@ -26,8 +26,13 @@ static const MenuEntry entries[] = {
 	  "El primero que se quede sin cartas se lleva el bote.",
 	  SCENE_CINQUILLO, SUIT_COPAS, { C(BASTOS, 5), C(OROS, 5), C(COPAS, 5) } },
 	{ "Brisca",
-	  "Juego de bazas con triunfo. Próximamente.",
-	  SCENE_COUNT, SUIT_ESPADAS, { C(OROS, 1), C(COPAS, 3), C(ESPADAS, RANK_REY) } },
+	  "Juego de bazas contra Carmen. La muestra marca el triunfo; ases y treses valen más que el rey. "
+	  "Suma más de 60 de los 120 puntos para ganar.",
+	  SCENE_BRISCA, SUIT_ESPADAS, { C(OROS, 1), C(COPAS, 3), C(ESPADAS, RANK_REY) } },
+	{ "Escoba",
+	  "Suma 15 con tu carta y las de la mesa para llevártelas. Si limpias la mesa, ¡escoba! "
+	  "Cuentan cartas, oros, sietes y el siete de oros. Gana quien llegue a 21.",
+	  SCENE_ESCOBA, SUIT_BASTOS, { C(OROS, 7), C(BASTOS, 5), C(COPAS, 3) } },
 	{ "Mus",
 	  "Grande, chica, pares y juego, por parejas y con señas. Próximamente.",
 	  SCENE_COUNT, SUIT_BASTOS, { C(OROS, RANK_REY), C(BASTOS, RANK_REY), C(COPAS, 3) } },
@@ -39,10 +44,10 @@ static const MenuEntry entries[] = {
 #define NUM_ENTRIES ((int)(sizeof entries / sizeof entries[0]))
 
 #define ITEM_X 28
-#define ITEM_Y 20
+#define ITEM_Y 14
 #define ITEM_W 264
-#define ITEM_H 32
-#define ITEM_STEP 38
+#define ITEM_H 28
+#define ITEM_STEP 33
 
 static int s_selected;
 static float s_cursor_y;
@@ -137,13 +142,13 @@ static void menu_draw_bottom(void)
 		u32 fill = available ? C2D_Color32(250, 244, 228, 255) : C2D_Color32(190, 180, 170, 255);
 		gfx_panel(x, y, ITEM_W, ITEM_H, 0, fill, C2D_Color32(110, 20, 25, 255));
 		gfx_sprite(SPR_SUIT_FIRST + e->icon, x + 20, y + ITEM_H / 2, 0.85f, 0);
-		gfx_text(e->name, x + 38, y + 7, 0, 0.6f,
+		gfx_text(e->name, x + 38, y + 5, 0, 0.6f,
 			available ? C2D_Color32(90, 15, 20, 255) : C2D_Color32(110, 100, 95, 255), C2D_AlignLeft);
 		if (!available) {
-			gfx_rrect(x + ITEM_W - 96, y + 8, 88, 16, 6, 0, C2D_Color32(120, 120, 120, 255));
-			gfx_text("Próximamente", x + ITEM_W - 52, y + 9, 0, 0.4f, COLOR_WHITE, C2D_AlignCenter);
+			gfx_rrect(x + ITEM_W - 96, y + 6, 88, 16, 6, 0, C2D_Color32(120, 120, 120, 255));
+			gfx_text("Próximamente", x + ITEM_W - 52, y + 7, 0, 0.4f, COLOR_WHITE, C2D_AlignCenter);
 		} else {
-			gfx_text(GLYPH_A, x + ITEM_W - 20, y + 7, 0, 0.6f, C2D_Color32(90, 15, 20, 255), C2D_AlignCenter);
+			gfx_text(GLYPH_A, x + ITEM_W - 20, y + 5, 0, 0.6f, C2D_Color32(90, 15, 20, 255), C2D_AlignCenter);
 		}
 	}
 	gfx_text(GLYPH_DPAD " Elegir   " GLYPH_A " Jugar   START Salir", BOTTOM_W / 2, 216, 0, 0.45f, COLOR_CREAM,
