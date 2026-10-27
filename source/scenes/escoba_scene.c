@@ -9,6 +9,7 @@
 #include "ui/audio.h"
 #include "ui/flyers.h"
 #include "ui/gfx.h"
+#include "ui/mii.h"
 #include "ui/widgets.h"
 
 #define RIVAL_NAME   "Pepe"
@@ -25,6 +26,7 @@
 #define SWEEP_TIME   0.6f
 
 static Escoba s_game;
+static Mood s_rival_mood, s_my_mood;
 static bool s_started;
 
 static VisCard s_hand[DECK_SIZE];  /* mano del jugador, por card_index */
@@ -174,6 +176,8 @@ static void on_action(void)
 		s_sweep_player = p;
 		if (s_game.last_escoba) {
 			s_escoba_time = 1.5f;
+			mood_set(&s_rival_mood, p == 1 ? EXPR_HAPPY : EXPR_SURPRISED, 2.0f);
+			mood_set(&s_my_mood, p == 0 ? EXPR_HAPPY : EXPR_SURPRISED, 2.0f);
 			audio_play(SFX_WIN);
 			snprintf(buf, sizeof buf, "%s", p == 0 ? "¡Escoba!" : RIVAL_NAME " hace escoba");
 		} else if (p == 0) {
@@ -423,6 +427,10 @@ static SceneId es_scene_update(const Input* in, float dt)
 				? es_winner(&s_game)
 				: (s_game.round_score[0].total >= s_game.round_score[1].total ? 0 : 1);
 			audio_play(w == 0 ? SFX_WIN : SFX_LOSE);
+			mood_set(&s_rival_mood, w == 1 ? EXPR_HAPPY : EXPR_SAD, 4.0f);
+			mood_set(&s_my_mood, w == 0 ? EXPR_HAPPY : EXPR_SAD, 4.0f);
+			if (s_game.phase == ES_PHASE_GAME_OVER)
+				profile_record_game(GAME_ESCOBA, w == 0);
 		}
 		s_result_time += dt;
 	}
@@ -440,6 +448,8 @@ static SceneId es_scene_update(const Input* in, float dt)
 	flyers_update(dt);
 	if (s_escoba_time > 0.0f)
 		s_escoba_time -= dt;
+	mood_update(&s_rival_mood, dt);
+	mood_update(&s_my_mood, dt);
 	if (s_message_flash > 0.0f)
 		s_message_flash -= dt * 2.0f;
 	return SCENE_ESCOBA;
@@ -535,8 +545,13 @@ static void es_scene_draw_top(void)
 	/* Marcador de la partida */
 	gfx_panel(14, 14, 84, 52, DEPTH_UI, C2D_Color32(10, 50, 25, 210), C2D_Color32(20, 60, 30, 255));
 	gfx_textf(56, 17, DEPTH_UI, 0.4f, COLOR_CREAM, C2D_AlignCenter, "A %d puntos", ES_GAME_POINTS);
-	gfx_textf(56, 33, DEPTH_UI, 0.45f, COLOR_WHITE, C2D_AlignCenter, "Tú %d", s_game.score[0]);
-	gfx_textf(56, 47, DEPTH_UI, 0.45f, COLOR_WHITE, C2D_AlignCenter, RIVAL_NAME " %d", s_game.score[1]);
+	mii_draw(&profile_get()->avatar, 28, 40, 6, DEPTH_UI, mood_expr(&s_my_mood), false);
+	mii_draw(cpu_avatar(CPU_PEPE), 28, 54, 6, DEPTH_UI, mood_expr(&s_rival_mood), false);
+	gfx_textf(40, 33, DEPTH_UI, 0.45f, COLOR_WHITE, C2D_AlignLeft, "Tú %d", s_game.score[0]);
+	gfx_textf(40, 47, DEPTH_UI, 0.45f, COLOR_WHITE, C2D_AlignLeft, RIVAL_NAME " %d", s_game.score[1]);
+
+	/* Pepe, junto a sus cartas */
+	mii_draw(cpu_avatar(CPU_PEPE), 132, 34, 16, DEPTH_UI, mood_expr(&s_rival_mood), false);
 
 	/* Mazo */
 	if (s_game.deck.count > 0) {

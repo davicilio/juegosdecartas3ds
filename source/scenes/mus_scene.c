@@ -9,6 +9,7 @@
 #include "ui/audio.h"
 #include "ui/flyers.h"
 #include "ui/gfx.h"
+#include "ui/mii.h"
 #include "ui/widgets.h"
 
 #define HAND_SCALE 1.0f
@@ -22,8 +23,20 @@ static const char* const NAMES[MUS_PLAYERS] = { "Tú", "Paco", "Lola", "Manolo" 
 static const float SEAT_X[MUS_PLAYERS] = { 200, 352, 200, 48 };
 static const float SEAT_Y[MUS_PLAYERS] = { 290, 98, 36, 98 };
 
+/* Mii de cada asiento (el 0 eres tú, con tu perfil) */
+static const CpuId MIIS[MUS_PLAYERS] = { CPU_PACO, CPU_PACO, CPU_LOLA, CPU_MANOLO };
+
 static Mus s_game;
 static bool s_started;
+static Mood s_mood[MUS_PLAYERS];
+/* Señas: cuándo la hará cada jugador de la CPU (-1 = no la hará) */
+static float s_sena_timer[MUS_PLAYERS];
+static int s_sena_key = -1;
+static MusSena s_lola_sena;
+static bool s_senas_open;
+static int s_senas_cursor;
+static Button s_btn_senas;
+static Rng s_rng;
 
 static VisCard s_hand[DECK_SIZE]; /* tus cartas, por card_index */
 static unsigned s_marked;         /* cartas elegidas para descartar */
@@ -55,6 +68,67 @@ static void say(int p, const char* text)
 	s_bubble_time[p] = 1.8f;
 }
 
+static const Avatar* seat_avatar(int p)
+{
+	return p == 0 ? &profile_get()->avatar : cpu_avatar(MIIS[p]);
+}
+
+static Expression sena_expr(MusSena s)
+{
+	switch (s) {
+	case MUS_SENA_REYES:
+		return EXPR_BITE_LIP;
+	case MUS_SENA_ASES:
+		return EXPR_TONGUE;
+	case MUS_SENA_MEDIAS:
+		return EXPR_MOUTH_SIDE;
+	case MUS_SENA_DUPLES:
+		return EXPR_BROWS_UP;
+	case MUS_SENA_31:
+		return EXPR_WINK;
+	case MUS_SENA_CIEGO:
+		return EXPR_EYES_CLOSED;
+	default:
+		return EXPR_NORMAL;
+	}
+}
+
+/* Al empezar cada vuelta de mus (o después de descartar), los jugadores de
+ * la CPU se preparan para hacer su seña en un momento al azar. */
+static void schedule_senas(void)
+{
+	int key = s_game.hands_played * 32 + s_game.mus_rounds;
+	if (s_game.phase != MUS_PHASE_MUS || key == s_sena_key)
+		return;
+	s_sena_key = key;
+	s_lola_sena = MUS_SENA_NONE;
+	for (int p = 1; p < MUS_PLAYERS; p++)
+		s_sena_timer[p] = rng_range(&s_rng, 100) < 85 ? 0.4f + rng_range(&s_rng, 220) / 100.0f : -1.0f;
+}
+
+static void update_senas(float dt)
+{
+	if (s_game.phase > MUS_PHASE_BET)
+		return;
+	for (int p = 1; p < MUS_PLAYERS; p++) {
+		if (s_sena_timer[p] < 0.0f)
+			continue;
+		s_sena_timer[p] -= dt;
+		if (s_sena_timer[p] >= 0.0f)
+			continue;
+		MusSena sena = mus_best_sena(s_game.hands[p]);
+		if (sena == MUS_SENA_NONE)
+			continue;
+		mus_make_sena(&s_game, p, sena);
+		/* El gesto se ve en la cara del Mii: ¡atento a los rivales! */
+		mood_set(&s_mood[p], sena_expr(sena), 1.4f);
+		if (p == 2) {
+			s_lola_sena = sena;
+			set_message("Lola te hace una seña");
+		}
+	}
+}
+
 static void reset_visuals(void)
 {
 	memset(s_hand, 0, sizeof s_hand);
@@ -81,6 +155,9 @@ static void mus_scene_enter(void)
 		reset_visuals();
 	}
 	button_set(&s_btn_menu, 258, 10, 54, 20, "Menú", C2D_Color32(120, 30, 35, 255), KEY_START);
+	button_set(&s_btn_senas, 192, 10, 60, 20, "Señas", C2D_Color32(60, 90, 160, 255), KEY_SELECT);
+	rng_seed(&s_rng, (uint32_t)time(NULL) ^ 0x5E4A5);
+	s_senas_open = false;
 }
 
 static bool busy(void)
@@ -156,6 +233,9 @@ static void on_action(void)
 		break;
 	case MUS_ACT_ORDAGO:
 		say(p, "¡ÓRDAGO!");
+		for (int q = 0; q < MUS_PLAYERS; q++)
+			if (q != p)
+				mood_set(&s_mood[q], EXPR_SURPRISED, 1.6f);
 		s_ordago_time = 1.6f;
 		audio_play(SFX_ERROR);
 		break;
@@ -265,10 +345,64 @@ static void layout_buttons(bool my_turn, bool is_busy)
 	}
 }
 
+#define SENA_X(i) (10.0f + ((i) % 2) * 152.0f)
+#define SENA_Y(i) (58.0f + ((i) / 2) * 46.0f)
+#define SENA_W 148.0f
+#define SENA_H 42.0f
+
+static void choose_sena(MusSena sena)
+{
+	mus_make_sena(&s_game, 0, sena);
+	mood_set(&s_mood[0], sena_expr(sena), 1.4f);
+	char buf[96];
+	snprintf(buf, sizeof buf, "Seña a Lola: %s", mus_sena_meaning(sena));
+	set_message(buf);
+	audio_play(SFX_CONFIRM);
+	s_senas_open = false;
+}
+
+/* Panel de señas: devuelve true si se ha quedado abierto */
+static bool update_senas_panel(const Input* in)
+{
+	if (s_game.phase > MUS_PHASE_BET) {
+		s_senas_open = false;
+		return false;
+	}
+	if (!s_senas_open) {
+		if (button_update(&s_btn_senas, in)) {
+			s_senas_open = true;
+			s_senas_cursor = 0;
+		}
+		return s_senas_open;
+	}
+	const int n = MUS_NUM_SENAS - 1;
+	if (in->repeat & KEY_RIGHT)
+		s_senas_cursor = (s_senas_cursor + 1) % n;
+	if (in->repeat & KEY_LEFT)
+		s_senas_cursor = (s_senas_cursor + n - 1) % n;
+	if (in->repeat & KEY_DOWN)
+		s_senas_cursor = (s_senas_cursor + 2) % n;
+	if (in->repeat & KEY_UP)
+		s_senas_cursor = (s_senas_cursor + n - 2) % n;
+	if (in->down & KEY_A) {
+		choose_sena((MusSena)(s_senas_cursor + 1));
+		return false;
+	}
+	for (int i = 0; i < n; i++)
+		if (input_touch_in(in, SENA_X(i), SENA_Y(i), SENA_W, SENA_H)) {
+			choose_sena((MusSena)(i + 1));
+			return false;
+		}
+	if (in->down & (KEY_B | KEY_SELECT) || input_touch_in(in, 60, 205, 200, 28))
+		s_senas_open = false;
+	return s_senas_open;
+}
+
 static SceneId mus_scene_update(const Input* in, float dt)
 {
 	if (button_update(&s_btn_menu, in))
 		return SCENE_MENU;
+	bool panel = update_senas_panel(in);
 
 	bool is_busy = busy();
 	bool my_turn = s_game.current == 0 && s_game.phase <= MUS_PHASE_BET;
@@ -290,7 +424,7 @@ static SceneId mus_scene_update(const Input* in, float dt)
 				mus_bet(&s_game, a, amount);
 			}
 		}
-	} else if (my_turn && !is_busy) {
+	} else if (my_turn && !is_busy && !panel) {
 		switch (s_game.phase) {
 		case MUS_PHASE_MUS:
 			if (button_update(&s_btn[0], in))
@@ -390,9 +524,13 @@ static SceneId mus_scene_update(const Input* in, float dt)
 			                                                     s_game.results[2].points[1] +
 			                                                     s_game.results[3].points[1];
 			audio_play(won ? SFX_WIN : SFX_LOSE);
+			for (int p = 0; p < MUS_PLAYERS; p++)
+				mood_set(&s_mood[p], (mus_team(p) == 0) == won ? EXPR_HAPPY : EXPR_SAD, 3.5f);
+			if (s_game.phase == MUS_PHASE_GAME_OVER)
+				profile_record_game(GAME_MUS, s_game.winner_team == 0);
 			set_message(s_game.phase == MUS_PHASE_GAME_OVER ? "Fin de la partida" : "Se descubren las cartas");
 		} else if (s_game.phase == MUS_PHASE_MUS && s_seen_phase == MUS_PHASE_DISCARD) {
-			set_message("Cartas nuevas: ¿mus o no hay mus?");
+			set_message("Cartas nuevas: ¿mus?");
 		}
 		s_seen_phase = s_game.phase;
 	}
@@ -403,9 +541,13 @@ static SceneId mus_scene_update(const Input* in, float dt)
 	for (int i = 0; i < DECK_SIZE; i++)
 		vis_update(&s_hand[i], dt);
 	flyers_update(dt);
-	for (int p = 0; p < MUS_PLAYERS; p++)
+	for (int p = 0; p < MUS_PLAYERS; p++) {
 		if (s_bubble_time[p] > 0.0f)
 			s_bubble_time[p] -= dt;
+		mood_update(&s_mood[p], dt);
+	}
+	schedule_senas();
+	update_senas(dt);
 	if (s_ordago_time > 0.0f)
 		s_ordago_time -= dt;
 	if (s_message_flash > 0.0f)
@@ -432,6 +574,10 @@ static void draw_seat(int p)
 	for (int i = 0; i < MUS_HAND_SIZE; i++)
 		gfx_card(s_game.hands[p][i], cx + (i - 1.5f) * step, cy, scale, up ? 1.0f : 0.0f, up ? 0.0f : (i - 1.5f) * 0.1f,
 			DEPTH_CARDS + i * 0.05f, 0.0f, i == 0);
+
+	/* Su Mii */
+	float ax = p == 2 ? 126.0f : cx, ay = p == 2 ? 36.0f : 50.0f;
+	mii_draw(seat_avatar(p), ax, ay, 15, DEPTH_UI + 0.5f, mood_expr(&s_mood[p]), false);
 
 	/* Nombre, turno y mano */
 	bool turn = s_game.current == p && s_game.phase <= MUS_PHASE_BET;
@@ -542,11 +688,14 @@ static void mus_scene_draw_top(void)
 	gfx_background(BG_TABLE_TOP);
 
 	/* Marcador */
-	gfx_panel(14, 14, 90, 52, DEPTH_UI, C2D_Color32(10, 50, 25, 210), C2D_Color32(20, 60, 30, 255));
-	gfx_textf(59, 17, DEPTH_UI, 0.4f, COLOR_CREAM, C2D_AlignCenter, "A %d piedras", MUS_GAME_POINTS);
-	gfx_textf(59, 32, DEPTH_UI, 0.45f, C2D_Color32(140, 200, 255, 255), C2D_AlignCenter, "Nosotros %d",
+	gfx_panel(14, 182, 90, 48, DEPTH_UI, C2D_Color32(10, 50, 25, 210), C2D_Color32(20, 60, 30, 255));
+	gfx_textf(59, 184, DEPTH_UI, 0.4f, COLOR_CREAM, C2D_AlignCenter, "A %d piedras", MUS_GAME_POINTS);
+	gfx_textf(59, 198, DEPTH_UI, 0.45f, C2D_Color32(140, 200, 255, 255), C2D_AlignCenter, "Nosotros %d",
 		s_game.score[0]);
-	gfx_textf(59, 47, DEPTH_UI, 0.45f, C2D_Color32(255, 150, 140, 255), C2D_AlignCenter, "Ellos %d", s_game.score[1]);
+	gfx_textf(59, 212, DEPTH_UI, 0.45f, C2D_Color32(255, 150, 140, 255), C2D_AlignCenter, "Ellos %d", s_game.score[1]);
+
+	/* Tu Mii, abajo: también hace las señas que tú elijas */
+	mii_draw(seat_avatar(0), 124, 212, 14, DEPTH_UI + 0.5f, mood_expr(&s_mood[0]), false);
 
 	for (int p = 1; p < MUS_PLAYERS; p++)
 		draw_seat(p);
@@ -586,7 +735,7 @@ static void mus_scene_draw_bottom(void)
 {
 	gfx_background(BG_TABLE_BOTTOM);
 
-	gfx_text(s_message, 14, 12, 0, 0.5f, s_message_flash > 0.0f ? COLOR_GOLD : COLOR_CREAM, C2D_AlignLeft);
+	gfx_text(s_message, 14, 13, 0, 0.45f, s_message_flash > 0.0f ? COLOR_GOLD : COLOR_CREAM, C2D_AlignLeft);
 	button_draw(&s_btn_menu, false);
 
 	bool my_turn = s_game.current == 0 && s_game.phase <= MUS_PHASE_BET;
@@ -637,6 +786,35 @@ static void mus_scene_draw_bottom(void)
 
 	for (int i = 0; i < s_btn_count; i++)
 		button_draw(&s_btn[i], i == 0 && s_btn[i].enabled);
+	if (s_game.phase <= MUS_PHASE_BET)
+		button_draw(&s_btn_senas, false);
+
+	if (!s_senas_open)
+		return;
+	/* Panel de señas */
+	gfx_rect(0, 0, BOTTOM_W, SCREEN_H, 0, C2D_Color32(0, 0, 0, 150));
+	gfx_panel(4, 4, BOTTOM_W - 8, SCREEN_H - 8, 0, C2D_Color32(20, 45, 90, 245), COLOR_GOLD);
+	gfx_text("Señas para Lola", BOTTOM_W / 2, 9, 0, 0.55f, COLOR_GOLD, C2D_AlignCenter);
+	char buf[96];
+	if (s_lola_sena != MUS_SENA_NONE)
+		snprintf(buf, sizeof buf, "Lola te dice: %s (%s)", mus_sena_meaning(s_lola_sena),
+			mus_sena_gesture(s_lola_sena));
+	else
+		snprintf(buf, sizeof buf, "Lola aún no te ha hecho ninguna seña");
+	gfx_text(buf, BOTTOM_W / 2, 30, 0, 0.42f, COLOR_CREAM, C2D_AlignCenter);
+	for (int i = 0; i < MUS_NUM_SENAS - 1; i++) {
+		MusSena sena = (MusSena)(i + 1);
+		float x = SENA_X(i), y = SENA_Y(i);
+		bool sel = i == s_senas_cursor;
+		gfx_rrect(x, y, SENA_W, SENA_H, 7, 0, sel ? C2D_Color32(255, 236, 170, 255) : C2D_Color32(250, 244, 228, 255));
+		if (sel)
+			gfx_rrect(x, y + SENA_H - 3, SENA_W, 3, 1, 0, COLOR_GOLD);
+		mii_draw(seat_avatar(0), x + 20, y + 21, 12, 0, sena_expr(sena), false);
+		gfx_text(mus_sena_meaning(sena), x + 38, y + 6, 0, 0.45f, C2D_Color32(90, 15, 20, 255), C2D_AlignLeft);
+		gfx_text(mus_sena_gesture(sena), x + 38, y + 23, 0, 0.36f, C2D_Color32(110, 90, 80, 255), C2D_AlignLeft);
+	}
+	gfx_rrect(60, 205, 200, 28, 8, 0, C2D_Color32(190, 60, 50, 255));
+	gfx_text(GLYPH_B " Cerrar", BOTTOM_W / 2, 210, 0, 0.55f, COLOR_WHITE, C2D_AlignCenter);
 }
 
 const Scene scene_mus = { mus_scene_enter, mus_scene_update, mus_scene_draw_top, mus_scene_draw_bottom };

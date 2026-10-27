@@ -9,6 +9,7 @@
 #include "ui/audio.h"
 #include "ui/flyers.h"
 #include "ui/gfx.h"
+#include "ui/mii.h"
 #include "ui/widgets.h"
 
 #define RIVAL_NAME   "Carmen"
@@ -24,6 +25,7 @@
 #define HAND_Y       100.0f
 
 static Brisca s_game;
+static Mood s_rival_mood, s_my_mood;
 static bool s_started;
 
 static VisCard s_hand[DECK_SIZE]; /* indexado por card_index */
@@ -178,6 +180,11 @@ static void after_play(int p)
 static void collect(void)
 {
 	int w = s_game.trick_winner;
+	if (s_game.trick_points >= 10) {
+		/* Las bazas gordas se celebran (o se lamentan) */
+		mood_set(&s_rival_mood, w == 1 ? EXPR_HAPPY : EXPR_SAD, 1.5f);
+		mood_set(&s_my_mood, w == 0 ? EXPR_HAPPY : EXPR_SAD, 1.5f);
+	}
 	br_collect(&s_game);
 	for (int p = 0; p < BR_PLAYERS; p++) {
 		flyers_add(&s_trick[p], PILE_X, pile_y(w), p * 0.08f, false, FLY_TOP);
@@ -301,8 +308,13 @@ static SceneId br_scene_update(const Input* in, float dt)
 		s_result_time = 0.0f;
 	}
 	if (s_game.phase == BR_PHASE_GAME_OVER && !is_busy) {
-		if (s_result_time == 0.0f)
-			audio_play(br_game_winner(&s_game) == 0 ? SFX_WIN : SFX_LOSE);
+		if (s_result_time == 0.0f) {
+			int w = br_game_winner(&s_game);
+			audio_play(w == 0 ? SFX_WIN : SFX_LOSE);
+			mood_set(&s_rival_mood, w == 1 ? EXPR_HAPPY : w == 0 ? EXPR_SAD : EXPR_SURPRISED, 4.0f);
+			mood_set(&s_my_mood, w == 0 ? EXPR_HAPPY : w == 1 ? EXPR_SAD : EXPR_SURPRISED, 4.0f);
+			profile_record_game(GAME_BRISCA, w == 0);
+		}
 		s_result_time += dt;
 	}
 
@@ -315,6 +327,8 @@ static SceneId br_scene_update(const Input* in, float dt)
 	for (int p = 0; p < BR_PLAYERS; p++)
 		vis_update(&s_trick[p], dt);
 	flyers_update(dt);
+	mood_update(&s_rival_mood, dt);
+	mood_update(&s_my_mood, dt);
 	if (s_message_flash > 0.0f)
 		s_message_flash -= dt * 2.0f;
 	return SCENE_BRISCA;
@@ -355,10 +369,11 @@ static void br_scene_draw_top(void)
 	gfx_background(BG_TABLE_TOP);
 
 	/* Marcador del rival */
-	gfx_panel(14, 14, 84, 46, DEPTH_UI, C2D_Color32(10, 50, 25, 210),
+	gfx_panel(14, 14, 104, 50, DEPTH_UI, C2D_Color32(10, 50, 25, 210),
 		s_game.current == 1 && s_game.phase == BR_PHASE_PLAYING ? COLOR_GOLD : C2D_Color32(20, 60, 30, 255));
-	gfx_text(RIVAL_NAME, 56, 18, DEPTH_UI, 0.5f, COLOR_CREAM, C2D_AlignCenter);
-	gfx_textf(56, 37, DEPTH_UI, 0.4f, COLOR_CREAM, C2D_AlignCenter, "Partidas: %d", s_game.games_won[1]);
+	mii_draw(cpu_avatar(CPU_CARMEN), 36, 40, 15, DEPTH_UI + 0.4f, mood_expr(&s_rival_mood), false);
+	gfx_text(RIVAL_NAME, 84, 20, DEPTH_UI, 0.5f, COLOR_CREAM, C2D_AlignCenter);
+	gfx_textf(84, 40, DEPTH_UI, 0.38f, COLOR_CREAM, C2D_AlignCenter, "Partidas: %d", s_game.games_won[1]);
 
 	/* Mazo con la muestra atravesada debajo */
 	if (s_game.deck.count > 0) {
@@ -412,7 +427,8 @@ static void br_scene_draw_bottom(void)
 		vis_draw(&s_hand[card_index(s_game.hands[0][i])]);
 	flyers_draw(FLY_BOTTOM);
 
-	gfx_textf(14, 160, 0, 0.5f, COLOR_CREAM, C2D_AlignLeft, "Tus puntos: %d", s_game.points[0]);
+	mii_draw(&profile_get()->avatar, 24, 168, 9, 0, mood_expr(&s_my_mood), false);
+	gfx_textf(38, 160, 0, 0.5f, COLOR_CREAM, C2D_AlignLeft, "Tus puntos: %d", s_game.points[0]);
 	gfx_textf(306, 160, 0, 0.5f, COLOR_CREAM, C2D_AlignRight, "Partidas: %d", s_game.games_won[0]);
 	gfx_text("As 11 · Tres 10 · Rey 4 · Caballo 3 · Sota 2", BOTTOM_W / 2, 180, 0, 0.4f,
 		C2D_Color32(200, 230, 200, 255), C2D_AlignCenter);

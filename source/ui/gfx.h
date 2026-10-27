@@ -95,6 +95,11 @@ float gfx_text_width(const char* str, float scale);
 void gfx_text_wrap(const char* str, float x, float y, float depth, float scale, u32 color, float width);
 
 void gfx_rect(float x, float y, float w, float h, float depth, u32 color);
+void gfx_ellipse(float cx, float cy, float rx, float ry, float depth, u32 color);
+void gfx_line(float x0, float y0, float x1, float y1, float width, float depth, u32 color);
+void gfx_triangle(float x0, float y0, float x1, float y1, float x2, float y2, float depth, u32 color);
+/* Color 0xRRGGBB a formato citro2d */
+u32 gfx_rgb(uint32_t rgb, u8 alpha);
 void gfx_rrect(float x, float y, float w, float h, float r, float depth, u32 color);
 /* Panel redondeado con borde, al estilo de los menús de 3DS. */
 void gfx_panel(float x, float y, float w, float h, float depth, u32 fill, u32 border);

@@ -7,12 +7,13 @@
 #include "scenes/scene.h"
 #include "ui/audio.h"
 #include "ui/gfx.h"
+#include "ui/mii.h"
 #include "ui/widgets.h"
 
 #define CARD_SCALE 0.75f
 #define DECK_X 362.0f
 #define DECK_Y 66.0f
-#define ROW_CX 218.0f
+#define ROW_CX 228.0f
 #define BANK_Y 66.0f
 #define PLAYER_Y 182.0f
 #define MAX_DISCARD 40
@@ -27,6 +28,7 @@ static int s_player_shown, s_bank_shown;
 static float s_spawn_delay; /* escalonado del reparto */
 static float s_bank_timer;
 static float s_result_time; /* tiempo desde que se muestra el resultado */
+static Mood s_bank_mood, s_player_mood;
 static SymPhase s_prev_phase;
 
 static Button s_btn_left, s_btn_main, s_btn_right, s_btn_alt, s_btn_menu;
@@ -179,10 +181,19 @@ static SceneId sym_scene_update(const Input* in, float dt)
 		s_prev_phase = s_game.phase;
 	}
 	if (result_ready) {
-		if (s_result_time == 0.0f)
-			audio_play(s_game.last_delta > 0 ? SFX_WIN : SFX_LOSE);
+		if (s_result_time == 0.0f) {
+			bool won = s_game.last_delta > 0;
+			audio_play(won ? SFX_WIN : SFX_LOSE);
+			mood_set(&s_bank_mood, won ? EXPR_SAD : EXPR_HAPPY, 2.5f);
+			mood_set(&s_player_mood, won ? EXPR_HAPPY : EXPR_SAD, 2.5f);
+			if (s_game.outcome == SYM_OUTCOME_REAL)
+				mood_set(&s_bank_mood, EXPR_SURPRISED, 2.5f);
+			profile_record_game(GAME_SIETEYMEDIA, won);
+		}
 		s_result_time += dt;
 	}
+	mood_update(&s_bank_mood, dt);
+	mood_update(&s_player_mood, dt);
 
 	bool hide_bank = s_game.phase == SYM_PHASE_PLAYER || s_game.phase == SYM_PHASE_BETTING;
 	if (s_spawn_delay > 0.0f)
@@ -204,7 +215,7 @@ static SceneId sym_scene_update(const Input* in, float dt)
 	return SCENE_SIETEYMEDIA;
 }
 
-static void draw_value_badge(const char* who, float y, int halves, bool known, bool active)
+static void draw_value_badge(const Avatar* who, const Mood* mood, float y, int halves, bool known, bool active)
 {
 	char value[16];
 	if (known)
@@ -212,10 +223,11 @@ static void draw_value_badge(const char* who, float y, int halves, bool known, b
 	else
 		snprintf(value, sizeof value, "?");
 	u32 border = active ? COLOR_GOLD : C2D_Color32(20, 60, 30, 255);
-	gfx_panel(18, y - 30, 70, 60, DEPTH_UI, C2D_Color32(10, 50, 25, 200), border);
-	gfx_text(who, 53, y - 25, DEPTH_UI, 0.45f, COLOR_CREAM, C2D_AlignCenter);
+	gfx_panel(14, y - 30, 98, 60, DEPTH_UI, C2D_Color32(10, 50, 25, 200), border);
+	mii_draw(who, 36, y + 2, 14, DEPTH_UI + 0.5f, mood_expr(mood), false);
+	gfx_text(who->name, 82, y - 25, DEPTH_UI, 0.4f, COLOR_CREAM, C2D_AlignCenter);
 	u32 col = halves > SYM_LIMIT && known ? COLOR_RED : halves == SYM_LIMIT && known ? COLOR_GOLD : COLOR_WHITE;
-	gfx_text(value, 53, y - 9, DEPTH_UI, 0.9f, col, C2D_AlignCenter);
+	gfx_text(value, 82, y - 9, DEPTH_UI, 0.9f, col, C2D_AlignCenter);
 }
 
 static void draw_banner(void)
@@ -266,9 +278,9 @@ static void sym_scene_draw_top(void)
 			DEPTH_CARDS + i * 0.1f, 0.0f, i == 0);
 
 	bool bank_known = !(s_game.phase == SYM_PHASE_PLAYER || s_game.phase == SYM_PHASE_BETTING);
-	draw_value_badge("BANCA", BANK_Y, sym_hand_halves(&s_game.bank), bank_known && s_game.bank.count > 0,
+	draw_value_badge(cpu_avatar(CPU_RAMON), &s_bank_mood, BANK_Y, sym_hand_halves(&s_game.bank), bank_known && s_game.bank.count > 0,
 		s_game.phase == SYM_PHASE_BANK);
-	draw_value_badge("TÚ", PLAYER_Y, sym_hand_halves(&s_game.player), s_game.player.count > 0,
+	draw_value_badge(&profile_get()->avatar, &s_player_mood, PLAYER_Y, sym_hand_halves(&s_game.player), s_game.player.count > 0,
 		s_game.phase == SYM_PHASE_PLAYER);
 
 	for (int d = 0; d < MAX_DISCARD; d++)

@@ -15,6 +15,28 @@ para Nintendo 3DS con [devkitPro](https://devkitpro.org) (libctru + citro2d).
 |:---:|:---:|:---:|:---:|
 | ![Chinchón](docs/chinchon.png) | ![Cierre](docs/chinchon_fin.png) | ![Mus](docs/mus.png) | ![Recuento](docs/mus_fin.png) |
 
+| Tu perfil Mii | Señas del mus |
+|:---:|:---:|
+| ![Perfil](docs/perfil.png) | ![Señas](docs/mus_senas.png) |
+
+## Tu Mii y los rivales
+
+La primera vez que abres el juego creas tu **perfil**: puedes usar un **Mii de la
+consola** (se abre el selector de Miis del sistema) o diseñar uno aquí mismo
+(nombre, sexo, piel, peinado, color de pelo, color favorito, gafas, barba y forma
+de la cara). Tu perfil guarda tus estadísticas de cada juego y se puede cambiar
+cuando quieras desde **Mi perfil** en el menú. Se guarda en
+`/3ds/JuegosDeCartas/perfil.dat` en la tarjeta SD.
+
+Todos los rivales de la CPU son Miis con su propia cara: Don Ramón (la banca de la
+siete y media), Paco, Lola y Manolo (cinquillo y mus), Carmen (brisca), Pepe
+(escoba) y Lucía (chinchón). Parpadean, se alegran cuando ganan, ponen mala cara
+cuando pierden y se sorprenden con una escoba, un chinchón o un órdago.
+
+Los Miis se dibujan con formas sencillas al estilo Mii: de un Mii de la consola se
+copian el nombre, el sexo, los colores (piel, pelo y color favorito), las gafas y
+la barba o el bigote; los peinados se agrupan en los ocho estilos del juego.
+
 ## Juegos
 
 | Juego | Estado |
@@ -103,6 +125,24 @@ paso se cuenta al descubrir las cartas, junto con los tantos de pares y juego.
 Gana la pareja que llegue a 40 piedras. En la pantalla de abajo siempre ves tu
 grande, tus pares y tu juego para no tener que contar.
 
+#### Señas
+Como en el mus de verdad, los compañeros se hacen **señas** con la cara, y las
+verás en los Miis:
+
+| Seña | Significa |
+|---|---|
+| Morderse el labio | Dos reyes o más |
+| Sacar la punta de la lengua | Dos ases o más |
+| Torcer la boca | Medias |
+| Levantar las cejas | Duples |
+| Guiñar un ojo | 31 de juego |
+| Cerrar los ojos | Ciego: nada |
+
+Lola te hace señas y las tiene en cuenta para jugar; pulsa **SELECT** (o toca
+**Señas**) para ver la última que te ha hecho y para hacerle tú una a ella. Paco y
+Manolo también se hacen señas entre ellos: si estás atento a sus caras, ¡puedes
+pillarlas!
+
 ## Controles
 
 | Botón | Acción |
@@ -113,6 +153,7 @@ grande, tus pares y tu juego para no tener que contar.
 | X | Pasar (cinquillo); robar del mazo (chinchón); envidar o marcar cartas para el mus |
 | Y | Cambiar el 7 (o el 2) por la muestra (brisca); coger el descarte o cerrar (chinchón); órdago (mus) |
 | L / R | Bajar / subir la apuesta (siete y media); elegir qué cartas te llevas (escoba); cuánto envidas (mus) |
+| SELECT | Señas con tu compañera (mus) |
 | START | Volver al menú (en el menú: salir) |
 | Pantalla táctil | Todos los botones y las cartas se pueden tocar (en la escoba y el chinchón, el primer toque elige la carta y el segundo la juega o la descarta) |
 
@@ -185,10 +226,10 @@ ejecutarlos si se cambia su aspecto.
 
 ```
 source/
-  core/      Baraja española y generador aleatorio (C puro)
+  core/      Baraja española, aleatorio, Miis y perfil del jugador (C puro)
   games/     Reglas e IA de cada juego (C puro, con tests)
-  ui/        Dibujo con citro2d, 3D, entrada, botones, cartas animadas, sonido
-  scenes/    Pantallas: menú y una mesa por juego
+  ui/        Dibujo con citro2d, 3D, Miis, entrada, botones, cartas animadas, sonido
+  scenes/    Pantallas: menú, perfil y una mesa por juego
   main.c     Bucle principal y transiciones entre escenas
 gfx/         Imágenes fuente (se convierten con tex3ds al compilar)
 romfs/sfx/   Sonidos en PCM de 16 bits

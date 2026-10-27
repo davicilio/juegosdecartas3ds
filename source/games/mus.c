@@ -282,6 +282,8 @@ void mus_start_hand(Mus* g)
 	g->mus_rounds = 0;
 	g->punto = false;
 	g->ordago_played = false;
+	for (int p = 0; p < MUS_PLAYERS; p++)
+		g->sena[p] = MUS_SENA_NONE;
 	g->last_player = -1;
 	g->last_action = MUS_ACT_NONE;
 	g->last_amount = 0;
@@ -439,6 +441,9 @@ bool mus_discard(Mus* g, unsigned mask)
 		}
 	note(g, p, MUS_ACT_DISCARD, n);
 	if (++g->discarded_now == MUS_PLAYERS) {
+		/* Con cartas nuevas las señas anteriores ya no valen */
+		for (int q = 0; q < MUS_PLAYERS; q++)
+			g->sena[q] = MUS_SENA_NONE;
 		g->phase = MUS_PHASE_MUS;
 		g->mus_count = 0;
 		g->mus_rounds++;
@@ -541,6 +546,59 @@ bool mus_next_hand(Mus* g)
 }
 
 /* ---------------------------------------------------------------------------
+ * Señas
+ * ------------------------------------------------------------------------- */
+
+MusSena mus_best_sena(const Card* hand)
+{
+	int kind = mus_pares_kind(hand);
+	int reyes = 0, ases = 0;
+	for (int i = 0; i < MUS_HAND_SIZE; i++) {
+		int r = mus_rank(hand[i]);
+		reyes += r == 10;
+		ases += r == 1;
+	}
+	if (kind == 3)
+		return MUS_SENA_DUPLES;
+	if (kind == 2)
+		return MUS_SENA_MEDIAS;
+	if (mus_juego_sum(hand) == 31)
+		return MUS_SENA_31;
+	if (reyes >= 2)
+		return MUS_SENA_REYES;
+	if (ases >= 2)
+		return MUS_SENA_ASES;
+	if (kind == 0 && !mus_has_juego(hand))
+		return MUS_SENA_CIEGO;
+	return MUS_SENA_NONE;
+}
+
+const char* mus_sena_meaning(MusSena s)
+{
+	static const char* names[MUS_NUM_SENAS] = {
+		"Nada que decir", "Dos reyes o más", "Dos ases o más", "Medias", "Duples", "31 de juego", "Ciego: nada"
+	};
+	return s < MUS_NUM_SENAS ? names[s] : "?";
+}
+
+const char* mus_sena_gesture(MusSena s)
+{
+	static const char* names[MUS_NUM_SENAS] = {
+		"-", "Morderse el labio", "Sacar la lengua", "Torcer la boca", "Levantar las cejas", "Guiñar un ojo",
+		"Cerrar los ojos"
+	};
+	return s < MUS_NUM_SENAS ? names[s] : "?";
+}
+
+bool mus_make_sena(Mus* g, int player, MusSena s)
+{
+	if (g->phase > MUS_PHASE_BET || player < 0 || player >= MUS_PLAYERS || s >= MUS_NUM_SENAS)
+		return false;
+	g->sena[player] = s;
+	return true;
+}
+
+/* ---------------------------------------------------------------------------
  * IA
  * ------------------------------------------------------------------------- */
 
@@ -587,11 +645,38 @@ static int win_chance(const Mus* g, int player, int lance, bool punto)
 	return score * 100 / (2 * samples);
 }
 
-/* Fuerza contra la pareja rival (hay que ganar a los dos). */
+/* Fuerza contra la pareja rival (hay que ganar a los dos), teniendo en
+ * cuenta lo que el compañero ha dicho con sus señas. */
 static int team_chance(const Mus* g, int player, int lance)
 {
 	int p = win_chance(g, player, lance, g->punto);
-	return p * p / 100;
+	int chance = p * p / 100;
+	int floor = 0;
+	switch (g->sena[mus_partner(player)]) {
+	case MUS_SENA_REYES:
+		floor = lance == MUS_LANCE_GRANDE ? 75 : 0;
+		break;
+	case MUS_SENA_ASES:
+		floor = lance == MUS_LANCE_CHICA ? 75 : 0;
+		break;
+	case MUS_SENA_MEDIAS:
+		floor = lance == MUS_LANCE_PARES ? 70 : 0;
+		break;
+	case MUS_SENA_DUPLES:
+		floor = lance == MUS_LANCE_PARES ? 85 : 0;
+		break;
+	case MUS_SENA_31:
+		floor = lance == MUS_LANCE_JUEGO && !g->punto ? 85 : 0;
+		break;
+	case MUS_SENA_CIEGO:
+		chance -= 10;
+		break;
+	default:
+		break;
+	}
+	if (chance < floor)
+		chance = floor;
+	return chance < 0 ? 0 : chance;
 }
 
 bool mus_ai_wants_mus(const Mus* g, int player)
@@ -604,6 +689,10 @@ bool mus_ai_wants_mus(const Mus* g, int player)
 		if (mus_rank(h[i]) == 10)
 			reyes++;
 	bool good = sum == 31 || kind >= 2 || (kind == 1 && sum >= 31) || reyes >= 3;
+	/* Si el compañero ha hecho seña de buena jugada, se corta con algo decente */
+	MusSena s = g->sena[mus_partner(player)];
+	if ((s == MUS_SENA_DUPLES || s == MUS_SENA_MEDIAS || s == MUS_SENA_31) && (kind >= 1 || reyes >= 2))
+		good = true;
 	return !good;
 }
 

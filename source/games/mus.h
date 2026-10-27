@@ -61,6 +61,18 @@ typedef enum {
 	MUS_ACT_NO_QUIERO
 } MusAction;
 
+/* Señas entre compañeros: cada una es un gesto de la cara. */
+typedef enum {
+	MUS_SENA_NONE,
+	MUS_SENA_REYES,  /* dos reyes o más: morderse el labio */
+	MUS_SENA_ASES,   /* dos ases o más: sacar la punta de la lengua */
+	MUS_SENA_MEDIAS, /* torcer la boca */
+	MUS_SENA_DUPLES, /* levantar las cejas */
+	MUS_SENA_31,     /* guiñar un ojo */
+	MUS_SENA_CIEGO,  /* nada de nada: cerrar los ojos */
+	MUS_NUM_SENAS
+} MusSena;
+
 typedef enum {
 	MUS_RES_PENDING,
 	MUS_RES_NONE,       /* nadie tiene (pares o juego): no se juega */
@@ -110,6 +122,8 @@ typedef struct {
 	MusAction last_action;
 	int last_amount;
 	int actions; /* contador de acciones, para detectar cambios */
+	/* Última seña de cada jugador en esta mano (la ve su compañero) */
+	MusSena sena[MUS_PLAYERS];
 	Rng rng;
 } Mus;
 
@@ -150,6 +164,17 @@ bool mus_bet(Mus* g, MusAction action, int amount);
 /* ¿Hay un envite pendiente de respuesta? */
 bool mus_responding(const Mus* g);
 bool mus_next_hand(Mus* g);
+
+/* Señas */
+MusSena mus_best_sena(const Card* hand);
+const char* mus_sena_meaning(MusSena s);
+const char* mus_sena_gesture(MusSena s);
+/* El jugador hace una seña a su compañero (durante el mus o los lances). */
+bool mus_make_sena(Mus* g, int player, MusSena s);
+static inline int mus_partner(int player)
+{
+	return (player + 2) % MUS_PLAYERS;
+}
 
 /* IA */
 bool mus_ai_wants_mus(const Mus* g, int player);

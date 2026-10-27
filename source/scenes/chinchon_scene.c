@@ -9,6 +9,7 @@
 #include "ui/audio.h"
 #include "ui/flyers.h"
 #include "ui/gfx.h"
+#include "ui/mii.h"
 #include "ui/widgets.h"
 
 #define RIVAL_NAME  "Lucía"
@@ -25,6 +26,7 @@
 #define GROUP_GAP   12.0f
 
 static Chinchon s_game;
+static Mood s_rival_mood, s_my_mood;
 static bool s_started;
 
 static VisCard s_hand[DECK_SIZE]; /* mano del jugador, por card_index */
@@ -194,6 +196,11 @@ static void do_discard(int idx, bool close)
 			snprintf(buf, sizeof buf, "%s", p == 0 ? "Cierras la ronda" : RIVAL_NAME " cierra la ronda");
 		}
 		audio_play(p == 0 ? SFX_WIN : SFX_LOSE);
+		Expression closer = s_game.chinchon || s_game.menos_diez ? EXPR_SURPRISED : EXPR_HAPPY;
+		mood_set(&s_rival_mood, p == 1 ? closer : EXPR_SAD, 4.0f);
+		mood_set(&s_my_mood, p == 0 ? closer : EXPR_SAD, 4.0f);
+		if (s_game.phase == CH_PHASE_GAME_OVER)
+			profile_record_game(GAME_CHINCHON, ch_winner(&s_game) == 0);
 	} else {
 		snprintf(buf, sizeof buf, p == 0 ? "Descartas %s" : RIVAL_NAME " descarta %s", card);
 	}
@@ -360,6 +367,8 @@ static SceneId ch_scene_update(const Input* in, float dt)
 	if (s_incoming.active && !vis_moving(&s_incoming))
 		s_incoming.active = false;
 	flyers_update(dt);
+	mood_update(&s_rival_mood, dt);
+	mood_update(&s_my_mood, dt);
 	if (s_banner_time > 0.0f && !busy())
 		s_banner_time -= dt;
 	if (s_message_flash > 0.0f)
@@ -411,7 +420,7 @@ static void draw_rival(void)
 	}
 	const ChAnalysis* a = &s_game.final[1];
 	float xs[CH_MAX_HAND];
-	row_positions(a, n, 200.0f, 26.0f, 6.0f, xs);
+	row_positions(a, n, 194.0f, 26.0f, 6.0f, xs);
 	for (int i = 0; i < n; i++) {
 		bool loose = (a->loose >> i) & 1u;
 		bool laid = s_game.closer == 0 && ((s_game.laid_off >> i) & 1u);
@@ -465,12 +474,15 @@ static void ch_scene_draw_top(void)
 	/* Marcador */
 	gfx_panel(14, 14, 84, 52, DEPTH_UI, C2D_Color32(10, 50, 25, 210), C2D_Color32(20, 60, 30, 255));
 	gfx_textf(56, 17, DEPTH_UI, 0.4f, COLOR_CREAM, C2D_AlignCenter, "Límite %d", CH_LIMIT);
-	gfx_textf(56, 33, DEPTH_UI, 0.45f, COLOR_WHITE, C2D_AlignCenter, "Tú %d", s_game.score[0]);
-	gfx_textf(56, 47, DEPTH_UI, 0.45f, COLOR_WHITE, C2D_AlignCenter, RIVAL_NAME " %d", s_game.score[1]);
-	gfx_panel(302, 14, 84, 44, DEPTH_UI, C2D_Color32(10, 50, 25, 210),
+	mii_draw(&profile_get()->avatar, 28, 40, 6, DEPTH_UI, mood_expr(&s_my_mood), false);
+	mii_draw(cpu_avatar(CPU_LUCIA), 28, 54, 6, DEPTH_UI, mood_expr(&s_rival_mood), false);
+	gfx_textf(40, 33, DEPTH_UI, 0.45f, COLOR_WHITE, C2D_AlignLeft, "Tú %d", s_game.score[0]);
+	gfx_textf(40, 47, DEPTH_UI, 0.45f, COLOR_WHITE, C2D_AlignLeft, RIVAL_NAME " %d", s_game.score[1]);
+	gfx_panel(300, 14, 86, 48, DEPTH_UI, C2D_Color32(10, 50, 25, 210),
 		s_game.current == 1 && s_game.phase < CH_PHASE_ROUND_OVER ? COLOR_GOLD : C2D_Color32(20, 60, 30, 255));
-	gfx_text(RIVAL_NAME, 344, 18, DEPTH_UI, 0.5f, COLOR_CREAM, C2D_AlignCenter);
-	gfx_textf(344, 37, DEPTH_UI, 0.4f, COLOR_CREAM, C2D_AlignCenter, "Ronda %d", s_game.round);
+	mii_draw(cpu_avatar(CPU_LUCIA), 318, 38, 13, DEPTH_UI + 0.4f, mood_expr(&s_rival_mood), false);
+	gfx_text(RIVAL_NAME, 360, 19, DEPTH_UI, 0.48f, COLOR_CREAM, C2D_AlignCenter);
+	gfx_textf(360, 39, DEPTH_UI, 0.4f, COLOR_CREAM, C2D_AlignCenter, "Ronda %d", s_game.round);
 
 	draw_piles();
 	draw_rival();

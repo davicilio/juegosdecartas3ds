@@ -10,6 +10,7 @@
 #include "games/cinquillo.h"
 #include "games/escoba.h"
 #include "games/mus.h"
+#include "core/profile.h"
 #include "games/sieteymedia.h"
 
 static int failures = 0;
@@ -813,6 +814,114 @@ static void test_mus_simulation(void)
 	CHECK(wins[1] > wins[0]);
 }
 
+
+static void test_mus_senas(void)
+{
+	Card duples[4] = { CARD(OROS, RANK_REY), CARD(COPAS, 3), CARD(BASTOS, 1), CARD(ESPADAS, 2) };
+	Card medias[4] = { CARD(OROS, 7), CARD(COPAS, 7), CARD(BASTOS, 7), CARD(ESPADAS, 1) };
+	Card t31[4] = { CARD(OROS, RANK_REY), CARD(COPAS, RANK_SOTA), CARD(BASTOS, RANK_CABALLO), CARD(ESPADAS, 1) };
+	Card reyes[4] = { CARD(OROS, RANK_REY), CARD(COPAS, 3), CARD(BASTOS, 5), CARD(ESPADAS, 4) };
+	Card ases[4] = { CARD(OROS, 1), CARD(COPAS, 2), CARD(BASTOS, 5), CARD(ESPADAS, 4) };
+	Card ciego[4] = { CARD(OROS, 4), CARD(COPAS, 5), CARD(BASTOS, 6), CARD(ESPADAS, 7) };
+	CHECK(mus_best_sena(duples) == MUS_SENA_DUPLES);
+	CHECK(mus_best_sena(medias) == MUS_SENA_MEDIAS);
+	CHECK(mus_best_sena(t31) == MUS_SENA_31);
+	CHECK(mus_best_sena(reyes) == MUS_SENA_REYES);
+	CHECK(mus_best_sena(ases) == MUS_SENA_ASES);
+	CHECK(mus_best_sena(ciego) == MUS_SENA_CIEGO);
+
+	Mus g;
+	mus_init(&g, 31);
+	CHECK(mus_make_sena(&g, 0, MUS_SENA_31));
+	CHECK(g.sena[0] == MUS_SENA_31);
+	/* Las señas se olvidan al cambiar las cartas */
+	for (int p = 0; p < 4; p++)
+		mus_say_mus(&g, true);
+	for (int p = 0; p < 4; p++)
+		mus_discard(&g, 0x1);
+	CHECK(g.sena[0] == MUS_SENA_NONE);
+}
+
+/* Dos parejas de IA, una con señas y otra sin ellas. */
+static void test_mus_senas_simulation(void)
+{
+	int wins[2] = { 0 };
+	for (uint32_t seed = 1; seed <= 300; seed++) {
+		Mus g;
+		mus_init(&g, seed + 1000);
+		int guard = 0;
+		int seen_phase = -1, seen_rounds = -1;
+		while (g.phase != MUS_PHASE_GAME_OVER && guard++ < 20000) {
+			if (g.phase == MUS_PHASE_MUS && (seen_phase != MUS_PHASE_MUS || seen_rounds != g.mus_rounds)) {
+				/* Al empezar cada vuelta de mus, la pareja 0 se hace sus señas */
+				mus_make_sena(&g, 0, mus_best_sena(g.hands[0]));
+				mus_make_sena(&g, 2, mus_best_sena(g.hands[2]));
+				seen_rounds = g.mus_rounds;
+			}
+			seen_phase = g.phase;
+			int p = g.current, amount = 2;
+			switch (g.phase) {
+			case MUS_PHASE_MUS:
+				mus_say_mus(&g, mus_ai_wants_mus(&g, p));
+				break;
+			case MUS_PHASE_DISCARD:
+				mus_discard(&g, mus_ai_discard(&g, p));
+				break;
+			case MUS_PHASE_BET: {
+				MusAction a = mus_ai_bet(&g, p, &amount);
+				CHECK(mus_bet(&g, a, amount));
+				break;
+			}
+			case MUS_PHASE_HAND_OVER:
+				mus_next_hand(&g);
+				seen_phase = -1;
+				break;
+			default:
+				break;
+			}
+		}
+		CHECK(g.phase == MUS_PHASE_GAME_OVER);
+		if (g.winner_team >= 0)
+			wins[g.winner_team]++;
+	}
+	printf("  mus: con señas %d - sin señas %d\n", wins[0], wins[1]);
+	CHECK(wins[0] > wins[1]);
+}
+
+static void test_profile(void)
+{
+	PlayerProfile p, q;
+	profile_init(&p);
+	CHECK(!p.created);
+	snprintf(p.avatar.name, sizeof p.avatar.name, "Davicilio");
+	p.avatar.hair_style = HAIR_CURLY;
+	p.created = 1;
+	profile_record(&p, GAME_MUS, true);
+	profile_record(&p, GAME_MUS, false);
+	CHECK(p.played[GAME_MUS] == 2 && p.won[GAME_MUS] == 1);
+	const char* path = "test_perfil.dat";
+	CHECK(profile_save(&p, path));
+	CHECK(profile_load(&q, path));
+	CHECK(strcmp(q.avatar.name, "Davicilio") == 0);
+	CHECK(q.avatar.hair_style == HAIR_CURLY && q.created == 1 && q.won[GAME_MUS] == 1);
+	/* Un fichero dañado no se carga */
+	FILE* f = fopen(path, "wb");
+	fputs("basura", f);
+	fclose(f);
+	CHECK(!profile_load(&q, path));
+	remove(path);
+
+	/* Los Miis de la CPU tienen nombre y valores válidos */
+	for (int i = 0; i < CPU_COUNT; i++) {
+		Avatar a = *cpu_avatar((CpuId)i);
+		Avatar b = a;
+		avatar_sanitize(&b);
+		CHECK(memcmp(&a, &b, sizeof a) == 0);
+		CHECK(a.name[0] != '\0');
+	}
+	CHECK(strcmp(cpu_avatar(CPU_LOLA)->name, "Lola") == 0);
+}
+
 int main(void)
 {
 	printf("Ejecutando tests...\n");
@@ -838,6 +947,9 @@ int main(void)
 	test_mus_ordago();
 	test_mus_discard();
 	test_mus_simulation();
+	test_mus_senas();
+	test_mus_senas_simulation();
+	test_profile();
 	printf("%d comprobaciones, %d fallos\n", checks, failures);
 	return failures ? 1 : 0;
 }

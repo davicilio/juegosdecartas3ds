@@ -8,6 +8,7 @@
 #include "scenes/scene.h"
 #include "ui/audio.h"
 #include "ui/gfx.h"
+#include "ui/mii.h"
 #include "ui/widgets.h"
 
 #define TABLE_SCALE 0.46f
@@ -24,7 +25,11 @@ static const float ORIGIN_Y[CQ_PLAYERS] = { 290, 65, 65, 165 };
 static const float BADGE_X[CQ_PLAYERS] = { 0, 314, 12, 12 };
 static const float BADGE_Y[CQ_PLAYERS] = { 0, 20, 20, 120 };
 
+/* Mii de cada jugador de la CPU */
+static const CpuId MIIS[CQ_PLAYERS] = { CPU_PACO, CPU_PACO, CPU_LOLA, CPU_MANOLO };
+
 static Cinquillo s_game;
+static Mood s_mood[CQ_PLAYERS];
 static bool s_started;
 
 static VisCard s_table[NUM_SUITS][RANKS_PER_SUIT];
@@ -142,6 +147,7 @@ static void on_action(void)
 		set_message(buf);
 	} else if (s_game.last_action == CQ_ACTION_PASS) {
 		s_pass_bubble[p] = 1.2f;
+		mood_set(&s_mood[p], EXPR_SAD, 1.2f);
 		audio_play(SFX_CHIP);
 		snprintf(buf, sizeof buf, "%s pasa%s", p == 0 ? "Tú" : NAMES[p], p == 0 ? "s" : "");
 		set_message(buf);
@@ -299,8 +305,13 @@ static SceneId cq_scene_update(const Input* in, float dt)
 	}
 	if (s_game.phase != CQ_PHASE_PLAYING && !busy) {
 		if (s_result_time == 0.0f) {
-			int winner = s_game.phase == CQ_PHASE_GAME_OVER ? cq_leader(&s_game) : s_game.round_winner;
+			bool over = s_game.phase == CQ_PHASE_GAME_OVER;
+			int winner = over ? cq_leader(&s_game) : s_game.round_winner;
 			audio_play(winner == 0 ? SFX_WIN : SFX_LOSE);
+			for (int p = 0; p < CQ_PLAYERS; p++)
+				mood_set(&s_mood[p], p == winner ? EXPR_HAPPY : EXPR_SAD, 3.0f);
+			if (over)
+				profile_record_game(GAME_CINQUILLO, winner == 0);
 		}
 		s_result_time += dt;
 	}
@@ -323,6 +334,8 @@ static SceneId cq_scene_update(const Input* in, float dt)
 			s_pass_bubble[p] -= dt;
 	if (s_message_flash > 0.0f)
 		s_message_flash -= dt * 2.0f;
+	for (int p = 0; p < CQ_PLAYERS; p++)
+		mood_update(&s_mood[p], dt);
 	return SCENE_CINQUILLO;
 }
 
@@ -337,15 +350,13 @@ static void draw_badge(int p)
 	if (turn)
 		gfx_rrect(x - 3, y - 3, 80, 96, 10, DEPTH_UI, C2D_Color32(255, 220, 90, (u8)(80 + 100 * lift)));
 	gfx_panel(x, y, 74, 90, DEPTH_UI, C2D_Color32(10, 50, 25, 210), border);
-	gfx_text(NAMES[p], x + 37, y + 5, DEPTH_UI, 0.5f, turn ? COLOR_GOLD : COLOR_CREAM, C2D_AlignCenter);
+	gfx_text(NAMES[p], x + 37, y + 3, DEPTH_UI, 0.48f, turn ? COLOR_GOLD : COLOR_CREAM, C2D_AlignCenter);
 
-	/* Cartas en la mano, en abanico */
+	/* Su Mii y las cartas que le quedan */
+	mii_draw(cpu_avatar(MIIS[p]), x + 24, y + 42, 14, DEPTH_UI + 0.4f, mood_expr(&s_mood[p]), false);
 	int n = s_game.hand_count[p];
-	int shown = n > 5 ? 5 : n;
-	for (int i = 0; i < shown; i++)
-		gfx_sprite_ex(SPR_CARD_BACK, x + 30 + (i - (shown - 1) / 2.0f) * 5.0f, y + 44, 0.28f, 0.28f,
-			(i - (shown - 1) / 2.0f) * 0.15f, DEPTH_UI + 0.2f, NULL);
-	gfx_textf(x + 60, y + 36, DEPTH_UI, 0.5f, COLOR_WHITE, C2D_AlignCenter, "%d", n);
+	gfx_sprite_ex(SPR_CARD_BACK, x + 56, y + 36, 0.26f, 0.26f, 0.1f, DEPTH_UI + 0.2f, NULL);
+	gfx_textf(x + 56, y + 47, DEPTH_UI, 0.45f, COLOR_WHITE, C2D_AlignCenter, "%d", n);
 
 	gfx_sprite(SPR_CHIP_RED, x + 18, y + 76, 0.6f, DEPTH_UI);
 	gfx_textf(x + 30, y + 68, DEPTH_UI, 0.5f, COLOR_WHITE, C2D_AlignLeft, "%d", s_game.chips[p]);
@@ -452,7 +463,8 @@ static void cq_scene_draw_bottom(void)
 		if (s_flying[i].active && s_flying[i].ty < 0)
 			vis_draw(&s_flying[i]);
 
-	gfx_textf(14, 160, 0, 0.5f, COLOR_CREAM, C2D_AlignLeft, "Tus fichas: %d", s_game.chips[0]);
+	mii_draw(&profile_get()->avatar, 24, 168, 9, 0, mood_expr(&s_mood[0]), false);
+	gfx_textf(38, 160, 0, 0.5f, COLOR_CREAM, C2D_AlignLeft, "Tus fichas: %d", s_game.chips[0]);
 	gfx_textf(306, 160, 0, 0.5f, COLOR_CREAM, C2D_AlignRight, "Bote: %d", s_game.pot);
 
 	const char* hint = "";

@@ -176,6 +176,28 @@ void gfx_rect(float x, float y, float w, float h, float depth, u32 color)
 	C2D_DrawRectSolid(x + gfx_dx(depth), y, 0.5f, w, h, color);
 }
 
+void gfx_ellipse(float cx, float cy, float rx, float ry, float depth, u32 color)
+{
+	C2D_DrawEllipseSolid(cx - rx + gfx_dx(depth), cy - ry, 0.5f, rx * 2, ry * 2, color);
+}
+
+void gfx_line(float x0, float y0, float x1, float y1, float width, float depth, u32 color)
+{
+	float dx = gfx_dx(depth);
+	C2D_DrawLine(x0 + dx, y0, color, x1 + dx, y1, color, width, 0.5f);
+}
+
+void gfx_triangle(float x0, float y0, float x1, float y1, float x2, float y2, float depth, u32 color)
+{
+	float dx = gfx_dx(depth);
+	C2D_DrawTriangle(x0 + dx, y0, color, x1 + dx, y1, color, x2 + dx, y2, color, 0.5f);
+}
+
+u32 gfx_rgb(uint32_t rgb, u8 alpha)
+{
+	return C2D_Color32((rgb >> 16) & 0xFF, (rgb >> 8) & 0xFF, rgb & 0xFF, alpha);
+}
+
 static void corner(float cx, float cy, float r, float a0, float depth, u32 color)
 {
 	/* Cuarto de círculo como abanico de triángulos (sin solaparse con los

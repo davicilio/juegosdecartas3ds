@@ -8,6 +8,7 @@
 #include "ui/audio.h"
 #include "ui/gfx.h"
 #include "ui/input.h"
+#include "ui/mii.h"
 
 #define FADE_TIME 0.25f
 
@@ -26,6 +27,8 @@ static const Scene* scene_for(SceneId id)
 		return &scene_chinchon;
 	case SCENE_MUS:
 		return &scene_mus;
+	case SCENE_PROFILE:
+		return &scene_profile;
 	default:
 		return &scene_menu;
 	}
@@ -49,8 +52,9 @@ int main(void)
 	srand((unsigned)time(NULL));
 	audio_init();
 
-	SceneId current = SCENE_MENU;
-	SceneId pending = SCENE_MENU;
+	/* La primera vez se crea el perfil antes de ir al menú */
+	SceneId current = profile_get()->created ? SCENE_MENU : SCENE_PROFILE;
+	SceneId pending = current;
 	float fade = 1.0f;     /* 1 = negro */
 	bool fading_out = false;
 	scene_for(current)->enter();
