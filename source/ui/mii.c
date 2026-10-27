@@ -7,97 +7,152 @@
 #include <stdlib.h>
 #include <sys/stat.h>
 
+#include "ui/chars_layout.h"
 #include "ui/gfx.h"
-#include "ui/miiface.h"
 
 /* ---------------------------------------------------------------------------
- * Dibujo
+ * Dibujo de los personajes
+ *
+ * Cada personaje se monta con piezas del atlas gfx/chars.t3s (generadas por
+ * tools/gen_characters.py). Las piezas en gris se tiñen multiplicando por el
+ * color de piel, pelo o color favorito del Mii en el que se basa.
  * ------------------------------------------------------------------------- */
 
-const char* mii_studio_expression(Expression e)
+typedef struct {
+	u8 eye_left, eye_right; /* CHR_EYE_* (CHR_EYE_OPEN se cambia por pestañas en las chicas) */
+	float brow_dy;          /* subir (negativo) o bajar las cejas, en píxeles del atlas */
+	float brow_angle;       /* giro de la ceja izquierda; la derecha gira al revés */
+	u8 mouth;
+} Face;
+
+static const Face FACES[EXPR_COUNT] = {
+	[EXPR_NORMAL] = { CHR_EYE_OPEN, CHR_EYE_OPEN, 0.0f, 0.0f, CHR_MOUTH_SMILE },
+	[EXPR_HAPPY] = { CHR_EYE_HAPPY, CHR_EYE_HAPPY, -3.0f, 0.0f, CHR_MOUTH_HAPPY },
+	[EXPR_SAD] = { CHR_EYE_OPEN, CHR_EYE_OPEN, 0.0f, -0.28f, CHR_MOUTH_SAD },
+	[EXPR_SURPRISED] = { CHR_EYE_WIDE, CHR_EYE_WIDE, -6.0f, 0.0f, CHR_MOUTH_O },
+	[EXPR_BITE_LIP] = { CHR_EYE_OPEN, CHR_EYE_OPEN, 0.0f, 0.0f, CHR_MOUTH_BITE },
+	[EXPR_TONGUE] = { CHR_EYE_OPEN, CHR_EYE_OPEN, 0.0f, 0.0f, CHR_MOUTH_TONGUE },
+	[EXPR_TWIST] = { CHR_EYE_OPEN, CHR_EYE_OPEN, 1.0f, 0.12f, CHR_MOUTH_TWIST },
+	[EXPR_BROWS_UP] = { CHR_EYE_OPEN, CHR_EYE_OPEN, -9.0f, 0.0f, CHR_MOUTH_SMILE },
+	[EXPR_WINK] = { CHR_EYE_HAPPY, CHR_EYE_OPEN, 0.0f, 0.0f, CHR_MOUTH_SMILE },
+	[EXPR_EYES_CLOSED] = { CHR_EYE_CLOSED, CHR_EYE_CLOSED, 0.0f, 0.0f, CHR_MOUTH_SMILE },
+};
+
+static const u8 HAIR_FRONT[HAIR_STYLES] = {
+	CHR_HAIR_SHORT_FRONT, CHR_HAIR_LONG_FRONT, CHR_HAIR_BUN_FRONT, CHR_HAIR_SPIKY_FRONT,
+	CHR_HAIR_BALD_FRONT, CHR_HAIR_BOB_FRONT, CHR_HAIR_PONYTAIL_FRONT, CHR_HAIR_CURLY_FRONT,
+};
+static const u8 HAIR_BACK[HAIR_STYLES] = {
+	CHR_HAIR_SHORT_BACK, CHR_HAIR_LONG_BACK, CHR_HAIR_BUN_BACK, CHR_HAIR_SPIKY_BACK,
+	CHR_HAIR_BALD_BACK, CHR_HAIR_BOB_BACK, CHR_HAIR_PONYTAIL_BACK, CHR_HAIR_CURLY_BACK,
+};
+
+/* Versión del lado derecho de la cara de cada pieza que la tiene. */
+static int right_side(int id)
 {
-	switch (e) {
-	case EXPR_HAPPY:
-		return "smile";
-	case EXPR_SAD:
-		return "sorrow";
-	case EXPR_SURPRISED:
-		return "surprise_open_mouth";
-	case EXPR_FRUSTRATED:
-		return "frustrated";
-	case EXPR_SMILE_OPEN:
-		return "smile_open_mouth";
-	case EXPR_ANGER:
-		return "anger";
-	case EXPR_BROWS_UP:
-		return "surprise";
-	case EXPR_WINK:
-		return "wink_left";
-	case EXPR_EYES_CLOSED:
-		return "blink";
+	switch (id) {
+	case CHR_BLUSH:
+		return CHR_BLUSH_R;
+	case CHR_EYE_OPEN:
+		return CHR_EYE_OPEN_R;
+	case CHR_EYE_LASHES:
+		return CHR_EYE_LASHES_R;
+	case CHR_EYE_WIDE:
+		return CHR_EYE_WIDE_R;
+	case CHR_EYE_CLOSED:
+		return CHR_EYE_CLOSED_R;
+	case CHR_EYE_HAPPY:
+		return CHR_EYE_HAPPY_R;
+	case CHR_BROW:
+		return CHR_BROW_R;
 	default:
-		return "normal";
+		return id;
 	}
 }
 
-/* Cara oficial del Mii, si ya está disponible. */
-static bool draw_official(const Avatar* a, float cx, float cy, float r, float d, Expression e, bool bust)
+/* Pieza id con el centro de la cabeza en (hx, hy) y escala s. Con right se
+ * usa su versión del lado derecho de la cara. */
+static void piece(int id, float hx, float hy, float s, const C2D_ImageTint* tint, bool right, float angle, float dy)
 {
-	if (!a->official)
-		return false;
-	const C2D_Image* img = miiface_get(&a->mii, mii_studio_expression(e), true);
-	if (!img && e != EXPR_NORMAL) {
-		/* Mientras llega esa expresión, la cara normal (si ya está) */
-		img = miiface_get(&a->mii, "normal", true);
+	if (right)
+		id = right_side(id);
+	C2D_Image img = gfx_char_image(id);
+	C2D_DrawImageAtRotated(img, hx + CHR_OFFSET[id][0] * s, hy + (CHR_OFFSET[id][1] + dy) * s, 0.5f, angle, tint, s, s);
+}
+
+static void tint_rgb(C2D_ImageTint* t, uint32_t rgb)
+{
+	C2D_PlainImageTint(t, gfx_rgb(rgb, 255), 1.0f);
+}
+
+/* El pelo muy oscuro se aclara un poco para que se vean los brillos. */
+static uint32_t hair_rgb(int color)
+{
+	uint32_t c = avatar_hair_rgb(color), out = 0;
+	for (int sh = 0; sh <= 16; sh += 8) {
+		uint32_t v = (c >> sh) & 0xFF;
+		v += (0xFF - v) * 30 / 255;
+		out |= v << sh;
 	}
-	if (!img)
-		return false;
-	if (bust) {
-		u32 fav = gfx_rgb(avatar_favorite_rgb(a->favorite), 255);
-		gfx_ellipse(cx, cy + r * 2.0f, r * 1.25f, r * 0.85f, d, fav);
-		gfx_rect(cx - r * 0.28f, cy + r * 0.8f, r * 0.56f, r * 0.5f, d, gfx_rgb(avatar_skin_rgb(a->skin), 255));
+	return out;
+}
+
+typedef enum { PART_HEAD, PART_BUST, PART_BODY } Parts;
+
+static void draw_character(const Avatar* a, float hx, float hy, float s, float d, Expression e, Parts parts)
+{
+	const Face* f = &FACES[(unsigned)e < EXPR_COUNT ? e : EXPR_NORMAL];
+	C2D_ImageTint skin, hair, shirt;
+	tint_rgb(&skin, avatar_skin_rgb(a->skin));
+	tint_rgb(&hair, hair_rgb(a->hair_color));
+	tint_rgb(&shirt, avatar_favorite_rgb(a->favorite));
+	hx += gfx_dx(d);
+
+	C2D_SetTintMode(C2D_TintMult);
+	if (parts == PART_BODY) {
+		if (a->female)
+			piece(CHR_SHINS, hx, hy, s, &skin, false, 0.0f, 0.0f);
+		piece(a->female ? CHR_SKIRT : CHR_LEGS, hx, hy, s, NULL, false, 0.0f, 0.0f);
 	}
-	/* La imagen de Mii Studio incluye el pelo: la cabeza ocupa unos 4/5 */
-	float scale = r * 2.5f / img->subtex->width;
-	C2D_DrawImageAtRotated(*img, cx + gfx_dx(d), cy, 0.5f, 0.0f, NULL, scale, scale);
-	return true;
+	if (parts != PART_HEAD) {
+		piece(CHR_TORSO, hx, hy, s, &shirt, false, 0.0f, 0.0f);
+		piece(CHR_ARMS, hx, hy, s, &skin, false, 0.0f, 0.0f);
+	}
+	piece(HAIR_BACK[a->hair_style % HAIR_STYLES], hx, hy, s, &hair, false, 0.0f, 0.0f);
+	piece(CHR_HEAD, hx, hy, s, &skin, false, 0.0f, 0.0f);
+	piece(CHR_BLUSH, hx, hy, s, NULL, false, 0.0f, 0.0f);
+	piece(CHR_BLUSH, hx, hy, s, NULL, true, 0.0f, 0.0f);
+	piece(CHR_NOSE, hx, hy, s, &skin, false, 0.0f, 0.0f);
+	if (a->facial == FACIAL_BEARD)
+		piece(CHR_BEARD, hx, hy, s, &hair, false, 0.0f, 0.0f);
+
+	int open = a->female ? CHR_EYE_LASHES : CHR_EYE_OPEN;
+	piece(f->eye_left == CHR_EYE_OPEN ? open : f->eye_left, hx, hy, s, NULL, false, 0.0f, 0.0f);
+	piece(f->eye_right == CHR_EYE_OPEN ? open : f->eye_right, hx, hy, s, NULL, true, 0.0f, 0.0f);
+	piece(CHR_BROW, hx, hy, s, &hair, false, f->brow_angle, f->brow_dy);
+	piece(CHR_BROW, hx, hy, s, &hair, true, -f->brow_angle, f->brow_dy);
+	piece(f->mouth, hx, hy, s, NULL, false, 0.0f, 0.0f);
+	if (a->facial == FACIAL_MUSTACHE)
+		piece(CHR_MUSTACHE, hx, hy, s, &hair, false, 0.0f, 0.0f);
+	piece(HAIR_FRONT[a->hair_style % HAIR_STYLES], hx, hy, s, &hair, false, 0.0f, 0.0f);
+	if (a->glasses)
+		piece(CHR_GLASSES, hx, hy, s, NULL, false, 0.0f, 0.0f);
+	C2D_SetTintMode(C2D_TintSolid);
 }
 
 void mii_draw(const Avatar* a, float cx, float cy, float r, float d, Expression e, bool bust)
 {
-	if (draw_official(a, cx, cy, r, d, e, bust))
-		return;
-	/* Mientras no está la cara oficial del Mii (se está descargando o no hay
-	 * conexión) se ve una silueta, no una imitación del Mii. */
-	float pulse = miiface_pending() > 0 ? 0.5f + 0.5f * sinf(gfx_time() * 4.0f) : 0.0f;
-	u32 fill = C2D_Color32(150 + (u8)(40 * pulse), 160 + (u8)(40 * pulse), 175 + (u8)(40 * pulse), 230);
-	if (bust)
-		gfx_ellipse(cx, cy + r * 2.0f, r * 1.25f, r * 0.85f, d, fill);
-	gfx_ellipse(cx, cy, r * 0.95f, r * 1.05f, d, fill);
-	gfx_ellipse(cx, cy, r * 0.8f, r * 0.9f, d, C2D_Color32(255, 255, 255, 40));
+	draw_character(a, cx, cy, r * 1.05f / CHR_HEAD_RADIUS, d, e, bust ? PART_BUST : PART_HEAD);
 }
+
+/* Del pelo de arriba a la suela de los zapatos, en radios de cabeza */
+#define BODY_TOP_R    1.05f
+#define BODY_BOTTOM_R 2.48f
 
 void mii_draw_body(const Avatar* a, float cx, float bottom, float height, float d, Expression e)
 {
-	const C2D_Image* img = NULL;
-	if (a->official) {
-		img = miiface_get_type(&a->mii, "all_body", mii_studio_expression(e), true);
-		if (!img && e != EXPR_NORMAL)
-			img = miiface_get_type(&a->mii, "all_body", "normal", true);
-	}
-	if (img) {
-		float scale = height / img->subtex->height;
-		C2D_DrawImageAtRotated(*img, cx + gfx_dx(d), bottom - height / 2.0f, 0.5f, 0.0f, NULL, scale, scale);
-		return;
-	}
-	/* Silueta de cuerpo entero mientras se descarga */
-	float pulse = miiface_pending() > 0 ? 0.5f + 0.5f * sinf(gfx_time() * 4.0f) : 0.0f;
-	u32 fill = C2D_Color32(150 + (u8)(40 * pulse), 160 + (u8)(40 * pulse), 175 + (u8)(40 * pulse), 230);
-	float u = height / 10.0f;
-	gfx_ellipse(cx, bottom - u * 8.0f, u * 1.6f, u * 1.7f, d, fill);           /* cabeza */
-	gfx_rrect(cx - u * 1.5f, bottom - u * 6.1f, u * 3.0f, u * 3.4f, u * 0.8f, d, fill); /* cuerpo */
-	gfx_rrect(cx - u * 1.3f, bottom - u * 3.0f, u * 1.1f, u * 3.0f, u * 0.4f, d, fill); /* piernas */
-	gfx_rrect(cx + u * 0.2f, bottom - u * 3.0f, u * 1.1f, u * 3.0f, u * 0.4f, d, fill);
+	float s = height / ((BODY_TOP_R + BODY_BOTTOM_R) * CHR_HEAD_RADIUS);
+	draw_character(a, cx, bottom - BODY_BOTTOM_R * CHR_HEAD_RADIUS * s, s, d, e, PART_BODY);
 }
 
 void mood_set(Mood* m, Expression e, float seconds)

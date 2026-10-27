@@ -6,10 +6,9 @@
 
 #include "core/miidata.h"
 
-/* Un personaje: su Mii de verdad (mii, que se dibuja con el renderizador
- * oficial de Nintendo) y una versión simplificada (el resto de campos) que se
- * dibuja por código cuando la imagen oficial no está disponible, por ejemplo
- * sin conexión a internet. Los colores usan las paletas del editor de Miis. */
+/* Un personaje del juego. Su aspecto (piel, pelo, color favorito, gafas,
+ * barba...) se deduce de un Mii de la consola, que se guarda en mii. Los
+ * colores usan las paletas del editor de Miis. */
 
 #define AVATAR_NAME_MAX 32 /* UTF-8, hasta 10 caracteres como los Miis */
 
@@ -46,7 +45,7 @@ typedef struct {
 	uint8_t glasses;    /* 0 sin gafas */
 	uint8_t facial;     /* FacialHair */
 	uint8_t long_face;
-	uint8_t official; /* mii contiene un Mii de verdad */
+	uint8_t official; /* basado en un Mii de verdad (guardado en mii) */
 	MiiParts mii;
 } Avatar;
 

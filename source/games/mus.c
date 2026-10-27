@@ -584,7 +584,7 @@ const char* mus_sena_meaning(MusSena s)
 const char* mus_sena_gesture(MusSena s)
 {
 	static const char* names[MUS_NUM_SENAS] = {
-		"-", "Apretar los labios", "Sonreír con la boca abierta", "Fruncir el ceño", "Levantar las cejas",
+		"-", "Morderse el labio", "Sacar la lengua", "Torcer la boca", "Levantar las cejas",
 		"Guiñar un ojo", "Cerrar los ojos"
 	};
 	return s < MUS_NUM_SENAS ? names[s] : "?";

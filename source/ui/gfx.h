@@ -78,6 +78,8 @@ float gfx_time(void);
 
 void gfx_background(int bg);
 C2D_Image gfx_sprite_image(int id);
+/* Pieza de los personajes (atlas gfx/chars.t3s, índices CHR_* de ui/chars_layout.h). */
+C2D_Image gfx_char_image(int id);
 /* Dibuja un sprite centrado en (cx, cy). */
 void gfx_sprite(int id, float cx, float cy, float scale, float depth);
 void gfx_sprite_ex(int id, float cx, float cy, float sx, float sy, float angle, float depth, const C2D_ImageTint* tint);

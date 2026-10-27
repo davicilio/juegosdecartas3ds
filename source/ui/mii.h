@@ -6,31 +6,28 @@
 #include "core/avatar.h"
 #include "core/profile.h"
 
-/* Dibujo de los Miis con su cara oficial (renderizada por Mii Studio de
- * Nintendo y guardada en la SD); mientras no está disponible se ve una
- * silueta. También el perfil del jugador y sus rivales. */
+/* Dibujo de los personajes (al estilo de Animal Crossing, con el aspecto del
+ * Mii de la consola en el que se basa cada uno), el perfil del jugador y sus
+ * rivales. */
 
 typedef enum {
 	EXPR_NORMAL,
 	EXPR_HAPPY,
 	EXPR_SAD,
 	EXPR_SURPRISED,
-	EXPR_FRUSTRATED,  /* seña de reyes: apretar los labios */
-	EXPR_SMILE_OPEN,  /* seña de ases: sonreír con la boca abierta */
-	EXPR_ANGER,       /* seña de medias: fruncir el ceño */
+	EXPR_BITE_LIP,    /* seña de reyes: morderse el labio inferior */
+	EXPR_TONGUE,      /* seña de ases: sacar la punta de la lengua */
+	EXPR_TWIST,       /* seña de medias: torcer la boca hacia un lado */
 	EXPR_BROWS_UP,    /* seña de duples: levantar las cejas */
 	EXPR_WINK,        /* seña de 31: guiñar un ojo */
 	EXPR_EYES_CLOSED, /* seña de ciego (y parpadeo) */
 	EXPR_COUNT
 } Expression;
 
-/* Dibuja el Mii con la cabeza centrada en (cx, cy) y radio size. Con bust se
- * dibujan también los hombros con la camiseta del color favorito. Si el
- * personaje es un Mii de verdad se usa su cara oficial cuando ya está
- * descargada. */
+/* Dibuja el personaje con la cabeza centrada en (cx, cy) y radio size. Con
+ * bust se dibuja también el cuerpo con la camiseta del color favorito. */
 void mii_draw(const Avatar* a, float cx, float cy, float size, float depth, Expression e, bool bust);
-/* Mii de cuerpo entero (renderizado por Mii Studio), con los pies en bottom
- * y la altura indicada. */
+/* Personaje de cuerpo entero, con los pies en bottom y la altura indicada. */
 void mii_draw_body(const Avatar* a, float cx, float bottom, float height, float depth, Expression e);
 
 /* Estado de ánimo de un personaje: una expresión que dura un tiempo y un
@@ -64,8 +61,5 @@ int rivals_console_count(void);
 bool rivals_pick(CpuId id);
 /* Olvida las elecciones a mano y vuelve a los Miis de la consola. */
 void rivals_reset(void);
-
-/* Expresión equivalente del renderizador de Mii Studio. */
-const char* mii_studio_expression(Expression e);
 
 #endif

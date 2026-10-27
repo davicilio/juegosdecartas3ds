@@ -26,7 +26,7 @@ typedef struct {
 	uint16_t version;
 	uint8_t created;      /* el jugador ya ha creado su perfil */
 	uint8_t from_console; /* el aspecto viene de un Mii de la consola */
-	uint8_t online_miis;  /* descargar las caras oficiales de Mii Studio */
+	uint8_t online_miis;  /* sin uso (antes: descargar caras de Mii Studio) */
 	uint8_t reserved[3];
 	Avatar avatar;
 	uint32_t played[GAME_COUNT];

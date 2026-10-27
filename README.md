@@ -15,17 +15,21 @@ para Nintendo 3DS con [devkitPro](https://devkitpro.org) (libctru + citro2d).
 |:---:|:---:|:---:|:---:|
 | ![Chinchón](docs/chinchon.png) | ![Cierre](docs/chinchon_fin.png) | ![Mus](docs/mus.png) | ![Recuento](docs/mus_fin.png) |
 
-| Tu perfil Mii | Tus rivales (Miis de la consola) | Señas del mus |
+| Tu perfil | Tus rivales (Miis de la consola) | Señas del mus |
 |:---:|:---:|:---:|
 | ![Perfil](docs/perfil.png) | ![Rivales](docs/rivales.png) | ![Señas](docs/mus_senas.png) |
 
-## Tu Mii y los rivales: los Miis de tu consola
+## Los personajes: basados en los Miis de tu consola
 
-El juego usa **los Miis que ya tienes en la consola**; no crea Miis nuevos:
+Cada jugador es un **personaje dibujado al estilo de Animal Crossing** (cabeza
+grande y redonda, ojos sencillos y coloretes) que toma su aspecto de un **Mii de
+tu consola**: el nombre, el sexo, el color de piel, el color de pelo, un peinado
+parecido, el color favorito (la camiseta), las gafas y la barba o el bigote.
+No hace falta conexión a internet: todo se dibuja en la consola.
 
-- **Tu Mii**: la primera vez eliges tu Mii con el **selector de Miis del sistema**
-  (la pantalla oficial de Nintendo que usan los juegos para elegir un Mii). Puedes
-  elegir uno de tus Miis o uno de los **Miis invitados**.
+- **Tu personaje**: la primera vez eliges tu Mii con el **selector de Miis del
+  sistema** (la pantalla de Nintendo que usan los juegos para elegir un Mii).
+  Puedes elegir uno de tus Miis o uno de los **Miis invitados**.
 - **Tus rivales**: al arrancar, el juego lee la lista de Miis de la consola (la base
   de datos del editor de Miis, `CFL_DB.dat`, en los datos compartidos del sistema)
   y los reparte entre los puestos de la CPU: la banca de la siete y media, los tres
@@ -34,24 +38,17 @@ El juego usa **los Miis que ya tienes en la consola**; no crea Miis nuevos:
 - En **Mi perfil → Tus rivales** ves quién ocupa cada puesto y puedes cambiar
   cualquiera con el selector de Miis, también por Miis invitados. Con **Miis de la
   consola** vuelves al reparto automático.
-- Si la consola no tiene Miis (o no se puede leer la lista), se usan unos Miis de
-  reserva hasta que elijas los tuyos o Miis invitados con el selector.
+- Si la consola no tiene Miis (o no se puede leer la lista), se usan unos
+  personajes de reserva hasta que elijas los tuyos o Miis invitados con el selector.
 
-La cara de cada Mii se dibuja con el **renderizador oficial de Nintendo, Mii
-Studio** (`studio.mii.nintendo.com`), con expresiones oficiales (sonrisa,
-tristeza, sorpresa, enfado, guiño, ojos cerrados...). Cada cara se descarga una
-sola vez con la conexión a internet de la consola y se guarda en
-`/3ds/JuegosDeCartas/miis/` de la SD; después funciona sin conexión. La conexión
-es HTTPS y el certificado del servidor se comprueba con los certificados raíz de
-Mozilla que lleva el juego (`romfs/cacert.pem`). Mientras una cara no está
-disponible se ve una silueta gris; si la descarga falla, **Mi perfil** muestra el
-motivo y permite reintentarla.
+Las piezas de los personajes (cabezas, peinados, ojos, bocas, ropa...) las genera
+`tools/gen_characters.py` en gris, y el juego las tiñe con los colores de cada Mii.
 
 El perfil guarda tus estadísticas en `/3ds/JuegosDeCartas/perfil.dat` y los
 rivales que elijas a mano en `/3ds/JuegosDeCartas/rivales.dat`.
 
-Los Miis parpadean, se alegran cuando ganan, se entristecen cuando pierden y se
-sorprenden con una escoba, un chinchón o un órdago.
+Los personajes parpadean, se alegran cuando ganan, se entristecen cuando pierden y
+se sorprenden con una escoba, un chinchón o un órdago.
 
 ## Juegos
 
@@ -142,14 +139,14 @@ Gana la pareja que llegue a 40 piedras. En la pantalla de abajo siempre ves tu
 grande, tus pares y tu juego para no tener que contar.
 
 #### Señas
-Como en el mus de verdad, los compañeros se hacen **señas** con la cara, y las
-verás en los Miis (cada seña es una expresión oficial de los Miis):
+Como en el mus de verdad, los compañeros se hacen **señas** con la cara. Cuando
+alguien hace una seña, su cara se acerca un momento para que se vea bien el gesto:
 
 | Seña | Significa |
 |---|---|
-| Apretar los labios | Dos reyes o más |
-| Sonreír con la boca abierta | Dos ases o más |
-| Fruncir el ceño | Medias |
+| Morderse el labio inferior | Dos reyes o más |
+| Sacar la punta de la lengua | Dos ases o más |
+| Torcer la boca hacia un lado | Medias |
 | Levantar las cejas | Duples |
 | Guiñar un ojo | 31 de juego |
 | Cerrar los ojos | Ciego: nada |

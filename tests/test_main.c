@@ -923,38 +923,15 @@ static void test_profile(void)
 }
 
 
-static void test_mii_studio(void)
+static void test_mii_parts(void)
 {
 	MiiParts m;
 	mii_parts_default(&m, false);
-	m.hair_type = 77;
-	m.hair_color = 0;      /* el 0 se envía como 8 */
-	m.glasses_color = 2;   /* las gafas empiezan en 13 */
-	m.mouth_color = 1;     /* la boca empieza en 19 */
-	m.eye_color = 3;       /* los ojos empiezan en 8 */
-	uint8_t data[MII_STUDIO_SIZE];
-	mii_studio_data(&m, data);
-	CHECK(data[29] == 77);  /* tipo de pelo */
-	CHECK(data[27] == 8);
-	CHECK(data[23] == 15);
-	CHECK(data[36] == 20);
-	CHECK(data[4] == 11);
-	CHECK(data[22] == 0);   /* hombre */
-	CHECK(data[2] == 64 && data[30] == 64); /* complexión y altura */
-
-	char code[MII_STUDIO_HEX];
-	for (int seed = 0; seed < 256; seed += 37) {
-		mii_studio_code(&m, (uint8_t)seed, code);
-		CHECK(strlen(code) == 94);
-		uint8_t back[MII_STUDIO_SIZE];
-		CHECK(mii_studio_decode(code, back));
-		CHECK(memcmp(back, data, sizeof data) == 0);
-	}
-	/* Con semilla 0 el primer byte es 7 + (dato ^ 0) */
-	mii_studio_code(&m, 0, code);
-	char first[5];
-	snprintf(first, sizeof first, "00%02x", (uint8_t)(7 + data[0]));
-	CHECK(strncmp(code, first, 4) == 0);
+	MiiParts other = m;
+	other.hair_type = 77;
+	CHECK(mii_parts_hash(&m) != mii_parts_hash(&other));
+	other.hair_type = m.hair_type;
+	CHECK(mii_parts_hash(&m) == mii_parts_hash(&other));
 
 	/* Todos los Miis de la CPU son Miis de verdad y distintos entre sí */
 	for (int i = 0; i < CPU_COUNT; i++) {
@@ -1078,7 +1055,7 @@ int main(void)
 	test_mus_senas();
 	test_mus_senas_simulation();
 	test_profile();
-	test_mii_studio();
+	test_mii_parts();
 	test_profile_v1();
 	test_rivals();
 	printf("%d comprobaciones, %d fallos\n", checks, failures);

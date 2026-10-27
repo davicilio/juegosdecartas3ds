@@ -5,8 +5,8 @@
 #include <stdint.h>
 
 /* Datos de un Mii de verdad: todas las piezas del editor de Miis de Nintendo
- * (el mismo formato de 3DS y Wii U). Con ellos se pide al renderizador
- * oficial de Mii Studio la imagen de la cara del Mii. */
+ * (el mismo formato de 3DS y Wii U). Los personajes del juego toman de
+ * ellos su aspecto: piel, pelo, color favorito, gafas, barba... */
 
 typedef struct {
 	uint8_t gender; /* 0 hombre, 1 mujer */
@@ -23,21 +23,11 @@ typedef struct {
 	uint8_t mole_enabled, mole_scale, mole_x, mole_y;
 } MiiParts;
 
-#define MII_STUDIO_SIZE 46
-/* Código hexadecimal para la URL de Mii Studio: 47 bytes -> 94 caracteres */
-#define MII_STUDIO_HEX  (2 * (MII_STUDIO_SIZE + 1) + 1)
-
 /* Mii nuevo del editor, con las piezas por defecto. */
 void mii_parts_default(MiiParts* m, bool female);
 /* Recorta cada pieza a su rango válido. */
 void mii_parts_sanitize(MiiParts* m);
-/* Datos de Mii Studio sin ofuscar, en el orden que espera el servicio. */
-void mii_studio_data(const MiiParts* m, uint8_t out[MII_STUDIO_SIZE]);
-/* Código para la URL: un byte inicial y cada byte ofuscado con el anterior. */
-void mii_studio_code(const MiiParts* m, uint8_t seed, char out[MII_STUDIO_HEX]);
-/* Deshace la ofuscación de un código (para comprobarlo). */
-bool mii_studio_decode(const char* hex, uint8_t out[MII_STUDIO_SIZE]);
-/* Huella para nombrar la caché de imágenes. */
+/* Huella para distinguir Miis. */
 uint32_t mii_parts_hash(const MiiParts* m);
 
 #endif

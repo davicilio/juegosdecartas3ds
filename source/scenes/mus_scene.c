@@ -35,6 +35,7 @@ static bool s_started;
 static Mood s_mood[MUS_PLAYERS];
 /* Señas: cuándo la hará cada jugador de la CPU (-1 = no la hará) */
 static float s_sena_timer[MUS_PLAYERS];
+static float s_sena_zoom[MUS_PLAYERS]; /* la cara se acerca mientras hace la seña */
 static int s_sena_key = -1;
 static MusSena s_lola_sena;
 static bool s_senas_open;
@@ -81,11 +82,11 @@ static Expression sena_expr(MusSena s)
 {
 	switch (s) {
 	case MUS_SENA_REYES:
-		return EXPR_FRUSTRATED;
+		return EXPR_BITE_LIP;
 	case MUS_SENA_ASES:
-		return EXPR_SMILE_OPEN;
+		return EXPR_TONGUE;
 	case MUS_SENA_MEDIAS:
-		return EXPR_ANGER;
+		return EXPR_TWIST;
 	case MUS_SENA_DUPLES:
 		return EXPR_BROWS_UP;
 	case MUS_SENA_31:
@@ -110,8 +111,28 @@ static void schedule_senas(void)
 		s_sena_timer[p] = rng_range(&s_rng, 100) < 85 ? 0.4f + rng_range(&s_rng, 220) / 100.0f : -1.0f;
 }
 
+#define SENA_TIME 1.6f
+
+/* 0..1: cuánto se agranda la cara del jugador p mientras hace una seña. */
+static float sena_zoom(int p)
+{
+	float t = s_sena_zoom[p];
+	if (t <= 0.0f)
+		return 0.0f;
+	return fminf(fminf(1.0f, (SENA_TIME - t) / 0.2f), fminf(1.0f, t / 0.3f));
+}
+
+static void show_sena(int p, MusSena sena)
+{
+	mood_set(&s_mood[p], sena_expr(sena), SENA_TIME);
+	s_sena_zoom[p] = SENA_TIME;
+}
+
 static void update_senas(float dt)
 {
+	for (int p = 0; p < MUS_PLAYERS; p++)
+		if (s_sena_zoom[p] > 0.0f)
+			s_sena_zoom[p] -= dt;
 	if (s_game.phase > MUS_PHASE_BET)
 		return;
 	for (int p = 1; p < MUS_PLAYERS; p++) {
@@ -124,8 +145,8 @@ static void update_senas(float dt)
 		if (sena == MUS_SENA_NONE)
 			continue;
 		mus_make_sena(&s_game, p, sena);
-		/* El gesto se ve en la cara del Mii: ¡atento a los rivales! */
-		mood_set(&s_mood[p], sena_expr(sena), 1.4f);
+		/* El gesto se ve en la cara del personaje: ¡atento a los rivales! */
+		show_sena(p, sena);
 		if (p == 2) {
 			s_lola_sena = sena;
 			char buf[64];
@@ -148,6 +169,7 @@ static void reset_visuals(void)
 	s_seen_lance = -1;
 	s_seen_phase = s_game.phase;
 	memset(s_bubble_time, 0, sizeof s_bubble_time);
+	memset(s_sena_zoom, 0, sizeof s_sena_zoom);
 	char buf[96];
 	snprintf(buf, sizeof buf, "Nueva mano. Es mano %s", s_game.mano == 0 ? "tú" : seat_name(s_game.mano));
 	set_message(buf);
@@ -359,7 +381,7 @@ static void layout_buttons(bool my_turn, bool is_busy)
 static void choose_sena(MusSena sena)
 {
 	mus_make_sena(&s_game, 0, sena);
-	mood_set(&s_mood[0], sena_expr(sena), 1.4f);
+	show_sena(0, sena);
 	char buf[96];
 	snprintf(buf, sizeof buf, "Seña a %s: %s", seat_name(2), mus_sena_meaning(sena));
 	set_message(buf);
@@ -581,9 +603,10 @@ static void draw_seat(int p)
 		gfx_card(s_game.hands[p][i], cx + (i - 1.5f) * step, cy, scale, up ? 1.0f : 0.0f, up ? 0.0f : (i - 1.5f) * 0.1f,
 			DEPTH_CARDS + i * 0.05f, 0.0f, i == 0);
 
-	/* Su Mii */
-	float ax = p == 2 ? 126.0f : cx, ay = p == 2 ? 36.0f : 50.0f;
-	mii_draw(seat_avatar(p), ax, ay, 15, DEPTH_UI + 0.5f, mood_expr(&s_mood[p]), false);
+	/* Su personaje (la cara se acerca cuando hace una seña) */
+	float z = sena_zoom(p);
+	float ax = p == 2 ? 126.0f : cx, ay = (p == 2 ? 36.0f : 50.0f) + z * 8.0f;
+	mii_draw(seat_avatar(p), ax, ay, 17 + 13 * z, DEPTH_UI + 0.5f + z, mood_expr(&s_mood[p]), false);
 
 	/* Nombre, turno y mano */
 	bool turn = s_game.current == p && s_game.phase <= MUS_PHASE_BET;
@@ -700,8 +723,9 @@ static void mus_scene_draw_top(void)
 		s_game.score[0]);
 	gfx_textf(59, 212, DEPTH_UI, 0.45f, C2D_Color32(255, 150, 140, 255), C2D_AlignCenter, "Ellos %d", s_game.score[1]);
 
-	/* Tu Mii, abajo: también hace las señas que tú elijas */
-	mii_draw(seat_avatar(0), 124, 212, 14, DEPTH_UI + 0.5f, mood_expr(&s_mood[0]), false);
+	/* Tu personaje, abajo: también hace las señas que tú elijas */
+	float z = sena_zoom(0);
+	mii_draw(seat_avatar(0), 124, 210 - z * 12.0f, 15 + 13 * z, DEPTH_UI + 0.5f + z, mood_expr(&s_mood[0]), false);
 
 	for (int p = 1; p < MUS_PLAYERS; p++)
 		draw_seat(p);

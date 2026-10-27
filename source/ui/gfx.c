@@ -11,6 +11,7 @@ static C3D_RenderTarget* s_top_right;
 static C3D_RenderTarget* s_bottom;
 static C2D_SpriteSheet s_sprites;
 static C2D_SpriteSheet s_backgrounds;
+static C2D_SpriteSheet s_chars;
 static C2D_TextBuf s_textbuf;
 
 static float s_eye_sign; /* -1 izquierdo, +1 derecho, 0 pantalla inferior */
@@ -32,8 +33,9 @@ bool gfx_init(void)
 
 	s_sprites = C2D_SpriteSheetLoad("romfs:/gfx/sprites.t3x");
 	s_backgrounds = C2D_SpriteSheetLoad("romfs:/gfx/backgrounds.t3x");
+	s_chars = C2D_SpriteSheetLoad("romfs:/gfx/chars.t3x");
 	s_textbuf = C2D_TextBufNew(8192);
-	return s_sprites && s_backgrounds && s_textbuf;
+	return s_sprites && s_backgrounds && s_chars && s_textbuf;
 }
 
 void gfx_exit(void)
@@ -44,6 +46,8 @@ void gfx_exit(void)
 		C2D_SpriteSheetFree(s_sprites);
 	if (s_backgrounds)
 		C2D_SpriteSheetFree(s_backgrounds);
+	if (s_chars)
+		C2D_SpriteSheetFree(s_chars);
 	C2D_Fini();
 	C3D_Fini();
 	gfxExit();
@@ -101,6 +105,11 @@ void gfx_background(int bg)
 C2D_Image gfx_sprite_image(int id)
 {
 	return C2D_SpriteSheetGetImage(s_sprites, id);
+}
+
+C2D_Image gfx_char_image(int id)
+{
+	return C2D_SpriteSheetGetImage(s_chars, id);
 }
 
 void gfx_sprite_ex(int id, float cx, float cy, float sx, float sy, float angle, float depth, const C2D_ImageTint* tint)
