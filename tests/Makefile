@@ -3,7 +3,7 @@ CC      ?= cc
 CFLAGS  ?= -std=c11 -Wall -Wextra -Werror -O1 -g
 SRC     := ../source
 OBJS    := test_main.c $(SRC)/core/cards.c $(SRC)/core/rng.c \
-           $(SRC)/core/avatar.c $(SRC)/core/profile.c $(SRC)/core/miidata.c \
+           $(SRC)/core/avatar.c $(SRC)/core/profile.c $(SRC)/core/miidata.c $(SRC)/core/cardback.c \
            $(SRC)/games/sieteymedia.c $(SRC)/games/cinquillo.c \
            $(SRC)/games/brisca.c $(SRC)/games/escoba.c \
            $(SRC)/games/chinchon.c $(SRC)/games/mus.c

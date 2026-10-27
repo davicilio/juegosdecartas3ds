@@ -31,6 +31,8 @@ static const Scene* scene_for(SceneId id)
 		return &scene_profile;
 	case SCENE_RIVALS:
 		return &scene_rivals;
+	case SCENE_CARDBACK:
+		return &scene_cardback;
 	default:
 		return &scene_menu;
 	}
@@ -54,6 +56,7 @@ int main(void)
 	srand((unsigned)time(NULL));
 	audio_init();
 	rivals_init();
+	cardback_editor_init();
 
 	/* La primera vez se crea el perfil antes de ir al menú */
 	SceneId current = profile_get()->created ? SCENE_MENU : SCENE_PROFILE;

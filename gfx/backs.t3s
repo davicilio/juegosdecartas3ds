@@ -1,0 +1,15 @@
+--atlas -f rgba8888 -z auto --border transparent
+back_edge.png
+back_fill.png
+back_line.png
+back_pat_rombos.png
+back_pat_rayas.png
+back_pat_lunares.png
+back_pat_cuadros.png
+back_pat_ondas.png
+back_pat_estrellas.png
+back_emb_palos.png
+back_emb_oro.png
+back_emb_copa.png
+back_emb_corona.png
+back_emb_estrella.png

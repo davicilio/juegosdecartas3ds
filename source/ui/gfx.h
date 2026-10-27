@@ -4,6 +4,7 @@
 #include <citro2d.h>
 #include <stdbool.h>
 
+#include "core/cardback.h"
 #include "core/cards.h"
 
 #define TOP_W    400
@@ -25,6 +26,15 @@ enum {
 	SPR_CHIP_BLACK,
 	SPR_SUIT_FIRST, /* + Suit */
 	SPR_LOGO = SPR_SUIT_FIRST + NUM_SUITS,
+};
+
+/* Índices del atlas gfx/backs.t3s (el orden lo fija tools/gen_backs.py). */
+enum {
+	BACK_EDGE,
+	BACK_FILL,
+	BACK_LINE,
+	BACK_PATTERN_FIRST, /* + dibujo - 1 */
+	BACK_EMBLEM_FIRST = BACK_PATTERN_FIRST + CB_PATTERNS - 1, /* + emblema - 1 */
 };
 
 /* Índices del atlas gfx/backgrounds.t3s. */
@@ -87,6 +97,12 @@ void gfx_sprite_ex(int id, float cx, float cy, float sx, float sy, float angle, 
 /* Carta centrada en (cx, cy). flip: 0 = boca abajo, 1 = boca arriba; los
  * valores intermedios producen la animación de giro. */
 void gfx_card(Card c, float cx, float cy, float scale, float flip, float angle, float depth, float dim, bool shadow);
+
+/* Dorso de las cartas: el diseño del editor (se vuelve a componer en el
+ * siguiente fotograma) y el dibujo de un dorso suelto centrado en (cx, cy). */
+void gfx_set_card_back(const CardBack* b);
+const CardBack* gfx_card_back_design(void);
+void gfx_card_back(float cx, float cy, float sx, float sy, float angle, float depth, const C2D_ImageTint* tint);
 
 /* Texto con sombra. align: C2D_AlignLeft, C2D_AlignCenter o C2D_AlignRight. */
 void gfx_text(const char* str, float x, float y, float depth, float scale, u32 color, u32 align);

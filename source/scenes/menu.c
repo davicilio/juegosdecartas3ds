@@ -47,6 +47,10 @@ static const MenuEntry entries[] = {
 	  "Tu Mii, tus estadísticas y tus rivales: los Miis de tu consola (o los Miis invitados) "
 	  "que juegan contra ti en cada mesa.",
 	  SCENE_PROFILE, SUIT_OROS, { C(OROS, 1), C(OROS, 1), C(OROS, 1) }, { -1, -1, -1 } },
+	{ "Dorso de las cartas",
+	  "Diseña la parte de atrás de las cartas: color, dibujo, marco, emblema y tu propio texto "
+	  "(por ejemplo, el nombre de tu banco o de tu peña). Se usa en todos los juegos.",
+	  SCENE_CARDBACK, SUIT_OROS, { C(OROS, 1), C(OROS, 1), C(OROS, 1) }, { -1, -1, -1 } },
 };
 
 #define NUM_ENTRIES ((int)(sizeof entries / sizeof entries[0]))
@@ -54,8 +58,8 @@ static const MenuEntry entries[] = {
 #define ITEM_X 28
 #define ITEM_Y 10
 #define ITEM_W 264
-#define ITEM_H 26
-#define ITEM_STEP 29
+#define ITEM_H 23
+#define ITEM_STEP 25
 
 static int s_selected;
 static Mood s_mood;
@@ -126,7 +130,10 @@ static void menu_draw_top(void)
 		float cx = 78 + (i - 1) * 26.0f;
 		float cy = 160 + fabsf((float)(i - 1)) * 8.0f + sinf(t * 2.0f + i * 0.7f) * 2.0f;
 		gfx_sprite_ex(SPR_CARD_SHADOW, cx + 4, cy + 5, 1.0f, 1.0f, a, DEPTH_CARDS, NULL);
-		gfx_sprite_ex(SPR_CARD_FIRST + card_index(e->fan[i]), cx, cy, 1.0f, 1.0f, a, DEPTH_CARDS + i * 0.4f, NULL);
+		if (e->scene == SCENE_CARDBACK)
+			gfx_card_back(cx, cy, 1.0f, 1.0f, a, DEPTH_CARDS + i * 0.4f, NULL);
+		else
+			gfx_sprite_ex(SPR_CARD_FIRST + card_index(e->fan[i]), cx, cy, 1.0f, 1.0f, a, DEPTH_CARDS + i * 0.4f, NULL);
 	}
 
 	/* Logotipo flotando por delante de la pantalla */
@@ -169,15 +176,17 @@ static void menu_draw_bottom(void)
 		gfx_panel(x, y, ITEM_W, ITEM_H, 0, fill, C2D_Color32(110, 20, 25, 255));
 		if (e->scene == SCENE_PROFILE)
 			mii_draw(&profile_get()->avatar, x + 20, y + ITEM_H / 2, 8, 0, EXPR_NORMAL, false);
+		else if (e->scene == SCENE_CARDBACK)
+			gfx_card_back(x + 20, y + ITEM_H / 2, 0.2f, 0.2f, 0.15f, 0, NULL);
 		else
 			gfx_sprite(SPR_SUIT_FIRST + e->icon, x + 20, y + ITEM_H / 2, 0.8f, 0);
-		gfx_text(e->name, x + 38, y + 4, 0, 0.58f,
+		gfx_text(e->name, x + 38, y + 3, 0, 0.55f,
 			available ? C2D_Color32(90, 15, 20, 255) : C2D_Color32(110, 100, 95, 255), C2D_AlignLeft);
 		if (!available) {
 			gfx_rrect(x + ITEM_W - 96, y + 6, 88, 16, 6, 0, C2D_Color32(120, 120, 120, 255));
 			gfx_text("Próximamente", x + ITEM_W - 52, y + 7, 0, 0.4f, COLOR_WHITE, C2D_AlignCenter);
 		} else {
-			gfx_text(GLYPH_A, x + ITEM_W - 20, y + 4, 0, 0.6f, C2D_Color32(90, 15, 20, 255), C2D_AlignCenter);
+			gfx_text(GLYPH_A, x + ITEM_W - 20, y + 3, 0, 0.55f, C2D_Color32(90, 15, 20, 255), C2D_AlignCenter);
 		}
 	}
 	gfx_text(GLYPH_DPAD " Elegir   " GLYPH_A " Jugar   START Salir", BOTTOM_W / 2, 216, 0, 0.45f, COLOR_CREAM,

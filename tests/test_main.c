@@ -4,6 +4,7 @@
 #include <stdio.h>
 #include <string.h>
 
+#include "core/cardback.h"
 #include "core/cards.h"
 #include "games/brisca.h"
 #include "games/chinchon.h"
@@ -923,6 +924,68 @@ static void test_profile(void)
 }
 
 
+static void test_cardback(void)
+{
+	CardBack b;
+	cardback_default(&b);
+	CHECK(b.value[CB_BACKGROUND] == 0 && b.value[CB_PATTERN] == 1 && b.text[0] == '\0');
+	CHECK(strcmp(cardback_value_name(CB_PATTERN, b.value[CB_PATTERN]), "Rombos") == 0);
+	CHECK(strcmp(cardback_value_name(CB_PATTERN_COLOR, 0), "Automático") == 0);
+	CHECK(strcmp(cardback_value_name(CB_EMBLEM, 99), "?") == 0);
+
+	/* Cada opción da la vuelta en los dos sentidos */
+	for (int o = 0; o < CB_OPTIONS; o++) {
+		int n = cardback_option_count((CardBackOption)o);
+		CHECK(n >= 2);
+		uint8_t start = b.value[o];
+		for (int i = 0; i < n; i++) {
+			CHECK(strcmp(cardback_value_name((CardBackOption)o, b.value[o]), "?") != 0);
+			cardback_step(&b, (CardBackOption)o, 1);
+		}
+		CHECK(b.value[o] == start);
+		cardback_step(&b, (CardBackOption)o, -1);
+		CHECK(b.value[o] == (start + n - 1) % n);
+		cardback_step(&b, (CardBackOption)o, 1);
+	}
+
+	/* El color automático del dibujo se distingue del fondo */
+	CHECK(cardback_pattern_rgb(&b) != cardback_background_rgb(&b));
+	b.value[CB_BACKGROUND] = CB_COLORS - 1; /* blanco: el dibujo se oscurece */
+	CHECK((cardback_pattern_rgb(&b) & 0xFF) < (cardback_background_rgb(&b) & 0xFF));
+	b.value[CB_PATTERN_COLOR] = 1;
+	CHECK(cardback_pattern_rgb(&b) == cardback_color_rgb(0));
+
+	/* Texto: hasta 16 caracteres sin partir los de varios bytes */
+	cardback_set_text(&b, "Caja Madrid");
+	CHECK(strcmp(b.text, "Caja Madrid") == 0);
+	cardback_set_text(&b, "ÑÑÑÑÑÑÑÑÑÑÑÑÑÑÑÑÑÑÑÑ");
+	CHECK(strlen(b.text) == 32);
+	cardback_set_text(&b, "abc\xC3");
+	CHECK(strcmp(b.text, "abc") == 0);
+	cardback_set_text(&b, NULL);
+	CHECK(b.text[0] == '\0');
+
+	/* Valores fuera de rango */
+	b.value[CB_EMBLEM] = 200;
+	memset(b.text, 'x', sizeof b.text);
+	cardback_sanitize(&b);
+	CHECK(b.value[CB_EMBLEM] < CB_EMBLEMS);
+	CHECK(strlen(b.text) == CARDBACK_TEXT_CHARS);
+
+	/* Guardar y cargar */
+	cardback_set_text(&b, "Peña El Mus");
+	const char* path = "/tmp/test_dorso.dat";
+	CHECK(cardback_save(&b, path));
+	CardBack c;
+	CHECK(cardback_load(&c, path));
+	CHECK(memcmp(&b, &c, sizeof b) == 0);
+	FILE* f = fopen(path, "wb");
+	fputs("basura", f);
+	fclose(f);
+	CHECK(!cardback_load(&c, path));
+	remove(path);
+}
+
 static void test_mii_parts(void)
 {
 	MiiParts m;
@@ -1056,6 +1119,7 @@ int main(void)
 	test_mus_senas_simulation();
 	test_profile();
 	test_mii_parts();
+	test_cardback();
 	test_profile_v1();
 	test_rivals();
 	printf("%d comprobaciones, %d fallos\n", checks, failures);

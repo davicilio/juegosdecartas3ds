@@ -359,7 +359,7 @@ static void draw_badge(int p)
 	/* Su Mii y las cartas que le quedan */
 	mii_draw(cpu_avatar(MIIS[p]), x + 24, y + 42, 14, DEPTH_UI + 0.4f, mood_expr(&s_mood[p]), false);
 	int n = s_game.hand_count[p];
-	gfx_sprite_ex(SPR_CARD_BACK, x + 56, y + 36, 0.26f, 0.26f, 0.1f, DEPTH_UI + 0.2f, NULL);
+	gfx_card_back(x + 56, y + 36, 0.26f, 0.26f, 0.1f, DEPTH_UI + 0.2f, NULL);
 	gfx_textf(x + 56, y + 47, DEPTH_UI, 0.45f, COLOR_WHITE, C2D_AlignCenter, "%d", n);
 
 	gfx_sprite(SPR_CHIP_RED, x + 18, y + 76, 0.6f, DEPTH_UI);

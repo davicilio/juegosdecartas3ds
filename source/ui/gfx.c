@@ -12,8 +12,21 @@ static C3D_RenderTarget* s_bottom;
 static C2D_SpriteSheet s_sprites;
 static C2D_SpriteSheet s_backgrounds;
 static C2D_SpriteSheet s_chars;
+static C2D_SpriteSheet s_backs;
 static C2D_TextBuf s_textbuf;
 
+/* Dorso de las cartas: se compone en una textura con las capas de
+ * gfx/backs.t3s cada vez que el jugador lo cambia en el editor. */
+#define BACK_TEX_W 128
+#define BACK_TEX_H 256
+#define BACK_W     (CARD_W * 2)
+#define BACK_H     (CARD_H * 2)
+static C3D_Tex s_back_tex;
+static C3D_RenderTarget* s_back_target;
+static Tex3DS_SubTexture s_back_sub = { BACK_W, BACK_H, 0.0f, 1.0f, (float)BACK_W / BACK_TEX_W,
+	1.0f - (float)BACK_H / BACK_TEX_H };
+static CardBack s_back;
+static bool s_back_dirty;
 static float s_eye_sign; /* -1 izquierdo, +1 derecho, 0 pantalla inferior */
 static float s_slider;
 static float s_time;
@@ -34,8 +47,16 @@ bool gfx_init(void)
 	s_sprites = C2D_SpriteSheetLoad("romfs:/gfx/sprites.t3x");
 	s_backgrounds = C2D_SpriteSheetLoad("romfs:/gfx/backgrounds.t3x");
 	s_chars = C2D_SpriteSheetLoad("romfs:/gfx/chars.t3x");
+	s_backs = C2D_SpriteSheetLoad("romfs:/gfx/backs.t3x");
 	s_textbuf = C2D_TextBufNew(8192);
-	return s_sprites && s_backgrounds && s_chars && s_textbuf;
+
+	if (C3D_TexInitVRAM(&s_back_tex, BACK_TEX_W, BACK_TEX_H, GPU_RGBA8)) {
+		C3D_TexSetFilter(&s_back_tex, GPU_LINEAR, GPU_LINEAR);
+		s_back_target = C3D_RenderTargetCreateFromTex(&s_back_tex, GPU_TEXFACE_2D, 0, -1);
+	}
+	cardback_default(&s_back);
+	s_back_dirty = true;
+	return s_sprites && s_backgrounds && s_chars && s_backs && s_textbuf;
 }
 
 void gfx_exit(void)
@@ -48,10 +69,94 @@ void gfx_exit(void)
 		C2D_SpriteSheetFree(s_backgrounds);
 	if (s_chars)
 		C2D_SpriteSheetFree(s_chars);
+	if (s_backs)
+		C2D_SpriteSheetFree(s_backs);
+	if (s_back_target) {
+		C3D_RenderTargetDelete(s_back_target);
+		C3D_TexDelete(&s_back_tex);
+	}
 	C2D_Fini();
 	C3D_Fini();
 	gfxExit();
 	romfsExit();
+}
+
+static void back_layer(int id, const C2D_ImageTint* tint)
+{
+	C2D_DrawImageAt(C2D_SpriteSheetGetImage(s_backs, id), 0.0f, 0.0f, 0.5f, tint, 1.0f, 1.0f);
+}
+
+static void tint_solid(C2D_ImageTint* t, uint32_t rgb)
+{
+	C2D_PlainImageTint(t, gfx_rgb(rgb, 255), 1.0f);
+}
+
+/* Compone el dorso en su textura (al doble de tamaño que las cartas). */
+static void render_back(void)
+{
+	if (!s_back_target)
+		return;
+	const CardBack* b = &s_back;
+	C2D_ImageTint tint;
+	C2D_TargetClear(s_back_target, 0);
+	C2D_SceneBegin(s_back_target);
+
+	tint_solid(&tint, cardback_background_rgb(b));
+	back_layer(BACK_FILL, &tint);
+	if (b->value[CB_PATTERN] > 0) {
+		tint_solid(&tint, cardback_pattern_rgb(b));
+		back_layer(BACK_PATTERN_FIRST + b->value[CB_PATTERN] - 1, &tint);
+	}
+	if (b->value[CB_FRAME] > 0) {
+		tint_solid(&tint, cardback_frame_rgb(b));
+		back_layer(BACK_LINE, &tint);
+	}
+	if (b->value[CB_EMBLEM] > 0)
+		back_layer(BACK_EMBLEM_FIRST + b->value[CB_EMBLEM] - 1, NULL);
+	back_layer(BACK_EDGE, NULL);
+
+	if (b->text[0]) {
+		C2D_Text text;
+		float w = 0.0f, h = 0.0f;
+		C2D_TextParse(&text, s_textbuf, b->text);
+		C2D_TextOptimize(&text);
+		C2D_TextGetDimensions(&text, 1.0f, 1.0f, &w, &h);
+		float scale = w > 0.0f ? fminf(0.8f, (BACK_W - 26.0f) / w) : 0.8f;
+		static const float pos_y[CB_TEXT_POSITIONS] = { 34.0f, BACK_H / 2.0f, BACK_H - 34.0f };
+		float cy = pos_y[b->value[CB_TEXT_POS] % CB_TEXT_POSITIONS];
+		float tw = w * scale, th = h * scale;
+		/* Cinta detrás del texto para que se lea sobre cualquier dibujo */
+		u32 band = gfx_rgb(cardback_background_rgb(b), 255);
+		float bw = fminf(BACK_W - 14.0f, tw + 14.0f);
+		C2D_DrawRectSolid(BACK_W / 2.0f - bw / 2.0f - 1.0f, cy - th / 2.0f - 4.0f, 0.5f, bw + 2.0f, th + 8.0f,
+			C2D_Color32(0, 0, 0, 90));
+		C2D_DrawRectSolid(BACK_W / 2.0f - bw / 2.0f, cy - th / 2.0f - 3.0f, 0.5f, bw, th + 6.0f, band);
+		C2D_DrawText(&text, C2D_WithColor | C2D_AlignCenter, BACK_W / 2.0f + 1.0f, cy - th / 2.0f + 1.0f, 0.5f, scale,
+			scale, C2D_Color32(0, 0, 0, 140));
+		C2D_DrawText(&text, C2D_WithColor | C2D_AlignCenter, BACK_W / 2.0f, cy - th / 2.0f, 0.5f, scale, scale,
+			gfx_rgb(cardback_text_rgb(b), 255));
+	}
+}
+
+void gfx_set_card_back(const CardBack* b)
+{
+	s_back = *b;
+	s_back_dirty = true;
+}
+
+const CardBack* gfx_card_back_design(void)
+{
+	return &s_back;
+}
+
+void gfx_card_back(float cx, float cy, float sx, float sy, float angle, float depth, const C2D_ImageTint* tint)
+{
+	if (!s_back_target) {
+		gfx_sprite_ex(SPR_CARD_BACK, cx, cy, sx, sy, angle, depth, tint);
+		return;
+	}
+	C2D_Image img = { &s_back_tex, &s_back_sub };
+	C2D_DrawImageAtRotated(img, cx + gfx_dx(depth), cy, 0.5f, angle, tint, sx * 0.5f, sy * 0.5f);
 }
 
 void gfx_frame_begin(void)
@@ -60,6 +165,10 @@ void gfx_frame_begin(void)
 	s_slider = osGet3DSliderState();
 	C2D_TextBufClear(s_textbuf);
 	C3D_FrameBegin(C3D_FRAME_SYNCDRAW);
+	if (s_back_dirty) {
+		render_back();
+		s_back_dirty = false;
+	}
 }
 
 void gfx_frame_end(void)
@@ -126,7 +235,6 @@ void gfx_card(Card c, float cx, float cy, float scale, float flip, float angle, 
 {
 	float width = fabsf(cosf(flip * (float)M_PI));
 	bool face_up = flip > 0.5f;
-	int id = face_up ? SPR_CARD_FIRST + card_index(c) : SPR_CARD_BACK;
 
 	if (shadow) {
 		/* La sombra se separa más cuanto más "levantada" está la carta. */
@@ -137,7 +245,10 @@ void gfx_card(Card c, float cx, float cy, float scale, float flip, float angle, 
 	C2D_ImageTint tint;
 	if (dim > 0.0f)
 		C2D_PlainImageTint(&tint, C2D_Color32(20, 20, 30, 255), dim);
-	gfx_sprite_ex(id, cx, cy, scale * width, scale, angle, depth, dim > 0.0f ? &tint : NULL);
+	if (face_up)
+		gfx_sprite_ex(SPR_CARD_FIRST + card_index(c), cx, cy, scale * width, scale, angle, depth, dim > 0.0f ? &tint : NULL);
+	else
+		gfx_card_back(cx, cy, scale * width, scale, angle, depth, dim > 0.0f ? &tint : NULL);
 }
 
 /* Por debajo de este tamaño la fuente del sistema se lee mal en la consola */

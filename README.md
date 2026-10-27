@@ -15,9 +15,9 @@ para Nintendo 3DS con [devkitPro](https://devkitpro.org) (libctru + citro2d).
 |:---:|:---:|:---:|:---:|
 | ![Chinchón](docs/chinchon.png) | ![Cierre](docs/chinchon_fin.png) | ![Mus](docs/mus.png) | ![Recuento](docs/mus_fin.png) |
 
-| Tu perfil | Tus rivales (Miis de la consola) | Señas del mus |
-|:---:|:---:|:---:|
-| ![Perfil](docs/perfil.png) | ![Rivales](docs/rivales.png) | ![Señas](docs/mus_senas.png) |
+| Tu perfil | Tus rivales (Miis de la consola) | Señas del mus | Editor del dorso |
+|:---:|:---:|:---:|:---:|
+| ![Perfil](docs/perfil.png) | ![Rivales](docs/rivales.png) | ![Señas](docs/mus_senas.png) | ![Dorso](docs/dorso.png) |
 
 ## Los personajes: basados en los Miis de tu consola
 
@@ -49,6 +49,27 @@ rivales que elijas a mano en `/3ds/JuegosDeCartas/rivales.dat`.
 
 Los personajes parpadean, se alegran cuando ganan, se entristecen cuando pierden y
 se sorprenden con una escoba, un chinchón o un órdago.
+
+## Editor del dorso de las cartas
+
+En **Dorso de las cartas** (en el menú) diseñas la parte de atrás de las cartas,
+con una vista previa grande en la pantalla de arriba:
+
+- **Fondo**: 14 colores.
+- **Dibujo**: liso, rombos, rayas, lunares, cuadros, ondas o estrellas, y su color
+  (automático: un tono más claro que el fondo).
+- **Marco**: dorado, plateado, blanco, negro o sin marco.
+- **Emblema** del centro: los cuatro palos, un oro, una copa, una corona, una
+  estrella o ninguno.
+- **Texto**: lo escribes con el teclado de la consola (hasta 16 caracteres, por
+  ejemplo *Caja Madrid* o el nombre de tu peña), con su color y su posición
+  (arriba, en el centro o abajo).
+
+Con la cruceta eliges la opción y la cambias con ◀ ▶ (o tocando las flechas); el
+texto se escribe con Ⓐ. **Guardar** lo deja en `/3ds/JuegosDeCartas/dorso.dat` y
+se usa en todos los juegos; **Por defecto** recupera el dorso granate de siempre.
+El juego compone el dorso en una textura con las capas que genera
+`tools/gen_backs.py`.
 
 ## Juegos
 
@@ -265,8 +286,10 @@ Todos los PNG de `gfx/`, el icono y los sonidos de `romfs/sfx/` se generan con
 scripts de Python (necesitan [Pillow](https://pypi.org/project/pillow/)):
 
 ```sh
-python3 tools/gen_assets.py   # cartas, fondos, fichas, logotipo e icono
-python3 tools/gen_sounds.py   # efectos de sonido
+python3 tools/gen_assets.py      # cartas, fondos, fichas, logotipo e icono
+python3 tools/gen_characters.py  # piezas de los personajes
+python3 tools/gen_backs.py       # capas del dorso de las cartas
+python3 tools/gen_sounds.py      # efectos de sonido
 ```
 
 Los ficheros generados están incluidos en el repositorio, así que solo hace falta
@@ -276,10 +299,10 @@ ejecutarlos si se cambia su aspecto.
 
 ```
 source/
-  core/      Baraja española, aleatorio, Miis y perfil del jugador (C puro)
+  core/      Baraja española, aleatorio, Miis, perfil y dorso de las cartas (C puro)
   games/     Reglas e IA de cada juego (C puro, con tests)
-  ui/        Dibujo con citro2d, 3D, Miis, entrada, botones, cartas animadas, sonido
-  scenes/    Pantallas: menú, perfil y una mesa por juego
+  ui/        Dibujo con citro2d, 3D, personajes, entrada, botones, cartas animadas, sonido
+  scenes/    Pantallas: menú, perfil, rivales, editor del dorso y una mesa por juego
   main.c     Bucle principal y transiciones entre escenas
 gfx/         Imágenes fuente (se convierten con tex3ds al compilar)
 romfs/sfx/   Sonidos en PCM de 16 bits
