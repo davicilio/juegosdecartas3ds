@@ -63,6 +63,63 @@ static const MenuEntry entries[] = {
 	{ "As, 2, 3",
 	  "Otro juego de la baraja española que llegará en una próxima versión.",
 	  SCENE_COUNT, SUIT_COPAS, { C(OROS, 1), C(COPAS, 2), C(ESPADAS, 3) }, { -1, -1, -1 } },
+	{ "Guiñote",
+	  "El pariente aragonés del tute: por parejas, con cantes de veinte y cuarenta y arrastre al "
+	  "acabarse el mazo.",
+	  SCENE_COUNT, SUIT_OROS, { C(OROS, RANK_REY), C(OROS, RANK_CABALLO), C(ESPADAS, 1) }, { -1, -1, -1 } },
+	{ "Tute subastado",
+	  "Tute por parejas en el que se puja por los puntos que se van a hacer. Quien gana la subasta "
+	  "elige el triunfo.",
+	  SCENE_COUNT, SUIT_COPAS, { C(COPAS, 1), C(COPAS, 3), C(COPAS, RANK_REY) }, { -1, -1, -1 } },
+	{ "Tute cabrón",
+	  "Tute de todos contra todos: cada uno juega para sí y nadie tiene compañero.",
+	  SCENE_COUNT, SUIT_ESPADAS, { C(ESPADAS, RANK_REY), C(BASTOS, RANK_REY), C(OROS, 3) }, { -1, -1, -1 } },
+	{ "Julepe",
+	  "Juego de bazas con triunfo: hay que hacer al menos dos bazas o pagar el julepe.",
+	  SCENE_COUNT, SUIT_BASTOS, { C(BASTOS, 1), C(BASTOS, 3), C(COPAS, 7) }, { -1, -1, -1 } },
+	{ "Tresillo",
+	  "Clásico de bazas a tres jugadores, antepasado del julepe, con su famosa espadilla y su basto.",
+	  SCENE_COUNT, SUIT_ESPADAS, { C(ESPADAS, 1), C(BASTOS, 1), C(OROS, RANK_REY) }, { -1, -1, -1 } },
+	{ "Cuatrillo",
+	  "La versión del tresillo para cuatro jugadores.",
+	  SCENE_COUNT, SUIT_OROS, { C(ESPADAS, 1), C(BASTOS, 1), C(COPAS, RANK_SOTA) }, { -1, -1, -1 } },
+	{ "Pocha",
+	  "En cada ronda apuestas cuántas bazas vas a hacer: si aciertas, sumas; si fallas, restas.",
+	  SCENE_COUNT, SUIT_COPAS, { C(COPAS, 1), C(OROS, 3), C(BASTOS, RANK_REY) }, { -1, -1, -1 } },
+	{ "Subasta",
+	  "Juego de bazas por parejas en el que se puja por los puntos de la mano.",
+	  SCENE_COUNT, SUIT_OROS, { C(OROS, 1), C(OROS, 3), C(ESPADAS, RANK_REY) }, { -1, -1, -1 } },
+	{ "Truc",
+	  "El juego de faroles de Valencia, Cataluña y Baleares: envites, retrucos y señas entre "
+	  "compañeros.",
+	  SCENE_COUNT, SUIT_ESPADAS, { C(ESPADAS, 1), C(BASTOS, 1), C(ESPADAS, 7) }, { -1, -1, -1 } },
+	{ "Truco argentino",
+	  "Envido, truco y flor: el juego de faroles más popular de Argentina y Uruguay.",
+	  SCENE_COUNT, SUIT_BASTOS, { C(ESPADAS, 1), C(BASTOS, 1), C(OROS, 7) }, { -1, -1, -1 } },
+	{ "Butifarra",
+	  "El gran juego catalán por parejas, con triunfo elegido y contrada.",
+	  SCENE_COUNT, SUIT_COPAS, { C(COPAS, 1), C(COPAS, 7), C(OROS, RANK_REY) }, { -1, -1, -1 } },
+	{ "Treinta y una",
+	  "Acércate a 31 sumando cartas del mismo palo, sin pasarte de la raya.",
+	  SCENE_COUNT, SUIT_OROS, { C(OROS, 1), C(OROS, RANK_REY), C(OROS, RANK_CABALLO) }, { -1, -1, -1 } },
+	{ "La mona",
+	  "Ve emparejando cartas. Pierde quien se quede al final con la carta sin pareja: la mona.",
+	  SCENE_COUNT, SUIT_COPAS, { C(COPAS, RANK_SOTA), C(OROS, RANK_SOTA), C(BASTOS, 4) }, { -1, -1, -1 } },
+	{ "Cucú",
+	  "Cada uno tiene una carta y puede cambiarla con el de al lado. Pierde quien acaba con la más "
+	  "baja.",
+	  SCENE_COUNT, SUIT_BASTOS, { C(BASTOS, 1), C(OROS, 2), C(COPAS, RANK_REY) }, { -1, -1, -1 } },
+	{ "Pumba",
+	  "Quédate sin cartas antes que nadie, con cartas que hacen robar o saltar turno. ¡Pumba!",
+	  SCENE_COUNT, SUIT_ESPADAS, { C(ESPADAS, 2), C(OROS, 2), C(COPAS, RANK_SOTA) }, { -1, -1, -1 } },
+	{ "Solitario tradicional",
+	  "El solitario de toda la vida con la baraja española: ve colocando las cartas por palos del as "
+	  "al rey.",
+	  SCENE_COUNT, SUIT_OROS, { C(OROS, 1), C(OROS, 2), C(OROS, 3) }, { -1, -1, -1 } },
+	{ "Solitario en pirámide",
+	  "La base de la pirámide tiene siete cartas descubiertas y las de arriba están tapadas. Saca "
+	  "cartas de tu mazo y busca en la base una igual: si sacas un caballo, busca un caballo.",
+	  SCENE_COUNT, SUIT_COPAS, { C(COPAS, RANK_CABALLO), C(ESPADAS, RANK_CABALLO), C(BASTOS, 5) }, { -1, -1, -1 } },
 	/* Configuración */
 	{ "Mi perfil",
 	  "Tu Mii, tus estadísticas y tus rivales: los Miis de tu consola (o los Miis invitados) "
@@ -90,13 +147,17 @@ static const MenuEntry entries[] = {
 #define GAME_STEP   24.0f
 #define SOON_HEAD   (GAME_Y + NUM_READY / 2 * GAME_STEP + 1.0f)
 #define SOON_Y      (SOON_HEAD + HEAD_H)
-#define CONFIG_HEAD (SOON_Y + (NUM_GAMES - NUM_READY + 1) / 2 * GAME_STEP + 1.0f)
-#define CONFIG_Y    (CONFIG_HEAD + 14.0f)
+/* Configuración se queda fija abajo; los juegos se desplazan por encima */
+#define VIEW_BOTTOM 186.0f
+#define CONFIG_HEAD (VIEW_BOTTOM + 2.0f)
+#define CONFIG_Y    (CONFIG_HEAD + 13.0f)
 #define CONFIG_H    18.0f
+#define CONTENT_H   (SOON_Y + (NUM_GAMES - NUM_READY + 1) / 2 * GAME_STEP + 2.0f)
 
 static int s_selected;
 static Mood s_mood;
 static float s_cursor_x, s_cursor_y;
+static float s_scroll; /* desplazamiento de la lista de juegos */
 static float s_shake; /* sacudida al elegir un juego no disponible */
 
 static bool is_config(int i)
@@ -118,10 +179,38 @@ static void item_rect(int i, float* x, float* y, float* w, float* h)
 	*w = GAME_W;
 }
 
+/* Posición en pantalla: los juegos se mueven con el desplazamiento */
+static void screen_rect(int i, float* x, float* y, float* w, float* h)
+{
+	item_rect(i, x, y, w, h);
+	if (!is_config(i))
+		*y -= s_scroll;
+}
+
+/* Desplazamiento que deja a la vista el elemento elegido */
+static float scroll_for(int i)
+{
+	float x, y, w, h;
+	item_rect(i, &x, &y, &w, &h);
+	if (is_config(i))
+		return s_scroll;
+	float top = i < 2 ? 0.0f : y - HEAD_H - 4.0f; /* con el título del apartado */
+	if (i >= NUM_READY && i < NUM_READY + 2)
+		top = SOON_HEAD - 4.0f;
+	float target = s_scroll;
+	if (top < target)
+		target = top;
+	if (y + h + 4.0f > target + VIEW_BOTTOM)
+		target = y + h + 4.0f - VIEW_BOTTOM;
+	float max = CONTENT_H - VIEW_BOTTOM;
+	return target < 0.0f ? 0.0f : target > max ? max : target;
+}
+
 static void menu_enter(void)
 {
 	float w, h;
-	item_rect(s_selected, &s_cursor_x, &s_cursor_y, &w, &h);
+	s_scroll = scroll_for(s_selected);
+	screen_rect(s_selected, &s_cursor_x, &s_cursor_y, &w, &h);
 }
 
 static SceneId launch(int i)
@@ -160,7 +249,10 @@ static SceneId menu_update(const Input* in, float dt)
 		audio_play(SFX_SELECT);
 	}
 	float x, y, w, h;
-	item_rect(s_selected, &x, &y, &w, &h);
+	float old_scroll = s_scroll;
+	s_scroll = approach(s_scroll, scroll_for(s_selected), 14.0f, dt);
+	s_cursor_y -= s_scroll - old_scroll; /* el cursor se mueve con la lista */
+	screen_rect(s_selected, &x, &y, &w, &h);
 	s_cursor_x = approach(s_cursor_x, x, 18.0f, dt);
 	s_cursor_y = approach(s_cursor_y, y, 18.0f, dt);
 
@@ -170,7 +262,9 @@ static SceneId menu_update(const Input* in, float dt)
 		return SCENE_QUIT;
 
 	for (int i = 0; i < NUM_ENTRIES; i++) {
-		item_rect(i, &x, &y, &w, &h);
+		screen_rect(i, &x, &y, &w, &h);
+		if (!is_config(i) && (y < 0.0f || y + h > VIEW_BOTTOM))
+			continue; /* tapado */
 		if (input_touch_in(in, x, y, w, h)) {
 			s_selected = i;
 			return launch(i);
@@ -223,33 +317,51 @@ static void menu_draw_top(void)
 	}
 	gfx_text_wrap(e->description, 166, 140, DEPTH_UI, 0.42f, COLOR_CREAM, 214);
 	if (e->scene == SCENE_COUNT) {
-		gfx_rrect(290, 112, 92, 20, 7, DEPTH_UI, C2D_Color32(120, 120, 120, 255));
-		gfx_text("Próximamente", 336, 114, DEPTH_UI, 0.45f, COLOR_WHITE, C2D_AlignCenter);
+		gfx_rrect(290, 84, 92, 20, 7, DEPTH_UI, C2D_Color32(120, 120, 120, 255));
+		gfx_text("Próximamente", 336, 86, DEPTH_UI, 0.45f, COLOR_WHITE, C2D_AlignCenter);
 	}
 }
 
 static void menu_draw_bottom(void)
 {
 	gfx_background(BG_MENU_BOTTOM);
-	gfx_text("Juegos", BOTTOM_W / 2, 2, 0, 0.55f, COLOR_GOLD, C2D_AlignCenter);
-	gfx_text("Próximamente", BOTTOM_W / 2, SOON_HEAD, 0, 0.45f, C2D_Color32(220, 200, 180, 255), C2D_AlignCenter);
-	gfx_text("Configuración", BOTTOM_W / 2, CONFIG_HEAD, 0, 0.45f, COLOR_GOLD, C2D_AlignCenter);
+	gfx_text("Juegos", BOTTOM_W / 2, 2 - s_scroll, 0, 0.55f, COLOR_GOLD, C2D_AlignCenter);
+	gfx_textf(BOTTOM_W / 2, SOON_HEAD - s_scroll, 0, 0.45f, C2D_Color32(220, 200, 180, 255), C2D_AlignCenter,
+		"Próximamente (%d)", NUM_GAMES - NUM_READY);
 
 	float shake = s_shake > 0.0f ? sinf(s_shake * 60.0f) * 4.0f : 0.0f;
 
 	/* Cursor */
 	float cx, cy, cw, ch;
-	item_rect(s_selected, &cx, &cy, &cw, &ch);
+	screen_rect(s_selected, &cx, &cy, &cw, &ch);
 	float pulse = 0.5f + 0.5f * sinf(gfx_time() * 5.0f);
-	gfx_rrect(s_cursor_x - 3 + shake, s_cursor_y - 3, cw + 6, ch + 6, 10, 0,
-		C2D_Color32(255, 215, 90, (u8)(150 + 100 * pulse)));
+	if (!is_config(s_selected))
+		gfx_rrect(s_cursor_x - 3 + shake, s_cursor_y - 3, cw + 6, ch + 6, 10, 0,
+			C2D_Color32(255, 215, 90, (u8)(150 + 100 * pulse)));
 
 	for (int i = 0; i < NUM_ENTRIES; i++) {
 		const MenuEntry* e = &entries[i];
 		bool available = e->scene != SCENE_COUNT;
 		bool small = is_config(i);
 		float x, y, w, h;
-		item_rect(i, &x, &y, &w, &h);
+		screen_rect(i, &x, &y, &w, &h);
+		if (i == NUM_GAMES) {
+			/* Franja fija de configuración, que tapa la lista al desplazarse */
+			gfx_rect(0, VIEW_BOTTOM, BOTTOM_W, SCREEN_H - VIEW_BOTTOM, 0, C2D_Color32(70, 10, 16, 255));
+			gfx_rect(0, VIEW_BOTTOM, BOTTOM_W, 2, 0, C2D_Color32(230, 170, 50, 255));
+			gfx_text("Configuración", BOTTOM_W / 2, CONFIG_HEAD, 0, 0.45f, COLOR_GOLD, C2D_AlignCenter);
+			if (s_scroll < CONTENT_H - VIEW_BOTTOM - 1.0f)
+				gfx_triangle(BOTTOM_W - 22, VIEW_BOTTOM - 10, BOTTOM_W - 10, VIEW_BOTTOM - 10, BOTTOM_W - 16,
+					VIEW_BOTTOM - 3, 0, COLOR_GOLD);
+			if (i == s_selected)
+				gfx_rrect(s_cursor_x - 3 + shake, s_cursor_y - 3, cw + 6, ch + 6, 10, 0,
+					C2D_Color32(255, 215, 90, (u8)(150 + 100 * pulse)));
+		}
+		if (i == NUM_GAMES + 1 && i == s_selected)
+			gfx_rrect(s_cursor_x - 3 + shake, s_cursor_y - 3, cw + 6, ch + 6, 10, 0,
+				C2D_Color32(255, 215, 90, (u8)(150 + 100 * pulse)));
+		if (!small && (y + h < 0.0f || y > VIEW_BOTTOM))
+			continue;
 		if (i == s_selected)
 			x += shake;
 		u32 fill = available ? C2D_Color32(250, 244, 228, 255) : C2D_Color32(200, 190, 180, 255);
@@ -261,7 +373,11 @@ static void menu_draw_bottom(void)
 			gfx_card_back(x + 13, y + h / 2, 0.16f, 0.16f, 0.15f, 0, NULL);
 		else
 			gfx_sprite(SPR_SUIT_FIRST + e->icon, x + 13, y + h / 2, icon, 0);
-		gfx_text(e->name, x + 26, y + (small ? 2 : 3), 0, small ? 0.45f : 0.52f,
+		float scale = small ? 0.45f : 0.52f;
+		float tw = gfx_text_width(e->name, scale);
+		if (tw > w - 30.0f)
+			scale = fmaxf(0.45f, scale * (w - 30.0f) / tw);
+		gfx_text(e->name, x + 26, y + (small ? 2 : 3), 0, scale,
 			available ? C2D_Color32(90, 15, 20, 255) : C2D_Color32(110, 100, 95, 255), C2D_AlignLeft);
 	}
 	gfx_text(GLYPH_DPAD " Elegir   " GLYPH_A " Aceptar   START Salir", BOTTOM_W / 2, 223, 0, 0.45f, COLOR_CREAM,

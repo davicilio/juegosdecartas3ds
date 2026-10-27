@@ -74,7 +74,7 @@ El juego compone el dorso en una textura con las capas que genera
 ## Juegos
 
 El menú tiene tres apartados: **Juegos**, **Próximamente** (los que todavía no se
-pueden jugar) y, en pequeño, **Configuración** (*Mi perfil* y *Dorso de las cartas*).
+pueden jugar; la lista se desplaza con la cruceta) y, en pequeño, **Configuración** (*Mi perfil* y *Dorso de las cartas*).
 
 
 | Juego | Estado |
@@ -91,6 +91,23 @@ pueden jugar) y, en pequeño, **Configuración** (*Mi perfil* y *Dorso de las ca
 | Mierda | 🕓 Próximamente |
 | Burro | 🕓 Próximamente |
 | As, 2, 3 | 🕓 Próximamente |
+| Guiñote | 🕓 Próximamente |
+| Tute subastado | 🕓 Próximamente |
+| Tute cabrón | 🕓 Próximamente |
+| Julepe | 🕓 Próximamente |
+| Tresillo | 🕓 Próximamente |
+| Cuatrillo | 🕓 Próximamente |
+| Pocha | 🕓 Próximamente |
+| Subasta | 🕓 Próximamente |
+| Truc | 🕓 Próximamente |
+| Truco argentino | 🕓 Próximamente |
+| Butifarra | 🕓 Próximamente |
+| Treinta y una | 🕓 Próximamente |
+| La mona | 🕓 Próximamente |
+| Cucú | 🕓 Próximamente |
+| Pumba | 🕓 Próximamente |
+| Solitario tradicional | 🕓 Próximamente |
+| Solitario en pirámide | 🕓 Próximamente |
 
 ### Siete y media
 Te enfrentas a la banca. Las cartas del 1 al 7 valen su número y las figuras
