@@ -6,6 +6,7 @@
 
 #include "core/cards.h"
 #include "games/brisca.h"
+#include "games/chinchon.h"
 #include "games/cinquillo.h"
 #include "games/escoba.h"
 #include "games/sieteymedia.h"
@@ -21,6 +22,14 @@ static int checks = 0;
 			printf("FALLO %s:%d: %s\n", __FILE__, __LINE__, #cond);          \
 		}                                                                    \
 	} while (0)
+
+static int popcount_ok(unsigned m)
+{
+	int n = 0;
+	for (; m; m &= m - 1)
+		n++;
+	return n;
+}
 
 static void test_deck(void)
 {
@@ -47,6 +56,10 @@ static void test_deck(void)
 	char buf[32];
 	card_describe(card_make(SUIT_COPAS, RANK_CABALLO), buf, sizeof buf);
 	CHECK(strcmp(buf, "caballo de copas") == 0);
+	card_describe_article(card_make(SUIT_OROS, RANK_SOTA), buf, sizeof buf);
+	CHECK(strcmp(buf, "la sota de oros") == 0);
+	card_describe_article(card_make(SUIT_OROS, 1), buf, sizeof buf);
+	CHECK(strcmp(buf, "el as de oros") == 0);
 
 	Card c;
 	int drawn = 0;
@@ -464,6 +477,161 @@ static void test_es_simulation(void)
 	CHECK(wins[1] > wins[0]);
 }
 
+
+#define CARD(s, r) card_make(SUIT_##s, r)
+
+static void test_ch_analysis(void)
+{
+	/* Trío de cincos + escalera 6-7-sota de copas + rey suelto */
+	Card h[7] = { CARD(OROS, 5), CARD(COPAS, 5), CARD(BASTOS, 5), CARD(COPAS, 6), CARD(COPAS, 7),
+		CARD(COPAS, RANK_SOTA), CARD(ESPADAS, RANK_REY) };
+	ChAnalysis a;
+	ch_analyze(h, 7, &a);
+	CHECK(a.meld_count == 2);
+	CHECK(a.loose_count == 1);
+	CHECK(a.loose_value == 10);
+
+	/* Con cuatro cincos y el 6-7 de copas, lo mejor es partirlos: trío de
+	 * cincos y escalera 5-6-7 de copas. */
+	Card h2[7] = { CARD(OROS, 5), CARD(COPAS, 5), CARD(BASTOS, 5), CARD(ESPADAS, 5), CARD(COPAS, 6),
+		CARD(COPAS, 7), CARD(OROS, 1) };
+	ch_analyze(h2, 7, &a);
+	CHECK(a.loose_count == 1); /* trío de cincos + 5-6-7 de copas, suelto el as */
+	CHECK(a.loose_value == 1);
+
+	/* Nada combinado */
+	Card h3[7] = { CARD(OROS, 1), CARD(COPAS, 3), CARD(BASTOS, 5), CARD(ESPADAS, 7), CARD(OROS, RANK_SOTA),
+		CARD(COPAS, RANK_REY), CARD(BASTOS, 2) };
+	ch_analyze(h3, 7, &a);
+	CHECK(a.meld_count == 0);
+	CHECK(a.loose_value == 1 + 3 + 5 + 7 + 10 + 10 + 2);
+
+	/* Ordenar pone las combinaciones delante */
+	ch_sort_hand(h, 7);
+	CHECK(h[6].rank == RANK_REY);
+}
+
+static void setup_hand(Chinchon* g, int p, const Card* cards, int n)
+{
+	memcpy(g->hands[p], cards, sizeof(Card) * n);
+	g->hand_count[p] = n;
+	ch_sort_hand(g->hands[p], n);
+}
+
+static void test_ch_close(void)
+{
+	Chinchon g;
+	ch_init(&g, 11);
+	CHECK(g.hand_count[0] == 7 && g.hand_count[1] == 7);
+	CHECK(g.discard_count == 1);
+	CHECK(g.deck.count == DECK_SIZE - 15);
+	CHECK(g.current == 0 && g.phase == CH_PHASE_DRAW);
+	CHECK(!ch_discard(&g, 0)); /* primero hay que robar */
+	CHECK(ch_draw_discard(&g));
+	CHECK(g.hand_count[0] == 8 && g.phase == CH_PHASE_DISCARD);
+
+	/* Mano para cerrar: trío de reyes, escalera 1-2-3 de oros, as de copas suelto y un 7 de bastos para descartar */
+	Card h[8] = { CARD(OROS, RANK_REY), CARD(COPAS, RANK_REY), CARD(BASTOS, RANK_REY), CARD(OROS, 1), CARD(OROS, 2),
+		CARD(OROS, 3), CARD(COPAS, 1), CARD(BASTOS, 7) };
+	setup_hand(&g, 0, h, 8);
+	/* Rival: sin combinaciones salvo la escalera 2-3-4 de espadas. */
+	Card r[7] = { CARD(OROS, 4), CARD(OROS, 5), CARD(ESPADAS, RANK_REY), CARD(ESPADAS, 2), CARD(ESPADAS, 3),
+		CARD(ESPADAS, 4), CARD(COPAS, 7) };
+	setup_hand(&g, 1, r, 7);
+	int seven = -1;
+	for (int i = 0; i < 8; i++)
+		if (card_equal(g.hands[0][i], CARD(BASTOS, 7)))
+			seven = i;
+	CHECK(seven >= 0);
+	CHECK(ch_can_close(&g, seven));
+	for (int i = 0; i < 8; i++)
+		if (i != seven && g.hands[0][i].rank == RANK_REY)
+			CHECK(!ch_can_close(&g, i));
+	CHECK(ch_close(&g, seven));
+	CHECK(g.closer == 0);
+	CHECK(!g.chinchon && !g.menos_diez);
+	CHECK(g.round_points[0] == 1);
+	/* El rival liga el 4 y el 5 de oros a la escalera y el rey de espadas al
+	 * trío: solo le queda suelto el 7 de copas. */
+	CHECK(popcount_ok(g.laid_off) == 3);
+	CHECK(g.round_points[1] == 7);
+	CHECK(g.score[0] == 1 && g.score[1] == 7);
+	CHECK(g.phase == CH_PHASE_ROUND_OVER);
+	CHECK(ch_next_round(&g));
+	CHECK(g.round == 2 && g.current == 1);
+}
+
+static void test_ch_chinchon(void)
+{
+	Chinchon g;
+	ch_init(&g, 12);
+	ch_draw_deck(&g);
+	Card h[8] = { CARD(COPAS, 4), CARD(COPAS, 5), CARD(COPAS, 6), CARD(COPAS, 7), CARD(COPAS, RANK_SOTA),
+		CARD(COPAS, RANK_CABALLO), CARD(COPAS, RANK_REY), CARD(OROS, 2) };
+	setup_hand(&g, 0, h, 8);
+	int two = -1;
+	for (int i = 0; i < 8; i++)
+		if (g.hands[0][i].suit == SUIT_OROS)
+			two = i;
+	CHECK(ch_close(&g, two));
+	CHECK(g.chinchon);
+	CHECK(g.phase == CH_PHASE_GAME_OVER);
+	CHECK(ch_winner(&g) == 0);
+}
+
+static void test_ch_simulation(void)
+{
+	int wins[2] = { 0 }, rounds = 0, closes = 0, chinchones = 0, menos_diez = 0;
+	for (uint32_t seed = 1; seed <= 200; seed++) {
+		Chinchon g;
+		ch_init(&g, seed);
+		Rng r;
+		rng_seed(&r, seed * 13);
+		int guard = 0;
+		while (g.phase != CH_PHASE_GAME_OVER && guard++ < 20000) {
+			if (g.phase == CH_PHASE_ROUND_OVER) {
+				CHECK(ch_next_round(&g));
+				continue;
+			}
+			int p = g.current;
+			if (g.phase == CH_PHASE_DRAW) {
+				bool take = p == 1 ? ch_ai_take_discard(&g, 1) : rng_range(&r, 2) == 0;
+				CHECK(take ? ch_draw_discard(&g) : ch_draw_deck(&g));
+			} else {
+				bool close;
+				int idx;
+				if (p == 1) {
+					idx = ch_ai_discard(&g, 1, &close);
+				} else {
+					/* "Jugador" sencillo: cierra si puede, si no descarta la suelta más alta */
+					idx = ch_ai_discard(&g, 0, &close);
+					if (!close)
+						idx = rng_range(&r, g.hand_count[0]);
+				}
+				if (close) {
+					CHECK(ch_close(&g, idx));
+					closes++;
+					rounds++;
+					chinchones += g.chinchon;
+					menos_diez += g.menos_diez;
+				} else {
+					CHECK(ch_discard(&g, idx));
+				}
+			}
+			int cards = g.deck.count + g.discard_count + g.hand_count[0] + g.hand_count[1];
+			CHECK(cards == DECK_SIZE);
+		}
+		CHECK(g.phase == CH_PHASE_GAME_OVER);
+		int w = ch_winner(&g);
+		CHECK(w >= 0);
+		if (w >= 0)
+			wins[w]++;
+	}
+	printf("  chinchón: %d rondas, %d menos diez, %d chinchones, azar %d - IA %d\n", rounds, menos_diez,
+		chinchones, wins[0], wins[1]);
+	CHECK(wins[1] > wins[0]);
+}
+
 int main(void)
 {
 	printf("Ejecutando tests...\n");
@@ -480,6 +648,10 @@ int main(void)
 	test_es_rules();
 	test_es_escoba();
 	test_es_simulation();
+	test_ch_analysis();
+	test_ch_close();
+	test_ch_chinchon();
+	test_ch_simulation();
 	printf("%d comprobaciones, %d fallos\n", checks, failures);
 	return failures ? 1 : 0;
 }

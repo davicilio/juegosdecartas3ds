@@ -47,6 +47,8 @@ const char* suit_name(Suit suit);      /* "oros" */
 const char* rank_name(int rank);       /* "as", "dos", ..., "rey" */
 /* Escribe "as de oros", "sota de copas"... en buf. */
 void card_describe(Card c, char* buf, int size);
+/* Igual, con artículo: "el as de oros", "la sota de copas". */
+void card_describe_article(Card c, char* buf, int size);
 
 void deck_init(Deck* deck);
 void deck_shuffle(Deck* deck, Rng* rng);

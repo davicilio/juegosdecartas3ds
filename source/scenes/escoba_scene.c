@@ -160,7 +160,7 @@ static void on_action(void)
 	vis_spawn(v, c, fx, fy, p == 0 ? 0.9f : RIVAL_SCALE, p == 0, 0.0f);
 
 	char card[32], buf[96];
-	card_describe(c, card, sizeof card);
+	card_describe_article(c, card, sizeof card);
 	if (s_game.last_captured_count > 0) {
 		/* La carta jugada se pone junto a lo que recoge y todo se va al montón. */
 		const VisCard* first = &s_table[card_index(s_game.last_captured[0])];
@@ -182,7 +182,7 @@ static void on_action(void)
 			snprintf(buf, sizeof buf, RIVAL_NAME " se lleva %d cartas", s_game.last_captured_count + 1);
 		}
 	} else {
-		snprintf(buf, sizeof buf, p == 0 ? "Dejas el %s" : RIVAL_NAME " deja el %s", card);
+		snprintf(buf, sizeof buf, p == 0 ? "Dejas %s" : RIVAL_NAME " deja %s", card);
 	}
 	set_message(buf);
 }

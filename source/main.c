@@ -1,4 +1,4 @@
-/* Baraja Española para Nintendo 3DS: siete y media, cinquillo, brisca, escoba y más. */
+/* Baraja Española para Nintendo 3DS: siete y media, cinquillo, brisca, escoba, chinchón y más. */
 #include <3ds.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -22,6 +22,8 @@ static const Scene* scene_for(SceneId id)
 		return &scene_brisca;
 	case SCENE_ESCOBA:
 		return &scene_escoba;
+	case SCENE_CHINCHON:
+		return &scene_chinchon;
 	default:
 		return &scene_menu;
 	}

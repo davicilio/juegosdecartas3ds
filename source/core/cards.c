@@ -63,6 +63,11 @@ void card_describe(Card c, char* buf, int size)
 	snprintf(buf, size, "%s de %s", rank_name(c.rank), suit_name(c.suit));
 }
 
+void card_describe_article(Card c, char* buf, int size)
+{
+	snprintf(buf, size, "%s %s de %s", c.rank == RANK_SOTA ? "la" : "el", rank_name(c.rank), suit_name(c.suit));
+}
+
 void deck_init(Deck* deck)
 {
 	for (int i = 0; i < DECK_SIZE; i++)

@@ -37,8 +37,9 @@ static const MenuEntry entries[] = {
 	  "Grande, chica, pares y juego, por parejas y con señas. Próximamente.",
 	  SCENE_COUNT, SUIT_BASTOS, { C(OROS, RANK_REY), C(BASTOS, RANK_REY), C(COPAS, 3) } },
 	{ "Chinchón",
-	  "Forma escaleras y tríos para cerrar con la mano limpia. Próximamente.",
-	  SCENE_COUNT, SUIT_OROS, { C(ESPADAS, 4), C(ESPADAS, 5), C(ESPADAS, 6) } },
+	  "Forma tríos y escaleras del mismo palo. Cierra con todo ligado (menos diez) o con una suelta "
+	  "pequeña. Siete seguidas del mismo palo: ¡chinchón! Pierde quien pase de 100.",
+	  SCENE_CHINCHON, SUIT_OROS, { C(ESPADAS, 4), C(ESPADAS, 5), C(ESPADAS, 6) } },
 };
 
 #define NUM_ENTRIES ((int)(sizeof entries / sizeof entries[0]))

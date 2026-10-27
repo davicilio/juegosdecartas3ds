@@ -134,11 +134,11 @@ static void on_action(void)
 		vis_spawn(v, c, ORIGIN_X[p], ORIGIN_Y[p], 0.6f, !from_cpu, 0.0f);
 		vis_target(v, slot_x(card_pos(c)), row_y(c.suit), TABLE_SCALE, true);
 		v->depth = DEPTH_CARDS;
-		card_describe(c, card, sizeof card);
+		card_describe_article(c, card, sizeof card);
 		if (p == 0)
-			snprintf(buf, sizeof buf, "Juegas el %s", card);
+			snprintf(buf, sizeof buf, "Juegas %s", card);
 		else
-			snprintf(buf, sizeof buf, "%s juega el %s", NAMES[p], card);
+			snprintf(buf, sizeof buf, "%s juega %s", NAMES[p], card);
 		set_message(buf);
 	} else if (s_game.last_action == CQ_ACTION_PASS) {
 		s_pass_bubble[p] = 1.2f;

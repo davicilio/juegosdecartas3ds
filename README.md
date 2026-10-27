@@ -11,6 +11,10 @@ para Nintendo 3DS con [devkitPro](https://devkitpro.org) (libctru + citro2d).
 |:---:|:---:|:---:|
 | ![Brisca](docs/brisca.png) | ![Escoba](docs/escoba.png) | ![Marcador](docs/escoba_fin.png) |
 
+| Chinchón | Cierre del chinchón |
+|:---:|:---:|
+| ![Chinchón](docs/chinchon.png) | ![Cierre](docs/chinchon_fin.png) |
+
 ## Juegos
 
 | Juego | Estado |
@@ -20,7 +24,7 @@ para Nintendo 3DS con [devkitPro](https://devkitpro.org) (libctru + citro2d).
 | Brisca | ✅ Disponible |
 | Escoba | ✅ Disponible |
 | Mus | 🔜 Próximamente |
-| Chinchón | 🔜 Próximamente |
+| Chinchón | ✅ Disponible |
 
 ### Siete y media
 Te enfrentas a la banca. Las cartas del 1 al 7 valen su número y las figuras
@@ -64,6 +68,21 @@ que recogió. Si al repartir la mesa suma 15 (o 30), el que reparte hace escoba.
 Cada ronda da un punto por escoba, por tener más cartas, más oros, más sietes y
 por el siete de oros. Gana la partida quien llegue antes a 21.
 
+### Chinchón
+Partida a dos contra Lucía, con siete cartas cada uno. En tu turno robas una carta
+(del mazo o la de arriba de los descartes) y descartas otra. Se combinan **tríos o
+cuartetos** del mismo número y **escaleras** de tres o más cartas seguidas del
+mismo palo (1-7, sota, caballo, rey). Tu mano se ordena sola: las combinaciones
+van primero, separadas y subrayadas en dorado, y debajo se ve cuánto suman las
+sueltas.
+
+Puedes **cerrar** al descartar si te queda todo combinado o una sola carta suelta
+de 3 o menos. Entonces cada uno suma sus cartas sueltas (las figuras valen 10),
+pero antes el que no cierra puede **ligar** sus sueltas a las combinaciones del
+que cierra. Cerrar con todo combinado resta 10 puntos, y cerrar con siete cartas
+seguidas del mismo palo es **chinchón**: partida ganada. Pierde quien pase de 100.
+Si se acaba el mazo, se barajan los descartes.
+
 ## Controles
 
 | Botón | Acción |
@@ -71,11 +90,11 @@ por el siete de oros. Gana la partida quien llegue antes a 21.
 | Cruceta / Circle Pad | Moverse por los menús y por tus cartas |
 | A | Aceptar, pedir carta, jugar carta |
 | B | Plantarse / volver |
-| X | Pasar (cinquillo) |
-| Y | Cambiar el 7 (o el 2) por la muestra (brisca) |
+| X | Pasar (cinquillo); robar del mazo (chinchón) |
+| Y | Cambiar el 7 (o el 2) por la muestra (brisca); coger el descarte o cerrar (chinchón) |
 | L / R | Bajar / subir la apuesta (siete y media); elegir qué cartas te llevas (escoba) |
 | START | Volver al menú (en el menú: salir) |
-| Pantalla táctil | Todos los botones y las cartas se pueden tocar (en la escoba, el primer toque elige la carta y el segundo la juega) |
+| Pantalla táctil | Todos los botones y las cartas se pueden tocar (en la escoba y el chinchón, el primer toque elige la carta y el segundo la juega o la descarta) |
 
 ## Aspecto "de 3DS"
 
@@ -83,7 +102,7 @@ por el siete de oros. Gana la partida quien llegue antes a 21.
 - **3D estereoscópico**: las cartas en vuelo, los marcadores y los carteles de
   resultado salen de la pantalla al subir el regulador 3D.
 - Animaciones de reparto, giro de cartas, bazas que vuelan al montón del
-  ganador, cartel de "¡Escoba!", botones con brillo y fundidos entre pantallas.
+  ganador, carteles de "¡Escoba!", "¡Menos diez!" y "¡Chinchón!", botones con brillo y fundidos entre pantallas.
 - Glifos de botones de la fuente del sistema (Ⓐ, Ⓑ, Ⓧ...) y efectos de sonido.
 - Cartas dibujadas a mano por código, con los cortes tradicionales del marco que
   indican el palo (oros sin cortes, copas uno, espadas dos y bastos tres).
@@ -156,7 +175,7 @@ tests/       Tests de la lógica
 tools/       Generadores de gráficos y sonidos
 ```
 
-### Añadir un juego nuevo (mus, chinchón...)
+### Añadir un juego nuevo (mus...)
 
 1. Escribe las reglas en `source/games/<juego>.c/.h` sin usar nada de la 3DS y
    añade tests en `tests/test_main.c`.

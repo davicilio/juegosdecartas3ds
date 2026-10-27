@@ -9,6 +9,7 @@ typedef enum {
 	SCENE_CINQUILLO,
 	SCENE_BRISCA,
 	SCENE_ESCOBA,
+	SCENE_CHINCHON,
 	SCENE_COUNT,
 	SCENE_QUIT
 } SceneId;
@@ -26,5 +27,6 @@ extern const Scene scene_sieteymedia;
 extern const Scene scene_cinquillo;
 extern const Scene scene_brisca;
 extern const Scene scene_escoba;
+extern const Scene scene_chinchon;
 
 #endif
