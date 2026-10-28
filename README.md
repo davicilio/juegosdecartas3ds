@@ -191,8 +191,8 @@ Gana la pareja que llegue a 40 piedras. En la pantalla de abajo siempre ves tu
 grande, tus pares y tu juego para no tener que contar.
 
 #### Señas
-Como en el mus de verdad, los compañeros se hacen **señas** con la cara. Cuando
-alguien hace una seña, su cara se acerca un momento para que se vea bien el gesto:
+Como en el mus de verdad, los compañeros se hacen **señas** con la cara, y las
+verás en el gesto de cada personaje:
 
 | Seña | Significa |
 |---|---|
