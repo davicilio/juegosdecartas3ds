@@ -128,7 +128,8 @@ const char* game_name(GameId game)
 {
 	static const char* names[GAME_COUNT] = { "Siete y media", "Cinquillo", "Brisca", "Escoba", "Mus", "Chinchón",
 		"Guiñote", "Solitario", "Pirámide", "Tute", "Tute cabrón", "Uno",
-		"Rummikub", "La mona", "Cucú", "Treinta y una", "Mentiroso", "Culo" };
+		"Rummikub", "La mona", "Cucú", "Treinta y una", "Mentiroso", "Culo",
+		"Póker" };
 	return game < GAME_COUNT ? names[game] : "?";
 }
 

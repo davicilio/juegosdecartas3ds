@@ -15,9 +15,9 @@ para Nintendo 3DS con [devkitPro](https://devkitpro.org) (libctru + citro2d).
 |:---:|:---:|:---:|:---:|
 | ![Chinchón](docs/chinchon.png) | ![Cierre](docs/chinchon_fin.png) | ![Mus](docs/mus.png) | ![Recuento](docs/mus_fin.png) |
 
-| Guiñote | Solitario | Solitario en pirámide |
-|:---:|:---:|:---:|
-| ![Guiñote](docs/guinote.png) | ![Solitario](docs/solitario.png) | ![Pirámide](docs/piramide.png) |
+| Guiñote | Solitario | Solitario en pirámide | Póker |
+|:---:|:---:|:---:|:---:|
+| ![Guiñote](docs/guinote.png) | ![Solitario](docs/solitario.png) | ![Pirámide](docs/piramide.png) | ![Póker](docs/poker.png) |
 
 | Tu perfil | Tus rivales (Miis de la consola) | Señas del mus | Editor del dorso |
 |:---:|:---:|:---:|:---:|
@@ -99,6 +99,7 @@ pueden jugar; la lista se desplaza con la cruceta) y, en pequeño, **Configuraci
 | Treinta y una | ✅ Disponible |
 | Mentiroso | ✅ Disponible |
 | Culo | ✅ Disponible |
+| Póker (baraja francesa) | ✅ Disponible |
 | Uno (juego de mesa) | ✅ Disponible |
 | Rummikub (juego de mesa) | ✅ Disponible |
 | Mierda | 🕓 Próximamente |
@@ -264,6 +265,17 @@ las de la mesa (las mismas que se han echado) o pasa. El primero que acaba es el
 presidente y el último, el culo; en la siguiente ronda el culo le da sus dos mejores
 cartas al presidente.
 
+### Póker (baraja francesa)
+Texas Hold'em contra tres personajes, con 1000 fichas cada uno y ciegas de 10/20.
+Recibes dos cartas y en la mesa salen tres (flop), una (turn) y otra (river), con
+una ronda de apuestas antes y después de cada una. **Fuera** (Ⓑ) te retira,
+**Paso/Igualo** (Ⓐ), **Subo** (Ⓧ: la cantidad se cambia con L/R o la cruceta) y
+**Todo** (Ⓨ) apuesta todas tus fichas. Gana la mejor jugada de cinco cartas (carta
+alta, pareja, doble pareja, trío, escalera, color, full, póker y escalera de color)
+y, si alguien va con todo, se hacen botes secundarios. La partida acaba cuando te
+quedas sin fichas o te llevas las de todos. En la pantalla de abajo siempre ves
+qué jugada tienes.
+
 ### Uno (juego de mesa)
 Tú contra tres personajes, con cartas de colores dibujadas para el juego (diseño
 propio). Echa una carta del mismo color o del mismo número o símbolo que la del
@@ -415,6 +427,8 @@ scripts de Python (necesitan [Pillow](https://pypi.org/project/pillow/)):
 python3 tools/gen_assets.py      # cartas, fondos, fichas, logotipo e icono
 python3 tools/gen_characters.py  # piezas de los personajes
 python3 tools/gen_backs.py       # capas del dorso de las cartas
+python3 tools/gen_board.py       # cartas del Uno y fichas del Rummikub
+python3 tools/gen_french.py      # baraja francesa (póker)
 python3 tools/gen_sounds.py      # efectos de sonido
 ```
 

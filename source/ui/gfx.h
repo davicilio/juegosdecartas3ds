@@ -98,6 +98,10 @@ float gfx_time(void);
 
 void gfx_background(int bg);
 C2D_Image gfx_sprite_image(int id);
+/* Carta de la baraja francesa (atlas gfx/french.t3s): id = palo * 13 + valor - 2,
+ * o FRENCH_BACK para el dorso. */
+#define FRENCH_BACK 52
+void gfx_french(int id, float cx, float cy, float scale, float angle, float depth, bool shadow);
 /* Sprite del atlas de los juegos de mesa, centrado en (cx, cy). */
 void gfx_board(int id, float cx, float cy, float scale, float angle, float depth, const C2D_ImageTint* tint);
 /* Pieza de los personajes (atlas gfx/chars.t3s, índices CHR_* de ui/chars_layout.h). */

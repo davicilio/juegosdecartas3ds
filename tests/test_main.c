@@ -17,6 +17,7 @@
 #include "core/profile.h"
 #include "games/sieteymedia.h"
 #include "games/uno.h"
+#include "games/poker.h"
 #include "games/treintayuna.h"
 #include "games/mona.h"
 #include "games/mentiroso.h"
@@ -2055,6 +2056,126 @@ static void test_culo(void)
 	printf("  culo: presidencias %d/%d/%d/%d\n", pres[0], pres[1], pres[2], pres[3]);
 }
 
+/* ---------------------------------------------------------------------------
+ * Póker
+ * ------------------------------------------------------------------------- */
+
+static uint32_t pk_hand(const char* text)
+{
+	/* "AsKs..." -> cartas: valor (2-9, T, J, Q, K, A) y palo (s, h, d, c) */
+	PkCard c[7];
+	int n = 0;
+	for (const char* t = text; t[0] && t[1]; t += 2) {
+		const char* ranks = "23456789TJQKA";
+		const char* suits = "shdc";
+		c[n].rank = (uint8_t)(strchr(ranks, t[0]) - ranks + 2);
+		c[n].suit = (uint8_t)(strchr(suits, t[1]) - suits);
+		n++;
+	}
+	return pk_evaluate(c, n);
+}
+
+static void test_poker_eval(void)
+{
+	CHECK(pk_category(pk_hand("AsKsQsJsTs2d3c")) == 8);
+	CHECK(pk_category(pk_hand("9h9d9c9s2d3c4h")) == 7);
+	CHECK(pk_category(pk_hand("9h9d9c2s2d3c4h")) == 6);
+	CHECK(pk_category(pk_hand("2h5h9hJhKh3c4d")) == 5);
+	CHECK(pk_category(pk_hand("As2d3c4h5s9dKc")) == 4); /* escalera con el as abajo */
+	CHECK(pk_category(pk_hand("7h7d7c2s9dJcKh")) == 3);
+	CHECK(pk_category(pk_hand("7h7d2c2s9dJcKh")) == 2);
+	CHECK(pk_category(pk_hand("7h7d3c2s9dJcKh")) == 1);
+	CHECK(pk_category(pk_hand("7h8d3c2s9dJcKh")) == 0);
+	/* Full con color en la mesa: gana el full */
+	CHECK(pk_category(pk_hand("2h2d2c5h5d9hJh")) == 6);
+	/* Desempates */
+	CHECK(pk_hand("AhAd9c8s2d3c4h") > pk_hand("KhKdQcJs2d3c4h"));
+	CHECK(pk_hand("AhAdKc8s2d3c4h") > pk_hand("AcAsQcJs2d3c4h"));
+	CHECK(pk_hand("6h7h8h9hTh2c2d") > pk_hand("5h6h7h8h9h2c2d"));
+	CHECK(pk_hand("AsKdQcJhTs2c3d") > pk_hand("As2d3c4h5s9dKc"));
+	CHECK(pk_hand("AhKd8c8s2d2c4h") == pk_hand("AsKc8h8d2h2s4d"));
+}
+
+static int pk_total(const Poker* g)
+{
+	int t = 0;
+	for (int p = 0; p < PK_PLAYERS; p++)
+		t += g->chips[p];
+	return t;
+}
+
+static void test_poker_game(void)
+{
+	/* Botes secundarios: el que va all-in con poco solo gana lo suyo */
+	Poker g;
+	pk_init(&g, 1);
+	for (int p = 0; p < PK_PLAYERS; p++) {
+		g.chips[p] = 0;
+		g.bet[p] = 0;
+		g.folded[p] = false;
+		g.out[p] = false;
+	}
+	g.invested[0] = 100; /* el mejor, pero con poco */
+	g.invested[1] = 300;
+	g.invested[2] = 300;
+	g.invested[3] = 50; /* se retira */
+	g.folded[3] = true;
+	g.hole[0][0] = (PkCard){ 14, 0 };
+	g.hole[0][1] = (PkCard){ 14, 1 };
+	g.hole[1][0] = (PkCard){ 13, 0 };
+	g.hole[1][1] = (PkCard){ 13, 1 };
+	g.hole[2][0] = (PkCard){ 3, 2 };
+	g.hole[2][1] = (PkCard){ 4, 3 };
+	PkCard board[5] = { { 2, 0 }, { 7, 1 }, { 9, 2 }, { 11, 3 }, { 12, 0 } };
+	for (int i = 0; i < 5; i++)
+		g.board[i] = board[i];
+	g.board_count = 5;
+	g.stage = PK_RIVER;
+	g.to_call = 0;
+	for (int p = 0; p < PK_PLAYERS; p++)
+		g.acted[p] = true;
+	/* Se fuerza el reparto con la última acción de la ronda */
+	g.chips[1] = 10;
+	g.current = 1;
+	g.acted[1] = false;
+	CHECK(pk_act(&g, PK_CHECK_CALL, 0));
+	CHECK(g.stage == PK_SHOWDOWN || g.stage == PK_GAME_OVER);
+	CHECK(g.won[0] == 100 * 3 + 50);      /* capa de 100 de los tres y los 50 del retirado */
+	CHECK(g.won[1] == 400);              /* lo que queda entre el 1 y el 2 */
+	CHECK(g.won[2] == 0);
+
+	/* Partidas completas: las fichas no se crean ni se pierden */
+	int wins[PK_PLAYERS] = { 0 }, hands = 0;
+	for (int game = 0; game < 40; game++) {
+		pk_init(&g, 2000 + game);
+		int guard = 0;
+		while (!pk_game_over(&g) && guard++ < 20000) {
+			if (pk_hand_finished(&g)) {
+				CHECK(pk_total(&g) == PK_START * PK_PLAYERS);
+				hands++;
+				pk_new_hand(&g);
+				continue;
+			}
+			int amount = 0;
+			PkAction a = pk_ai_decide(&g, &amount);
+			CHECK(pk_act(&g, a, amount));
+			int sum = 0;
+			for (int p = 0; p < PK_PLAYERS; p++) {
+				CHECK(g.chips[p] >= 0);
+				sum += g.chips[p] + g.invested[p];
+			}
+			if (!pk_hand_finished(&g))
+				CHECK(sum == PK_START * PK_PLAYERS);
+			if (hands > 400)
+				break;
+		}
+		for (int p = 0; p < PK_PLAYERS; p++)
+			if (g.chips[p] == PK_START * PK_PLAYERS)
+				wins[p]++;
+	}
+	printf("  póker: %d manos, ganadores %d/%d/%d/%d\n", hands, wins[0], wins[1], wins[2], wins[3]);
+}
+
 int main(void)
 {
 	printf("Ejecutando tests...\n");
@@ -2095,6 +2216,8 @@ int main(void)
 	test_treintayuna();
 	test_mentiroso();
 	test_culo();
+	test_poker_eval();
+	test_poker_game();
 	test_sol_rules();
 	test_sol_simulation();
 	test_pyr_rules();

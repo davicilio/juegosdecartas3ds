@@ -9,7 +9,7 @@ OBJS    := test_main.c $(SRC)/core/cards.c $(SRC)/core/rng.c \
            $(SRC)/games/chinchon.c $(SRC)/games/mus.c \
            $(SRC)/games/guinote.c $(SRC)/games/solitario.c $(SRC)/games/piramide.c $(SRC)/games/uno.c $(SRC)/games/rummikub.c \
            $(SRC)/games/mona.c $(SRC)/games/cucu.c $(SRC)/games/treintayuna.c \
-           $(SRC)/games/mentiroso.c $(SRC)/games/culo.c
+           $(SRC)/games/mentiroso.c $(SRC)/games/culo.c $(SRC)/games/poker.c
 
 .PHONY: all run clean
 

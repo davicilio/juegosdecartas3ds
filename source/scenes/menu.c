@@ -124,6 +124,12 @@ static const MenuEntry entries[] = {
 	{ "Pumba",
 	  "Quédate sin cartas antes que nadie, con cartas que hacen robar o saltar turno. ¡Pumba!",
 	  SCENE_COUNT, SUIT_ESPADAS, { C(ESPADAS, 2), C(OROS, 2), C(COPAS, RANK_SOTA) }, { -1, -1, -1 } },
+	/* Baraja francesa */
+	{ "Póker",
+	  "Texas Hold'em contra tres personajes: dos cartas tuyas y cinco en la mesa. Pasa, iguala, sube o "
+	  "retírate... ¡o vete con todo! Gana quien se quede con todas las fichas.",
+	  SCENE_POKER, SUIT_OROS, { C(OROS, 1), C(OROS, 1), C(OROS, 1) }, { CPU_RAMON, CPU_LUCIA, CPU_MANOLO },
+	  KIND_FRENCH },
 	/* Juegos de mesa */
 	{ "Uno",
 	  "Echa cartas del mismo color o número. Salta, cambio de sentido, roba dos y comodines... "
@@ -401,7 +407,10 @@ static void menu_draw_top(void)
 			gfx_sprite_ex(SPR_CARD_SHADOW, cx + 4, cy + 5, 1.0f, 1.0f, a, DEPTH_CARDS, NULL);
 		if (e->scene == SCENE_CARDBACK)
 			gfx_card_back(cx, cy, 1.0f, 1.0f, a, DEPTH_CARDS + i * 0.4f, NULL);
-		else if (e->scene == SCENE_UNO) {
+		else if (e->scene == SCENE_POKER) {
+			static const int hand[3] = { 0 * 13 + 12, 1 * 13 + 12, 2 * 13 + 11 };
+			gfx_french(hand[i], cx, cy, 1.0f, a, DEPTH_CARDS + i * 0.4f, false);
+		} else if (e->scene == SCENE_UNO) {
 			static const int uno[3] = { BOARD_UNO_FIRST + 0 * 13 + 7, BOARD_UNO_FIRST + 3 * 13 + 11, BOARD_UNO_WILD };
 			gfx_board(uno[i], cx, cy, 1.0f, a, DEPTH_CARDS + i * 0.4f, NULL);
 		} else if (e->scene == SCENE_RUMMIKUB) {
@@ -423,6 +432,8 @@ static void menu_draw_top(void)
 		mii_draw(me, 176, 126, 8, DEPTH_UI, EXPR_HAPPY, false);
 	else if (e->scene == SCENE_UNO)
 		gfx_board(BOARD_UNO_WILD, 176, 126, 0.24f, 0.15f, DEPTH_UI, NULL);
+	else if (e->scene == SCENE_POKER)
+		gfx_french(12, 176, 126, 0.24f, 0.15f, DEPTH_UI, false);
 	else if (e->scene == SCENE_RUMMIKUB)
 		gfx_board(BOARD_JOKER, 176, 128, 0.8f, 0.0f, DEPTH_UI, NULL);
 	else
@@ -502,6 +513,8 @@ static void menu_draw_bottom(void)
 			gfx_card_back(x + 13, y + h / 2, 0.16f, 0.16f, 0.15f, 0, NULL);
 		else if (e->scene == SCENE_UNO)
 			gfx_board(BOARD_UNO_WILD, x + 13, y + h / 2, 0.2f, 0.15f, 0, NULL);
+		else if (e->scene == SCENE_POKER)
+			gfx_french(12, x + 13, y + h / 2, 0.2f, 0.15f, 0, false);
 		else if (e->scene == SCENE_RUMMIKUB)
 			gfx_board(BOARD_JOKER, x + 13, y + h / 2 + 2, 0.75f, 0.0f, 0, NULL);
 		else
