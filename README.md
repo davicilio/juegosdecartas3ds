@@ -77,7 +77,7 @@ El juego compone el dorso en una textura con las capas que genera
 
 ## Juegos
 
-El menú tiene estos apartados: **Juegos de cartas**, **Juegos de mesa**, **Próximamente** (los que todavía no se
+El menú tiene páginas (se cambian con L/R o tocando las pestañas): **Baraja española**, **Baraja francesa** y **De mesa**. Cada una tiene sus juegos y sus **Próximamente** (los que todavía no se
 pueden jugar; la lista se desplaza con la cruceta) y, en pequeño, **Configuración** (*Mi perfil* y *Dorso de las cartas*).
 
 
@@ -94,10 +94,13 @@ pueden jugar; la lista se desplaza con la cruceta) y, en pequeño, **Configuraci
 | Solitario en pirámide | ✅ Disponible |
 | Tute | ✅ Disponible |
 | Tute cabrón | ✅ Disponible |
+| La mona | ✅ Disponible |
+| Cucú | ✅ Disponible |
+| Treinta y una | ✅ Disponible |
+| Mentiroso | ✅ Disponible |
+| Culo | ✅ Disponible |
 | Uno (juego de mesa) | ✅ Disponible |
 | Rummikub (juego de mesa) | ✅ Disponible |
-| Culo | 🕓 Próximamente |
-| Mentiroso | 🕓 Próximamente |
 | Mierda | 🕓 Próximamente |
 | Burro | 🕓 Próximamente |
 | As, 2, 3 | 🕓 Próximamente |
@@ -110,9 +113,6 @@ pueden jugar; la lista se desplaza con la cruceta) y, en pequeño, **Configuraci
 | Truc | 🕓 Próximamente |
 | Truco argentino | 🕓 Próximamente |
 | Butifarra | 🕓 Próximamente |
-| Treinta y una | 🕓 Próximamente |
-| La mona | 🕓 Próximamente |
-| Cucú | 🕓 Próximamente |
 | Pumba | 🕓 Próximamente |
 
 ### Siete y media
@@ -236,6 +236,33 @@ puntos suma y la partida, quien gana tres manos.
 
 En el **tute** se juega por parejas, como en el guiñote; en el **tute cabrón**,
 cada uno para sí (y hay que matar siempre, aunque la baza la vaya ganando otro).
+
+### La mona
+Se quita la sota de oros y se reparten las demás cartas. Cada uno echa sus parejas
+y, por turnos, roba a ciegas una carta al siguiente (toca la que quieras). Quien se
+queda sin cartas se libra; pierde el último, el que se queda con la sota sin pareja.
+
+### Cucú
+Una carta para cada uno y tres vidas. En tu turno te quedas tu carta o la cambias
+con el siguiente (quien reparte, con el mazo). Con un rey se dice "¡cucú!" y no se
+cambia. La carta más baja (el as) pierde una vida; gana el último que queda.
+
+### Treinta y una
+Tres cartas cada uno y tres en la mesa. Cuenta la suma de un mismo palo (as 11,
+figuras 10). En tu turno cambias una carta (toca la tuya y luego la de la mesa), las
+tres a la vez, o te plantas y los demás juegan una vez más. La mano más baja pierde
+una vida; con 31 justos, pierden todos los demás.
+
+### Mentiroso
+Se reparten las 40 cartas. Echa de una a tres cartas boca abajo diciendo qué son (al
+empezar la tanda eliges qué dices con L/R) o acusa al anterior de **¡Mentiroso!**.
+Quien pierde la acusación se lleva el montón. Gana el primero que se queda sin cartas.
+
+### Culo
+Orden: 3, 4, 5, 6, 7, sota, caballo, rey, as y 2. Echa cartas iguales que superen
+las de la mesa (las mismas que se han echado) o pasa. El primero que acaba es el
+presidente y el último, el culo; en la siguiente ronda el culo le da sus dos mejores
+cartas al presidente.
 
 ### Uno (juego de mesa)
 Tú contra tres personajes, con cartas de colores dibujadas para el juego (diseño

@@ -17,6 +17,11 @@
 #include "core/profile.h"
 #include "games/sieteymedia.h"
 #include "games/uno.h"
+#include "games/treintayuna.h"
+#include "games/mona.h"
+#include "games/mentiroso.h"
+#include "games/culo.h"
+#include "games/cucu.h"
 #include "games/solitario.h"
 
 static int failures = 0;
@@ -1850,6 +1855,206 @@ static void test_rk_simulation(void)
 		wins[2], wins[3]);
 }
 
+/* ---------------------------------------------------------------------------
+ * La mona, cucú, treinta y una, mentiroso y culo
+ * ------------------------------------------------------------------------- */
+
+static void test_mona(void)
+{
+	int losers[MONA_PLAYERS] = { 0 };
+	for (int game = 0; game < 300; game++) {
+		Mona g;
+		mona_init(&g, 400 + game);
+		int total = 0;
+		for (int p = 0; p < MONA_PLAYERS; p++) {
+			total += g.hand_count[p] + g.pairs[p] * 2;
+			/* Tras echar las parejas nadie tiene dos cartas iguales */
+			for (int i = 0; i < g.hand_count[p]; i++)
+				for (int j = i + 1; j < g.hand_count[p]; j++)
+					CHECK(g.hands[p][i].rank != g.hands[p][j].rank);
+		}
+		CHECK(total == DECK_SIZE - 1);
+		int guard = 0;
+		while (!mona_over(&g) && guard++ < 1000) {
+			CHECK(mona_active(&g, g.current));
+			CHECK(mona_take(&g, mona_ai_pick(&g)));
+		}
+		CHECK(mona_over(&g));
+		/* El que pierde se queda solo con la mona: una sota */
+		CHECK(g.hand_count[g.loser] == 1 && g.hands[g.loser][0].rank == RANK_SOTA);
+		losers[g.loser]++;
+	}
+	printf("  la mona: pierden %d/%d/%d/%d\n", losers[0], losers[1], losers[2], losers[3]);
+}
+
+static void test_cucu(void)
+{
+	Cucu g;
+	cucu_init(&g, 3);
+	CHECK(cucu_value(card_make(SUIT_OROS, 1)) < cucu_value(card_make(SUIT_OROS, 2)));
+	CHECK(cucu_value(card_make(SUIT_OROS, RANK_REY)) == 9);
+	/* Con un rey no se puede cambiar */
+	g.current = (g.dealer + 1) % CUCU_PLAYERS;
+	int q = cucu_partner(&g);
+	g.card[g.current] = card_make(SUIT_OROS, 2);
+	g.card[q] = card_make(SUIT_COPAS, RANK_REY);
+	CHECK(cucu_decide(&g, true) && g.last_blocked && g.card[q].rank == RANK_REY);
+	int wins[CUCU_PLAYERS] = { 0 };
+	for (int game = 0; game < 300; game++) {
+		cucu_init(&g, 600 + game);
+		int guard = 0;
+		while (g.phase != CUCU_PHASE_GAME_OVER && guard++ < 2000) {
+			if (g.phase == CUCU_PHASE_REVEAL) {
+				int lost = 0, alive = 0;
+				for (int p = 0; p < CUCU_PLAYERS; p++) {
+					lost += g.lost[p];
+					alive += cucu_alive(&g, p) || g.lost[p];
+				}
+				CHECK(lost < alive); /* nunca pierden todos a la vez */
+				cucu_new_round(&g);
+				continue;
+			}
+			CHECK(cucu_alive(&g, g.current));
+			cucu_decide(&g, cucu_ai_swap(&g));
+		}
+		int w = cucu_winner(&g);
+		CHECK(w >= 0 && cucu_alive(&g, w));
+		wins[w]++;
+	}
+	printf("  cucú: victorias %d/%d/%d/%d\n", wins[0], wins[1], wins[2], wins[3]);
+}
+
+static void test_treintayuna(void)
+{
+	Card a[3] = { card_make(SUIT_OROS, 1), card_make(SUIT_OROS, RANK_REY), card_make(SUIT_OROS, RANK_SOTA) };
+	CHECK(tyu_hand_value(a) == 31);
+	Card b[3] = { card_make(SUIT_OROS, 7), card_make(SUIT_COPAS, RANK_REY), card_make(SUIT_COPAS, 5) };
+	CHECK(tyu_hand_value(b) == 15);
+	int wins[TYU_PLAYERS] = { 0 };
+	for (int game = 0; game < 300; game++) {
+		TreintaYUna g;
+		tyu_init(&g, 800 + game);
+		int guard = 0;
+		while (g.phase != TYU_PHASE_GAME_OVER && guard++ < 5000) {
+			if (g.phase == TYU_PHASE_REVEAL) {
+				tyu_new_round(&g);
+				continue;
+			}
+			CHECK(tyu_alive(&g, g.current));
+			if (g.current == 0 || game % 2) {
+				tyu_ai_turn(&g);
+			} else {
+				/* Los demás cambian al azar (y se plantan a veces) */
+				Rng* r = &g.rng;
+				if (tyu_can_knock(&g) && rng_range(r, 6) == 0)
+					tyu_knock(&g);
+				else
+					tyu_swap(&g, rng_range(r, 3), rng_range(r, 3));
+			}
+		}
+		CHECK(g.phase == TYU_PHASE_GAME_OVER);
+		int w = tyu_winner(&g);
+		CHECK(w >= 0);
+		if (w >= 0)
+			wins[w]++;
+	}
+	printf("  treinta y una: victorias %d/%d/%d/%d\n", wins[0], wins[1], wins[2], wins[3]);
+}
+
+static void test_mentiroso(void)
+{
+	Mentiroso g;
+	men_init(&g, 4);
+	for (int p = 0; p < MEN_PLAYERS; p++)
+		CHECK(g.hand_count[p] == 10);
+	/* Acusación: si mintió, se lleva el montón */
+	int p = g.current;
+	int idx[1] = { 0 };
+	Card c = g.hands[p][0];
+	int liar_rank = c.rank == 1 ? 2 : 1;
+	CHECK(men_play(&g, idx, 1, liar_rank));
+	CHECK(men_can_call(&g) && men_call(&g));
+	CHECK(g.was_lie && g.taker == p && g.hand_count[p] == 10);
+	men_continue(&g);
+	CHECK(g.rank == 0 && g.current == (p + 1) % MEN_PLAYERS);
+
+	int wins[MEN_PLAYERS] = { 0 };
+	for (int game = 0; game < 200; game++) {
+		men_init(&g, 1100 + game);
+		int guard = 0;
+		while (g.phase != MEN_PHASE_GAME_OVER && guard++ < 5000) {
+			if (g.phase == MEN_PHASE_REVEAL) {
+				men_continue(&g);
+				continue;
+			}
+			int total = g.pile_count;
+			for (int q = 0; q < MEN_PLAYERS; q++)
+				total += g.hand_count[q];
+			CHECK(total == DECK_SIZE);
+			int ids[MEN_MAX_PLAY], n, rank;
+			if (men_ai_turn(&g, ids, &n, &rank))
+				CHECK(men_call(&g));
+			else
+				CHECK(men_play(&g, ids, n, rank));
+		}
+		CHECK(g.phase == MEN_PHASE_GAME_OVER && g.winner >= 0);
+		if (g.winner >= 0) {
+			CHECK(g.hand_count[g.winner] == 0);
+			wins[g.winner]++;
+		}
+	}
+	printf("  mentiroso: victorias %d/%d/%d/%d\n", wins[0], wins[1], wins[2], wins[3]);
+}
+
+static void test_culo(void)
+{
+	CHECK(culo_value(card_make(SUIT_OROS, 3)) == 0);
+	CHECK(culo_value(card_make(SUIT_OROS, 2)) == 9);
+	CHECK(culo_value(card_make(SUIT_OROS, 1)) > culo_value(card_make(SUIT_OROS, RANK_REY)));
+	Culo g;
+	culo_init(&g, 2);
+	/* Sale quien tiene el 3 de oros */
+	bool has3 = false;
+	for (int i = 0; i < g.hand_count[g.current]; i++)
+		has3 |= g.hands[g.current][i].rank == 3 && g.hands[g.current][i].suit == SUIT_OROS;
+	CHECK(has3);
+	CHECK(!culo_can_pass(&g));
+	int pres[CULO_PLAYERS] = { 0 };
+	for (int game = 0; game < 100; game++) {
+		culo_init(&g, 1500 + game);
+		for (int round = 0; round < 4; round++) {
+			int guard = 0;
+			while (g.phase == CULO_PHASE_PLAYING && guard++ < 2000) {
+				int total = 0;
+				for (int q = 0; q < CULO_PLAYERS; q++)
+					total += g.hand_count[q];
+				CHECK(!culo_done(&g, g.current));
+				int idx[CULO_MAX_PLAY], n;
+				if (culo_ai_choose(&g, idx, &n)) {
+					CHECK(culo_play(&g, idx, n));
+				} else {
+					CHECK(culo_pass(&g));
+				}
+				(void)total;
+			}
+			CHECK(g.phase == CULO_PHASE_ROUND_OVER);
+			/* Todos tienen un puesto distinto */
+			bool seen[CULO_PLAYERS] = { false };
+			for (int q = 0; q < CULO_PLAYERS; q++) {
+				CHECK(g.role[q] >= 0 && g.role[q] < CULO_PLAYERS && !seen[g.role[q]]);
+				seen[g.role[q]] = true;
+			}
+			pres[g.finish[0]]++;
+			culo_new_round(&g);
+			int total = 0;
+			for (int q = 0; q < CULO_PLAYERS; q++)
+				total += g.hand_count[q];
+			CHECK(total == DECK_SIZE);
+		}
+	}
+	printf("  culo: presidencias %d/%d/%d/%d\n", pres[0], pres[1], pres[2], pres[3]);
+}
+
 int main(void)
 {
 	printf("Ejecutando tests...\n");
@@ -1885,6 +2090,11 @@ int main(void)
 	test_uno_simulation();
 	test_rk_rules();
 	test_rk_simulation();
+	test_mona();
+	test_cucu();
+	test_treintayuna();
+	test_mentiroso();
+	test_culo();
 	test_sol_rules();
 	test_sol_simulation();
 	test_pyr_rules();

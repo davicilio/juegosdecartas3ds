@@ -14,10 +14,12 @@ typedef struct {
 	Suit icon;
 	Card fan[3];
 	int rivals[3]; /* Miis contra (o con) los que se juega; -1 = nadie */
-	int board;     /* juego de mesa (sin baraja española) */
+	int kind;      /* KIND_SPANISH, KIND_BOARD o KIND_FRENCH */
 } MenuEntry;
 
 #define C(s, r) { SUIT_##s, r }
+
+enum { KIND_SPANISH, KIND_BOARD, KIND_FRENCH };
 
 static const MenuEntry entries[] = {
 	{ "Siete y media",
@@ -61,12 +63,12 @@ static const MenuEntry entries[] = {
 	  "rey y caballo... ¡y si juntas los cuatro reyes o caballos, canta el tute!",
 	  SCENE_TUTE, SUIT_COPAS, { C(COPAS, RANK_CABALLO), C(COPAS, RANK_REY), C(OROS, 1) }, { CPU_LOLA, CPU_PACO, CPU_MANOLO } },
 	{ "Culo",
-	  "Quítate las cartas de encima antes que nadie. El primero que acaba manda en la siguiente mano "
-	  "y el último... es el culo.",
-	  SCENE_COUNT, SUIT_BASTOS, { C(BASTOS, 2), C(BASTOS, 2), C(OROS, 2) }, { -1, -1, -1 } },
+	  "Echa cartas iguales más altas que las de la mesa o pasa. El primero en quedarse sin cartas es el "
+	  "presidente; el último, el culo, que tendrá que darle sus mejores cartas.",
+	  SCENE_CULO, SUIT_BASTOS, { C(BASTOS, 2), C(BASTOS, 2), C(OROS, 2) }, { -1, -1, -1 } },
 	{ "Mentiroso",
 	  "Echa cartas boca abajo diciendo lo que son... aunque sea mentira. Si te pillan, te llevas el montón.",
-	  SCENE_COUNT, SUIT_ESPADAS, { C(ESPADAS, 4), C(OROS, 4), C(COPAS, 4) }, { -1, -1, -1 } },
+	  SCENE_MENTIROSO, SUIT_ESPADAS, { C(ESPADAS, 4), C(OROS, 4), C(COPAS, 4) }, { -1, -1, -1 } },
 	{ "Mierda",
 	  "Otro clásico de la baraja española que llegará en una próxima versión.",
 	  SCENE_COUNT, SUIT_BASTOS, { C(BASTOS, 7), C(COPAS, 1), C(ESPADAS, 6) }, { -1, -1, -1 } },
@@ -111,14 +113,14 @@ static const MenuEntry entries[] = {
 	  SCENE_COUNT, SUIT_COPAS, { C(COPAS, 1), C(COPAS, 7), C(OROS, RANK_REY) }, { -1, -1, -1 } },
 	{ "Treinta y una",
 	  "Acércate a 31 sumando cartas del mismo palo, sin pasarte de la raya.",
-	  SCENE_COUNT, SUIT_OROS, { C(OROS, 1), C(OROS, RANK_REY), C(OROS, RANK_CABALLO) }, { -1, -1, -1 } },
+	  SCENE_TREINTAYUNA, SUIT_OROS, { C(OROS, 1), C(OROS, RANK_REY), C(OROS, RANK_CABALLO) }, { -1, -1, -1 } },
 	{ "La mona",
 	  "Ve emparejando cartas. Pierde quien se quede al final con la carta sin pareja: la mona.",
-	  SCENE_COUNT, SUIT_COPAS, { C(COPAS, RANK_SOTA), C(OROS, RANK_SOTA), C(BASTOS, 4) }, { -1, -1, -1 } },
+	  SCENE_MONA, SUIT_COPAS, { C(COPAS, RANK_SOTA), C(OROS, RANK_SOTA), C(BASTOS, 4) }, { -1, -1, -1 } },
 	{ "Cucú",
 	  "Cada uno tiene una carta y puede cambiarla con el de al lado. Pierde quien acaba con la más "
 	  "baja.",
-	  SCENE_COUNT, SUIT_BASTOS, { C(BASTOS, 1), C(OROS, 2), C(COPAS, RANK_REY) }, { -1, -1, -1 } },
+	  SCENE_CUCU, SUIT_BASTOS, { C(BASTOS, 1), C(OROS, 2), C(COPAS, RANK_REY) }, { -1, -1, -1 } },
 	{ "Pumba",
 	  "Quédate sin cartas antes que nadie, con cartas que hacen robar o saltar turno. ¡Pumba!",
 	  SCENE_COUNT, SUIT_ESPADAS, { C(ESPADAS, 2), C(OROS, 2), C(COPAS, RANK_SOTA) }, { -1, -1, -1 } },
@@ -126,11 +128,11 @@ static const MenuEntry entries[] = {
 	{ "Uno",
 	  "Echa cartas del mismo color o número. Salta, cambio de sentido, roba dos y comodines... "
 	  "¡y no te olvides de decir \"¡Uno!\" cuando te quede una carta!",
-	  SCENE_UNO, SUIT_OROS, { C(OROS, 1), C(OROS, 1), C(OROS, 1) }, { CPU_PEPE, CPU_LOLA, CPU_CARMEN }, 1 },
+	  SCENE_UNO, SUIT_OROS, { C(OROS, 1), C(OROS, 1), C(OROS, 1) }, { CPU_PEPE, CPU_LOLA, CPU_CARMEN }, KIND_BOARD },
 	{ "Rummikub",
 	  "Fichas del 1 al 13 en cuatro colores. Baja escaleras y grupos (la primera vez, de al menos 30 "
 	  "puntos) y añade fichas a la mesa. Gana quien se quede sin fichas.",
-	  SCENE_RUMMIKUB, SUIT_OROS, { C(OROS, 1), C(OROS, 1), C(OROS, 1) }, { CPU_PACO, CPU_LUCIA, CPU_MANOLO }, 1 },
+	  SCENE_RUMMIKUB, SUIT_OROS, { C(OROS, 1), C(OROS, 1), C(OROS, 1) }, { CPU_PACO, CPU_LUCIA, CPU_MANOLO }, KIND_BOARD },
 	/* Configuración */
 	{ "Mi perfil",
 	  "Tu Mii, tus estadísticas y tus rivales: los Miis de tu consola (o los Miis invitados) "
@@ -144,33 +146,45 @@ static const MenuEntry entries[] = {
 
 #define NUM_ENTRIES ((int)(sizeof entries / sizeof entries[0]))
 
-/* Apartados de la lista que se desplaza: cada uno con su título y sus juegos
- * en dos columnas. Configuración va aparte, fija abajo y en pequeño. */
-enum { SEC_CARDS, SEC_BOARD, SEC_SOON, SEC_LIST, SEC_CONFIG = SEC_LIST };
-static const char* const SECTION_TITLE[SEC_LIST] = { "Juegos de cartas", "Juegos de mesa", "Próximamente" };
+/* Páginas (pestañas arriba): baraja española, baraja francesa y juegos de
+ * mesa. Cada página tiene sus juegos y sus próximos juegos en dos columnas,
+ * con desplazamiento. Configuración va aparte, fija abajo y en pequeño. */
+enum { PAGE_SPANISH, PAGE_FRENCH, PAGE_BOARD, PAGES };
+static const char* const PAGE_TITLE[PAGES] = { "Baraja española", "Baraja francesa", "De mesa" };
+enum { SEC_PLAY, SEC_SOON, SEC_LIST, SEC_CONFIG = SEC_LIST, SEC_HIDDEN = -1 };
+static const char* const SECTION_TITLE[SEC_LIST] = { "Juegos", "Próximamente" };
 
 #define COL_X(c)    (8.0f + (c) * 156.0f)
+#define TAB_H       22.0f
 #define HEAD_H      15.0f
 #define GAME_W      148.0f
 #define GAME_H      22.0f
 #define GAME_STEP   24.0f
+#define VIEW_TOP    TAB_H
 #define VIEW_BOTTOM 186.0f
 #define CONFIG_HEAD (VIEW_BOTTOM + 2.0f)
 #define CONFIG_Y    (CONFIG_HEAD + 13.0f)
 #define CONFIG_H    18.0f
 #define MAX_ROWS    64
 
+static int s_page;
+
+static int page_of(const MenuEntry* e)
+{
+	return e->kind == KIND_FRENCH ? PAGE_FRENCH : e->kind == KIND_BOARD ? PAGE_BOARD : PAGE_SPANISH;
+}
+
 static int section_of(int i)
 {
 	const MenuEntry* e = &entries[i];
 	if (e->scene == SCENE_PROFILE || e->scene == SCENE_CARDBACK)
 		return SEC_CONFIG;
-	if (e->scene == SCENE_COUNT)
-		return SEC_SOON;
-	return e->board ? SEC_BOARD : SEC_CARDS;
+	if (page_of(e) != s_page)
+		return SEC_HIDDEN;
+	return e->scene == SCENE_COUNT ? SEC_SOON : SEC_PLAY;
 }
 
-/* Posiciones calculadas una vez: y de cada elemento (en la lista), su
+/* Posiciones de la página actual: y de cada elemento (en la lista), su
  * columna y su fila para la cruceta; y de cada título. */
 static float s_item_y[NUM_ENTRIES];
 static int s_item_col[NUM_ENTRIES], s_item_row[NUM_ENTRIES];
@@ -179,14 +193,14 @@ static int s_rows;
 static float s_head_y[SEC_LIST];
 static int s_section_count[SEC_LIST + 1];
 static float s_content_h;
-static bool s_layout_ready;
+static int s_layout_page = -1;
 
 static void layout(void)
 {
-	if (s_layout_ready)
+	if (s_layout_page == s_page)
 		return;
-	s_layout_ready = true;
-	float y = 2.0f;
+	s_layout_page = s_page;
+	float y = TAB_H + 2.0f;
 	s_rows = 0;
 	for (int sec = 0; sec <= SEC_LIST; sec++) {
 		int k = 0;
@@ -208,13 +222,18 @@ static void layout(void)
 			k++;
 		}
 		s_section_count[sec] = k;
-		if (sec < SEC_LIST)
-			y += (k + 1) / 2 * GAME_STEP + (k ? 1.0f : 0.0f);
+		if (sec < SEC_LIST) {
+			if (k == 0)
+				y -= HEAD_H; /* apartado vacío: sin título */
+			else
+				y += (k + 1) / 2 * GAME_STEP + 1.0f;
+		}
 	}
 	s_content_h = y + 2.0f;
 }
 
 static int s_selected;
+static int s_page_selected[PAGES] = { -1, -1, -1 };
 static Mood s_mood;
 static float s_cursor_x, s_cursor_y;
 static float s_scroll; /* desplazamiento de la lista de juegos */
@@ -255,12 +274,35 @@ static float scroll_for(int i)
 	if (y - s_head_y[sec] - HEAD_H < GAME_STEP)
 		top = s_head_y[sec] - 2.0f;
 	float target = s_scroll;
-	if (top < target)
-		target = top;
+	if (top - VIEW_TOP < target)
+		target = top - VIEW_TOP;
 	if (y + h + 4.0f > target + VIEW_BOTTOM)
 		target = y + h + 4.0f - VIEW_BOTTOM;
 	float max = s_content_h - VIEW_BOTTOM;
 	return target < 0.0f ? 0.0f : target > max ? max : target;
+}
+
+/* Primer elemento de la página (o configuración si no hay juegos) */
+static int first_of_page(void)
+{
+	layout();
+	return s_rows > 0 ? s_row_item[0][0] : 0;
+}
+
+static void set_page(int page)
+{
+	if (!is_config(s_selected))
+		s_page_selected[s_page] = s_selected;
+	s_page = (page + PAGES) % PAGES;
+	layout();
+	s_selected = s_page_selected[s_page] >= 0 ? s_page_selected[s_page] : first_of_page();
+	s_scroll = 0.0f;
+	s_scroll = scroll_for(s_selected);
+	float x, y, w, h;
+	screen_rect(s_selected, &x, &y, &w, &h);
+	s_cursor_x = x;
+	s_cursor_y = y;
+	audio_play(SFX_SELECT);
 }
 
 static void menu_enter(void)
@@ -296,9 +338,17 @@ static SceneId menu_update(const Input* in, float dt)
 	if (s_shake > 0.0f)
 		s_shake -= dt;
 	mood_update(&s_mood, dt);
+	/* Cambio de página: L/R o tocando la pestaña */
+	if (in->down & KEY_L)
+		set_page(s_page - 1);
+	if (in->down & KEY_R)
+		set_page(s_page + 1);
+	for (int pg = 0; pg < PAGES; pg++)
+		if (input_touch_in(in, pg * (BOTTOM_W / (float)PAGES), 0, BOTTOM_W / (float)PAGES, TAB_H) && pg != s_page)
+			set_page(pg);
 	int dx = (in->repeat & KEY_RIGHT) ? 1 : (in->repeat & KEY_LEFT) ? -1 : 0;
 	int dy = (in->repeat & KEY_DOWN) ? 1 : (in->repeat & KEY_UP) ? -1 : 0;
-	if (dx || dy) {
+	if ((dx || dy) && s_rows > 0) {
 		s_selected = move(s_selected, dx, dy);
 		audio_play(SFX_SELECT);
 	}
@@ -316,8 +366,10 @@ static SceneId menu_update(const Input* in, float dt)
 		return SCENE_QUIT;
 
 	for (int i = 0; i < NUM_ENTRIES; i++) {
+		if (section_of(i) == SEC_HIDDEN)
+			continue;
 		screen_rect(i, &x, &y, &w, &h);
-		if (!is_config(i) && (y < 0.0f || y + h > VIEW_BOTTOM))
+		if (!is_config(i) && (y < VIEW_TOP || y + h > VIEW_BOTTOM))
 			continue; /* tapado */
 		if (input_touch_in(in, x, y, w, h)) {
 			s_selected = i;
@@ -402,6 +454,8 @@ static void menu_draw_bottom(void)
 			soon ? C2D_Color32(220, 200, 180, 255) : COLOR_GOLD, C2D_AlignCenter, soon ? "%s (%d)" : "%s",
 			SECTION_TITLE[sec], s_section_count[sec]);
 	}
+	if (s_section_count[SEC_PLAY] + s_section_count[SEC_SOON] == 0)
+		gfx_text("Todavía no hay juegos aquí", BOTTOM_W / 2, 90, 0, 0.5f, COLOR_CREAM, C2D_AlignCenter);
 
 	float shake = s_shake > 0.0f ? sinf(s_shake * 60.0f) * 4.0f : 0.0f;
 
@@ -418,6 +472,8 @@ static void menu_draw_bottom(void)
 		bool available = e->scene != SCENE_COUNT;
 		bool small = is_config(i);
 		float x, y, w, h;
+		if (section_of(i) == SEC_HIDDEN)
+			continue;
 		screen_rect(i, &x, &y, &w, &h);
 		bool first_config = is_config(i) && (i == 0 || !is_config(i - 1));
 		if (first_config) {
@@ -433,7 +489,7 @@ static void menu_draw_bottom(void)
 				gfx_rrect(s_cursor_x - 3 + shake, s_cursor_y - 3, cw + 6, ch + 6, 10, 0,
 					C2D_Color32(255, 215, 90, (u8)(150 + 100 * pulse)));
 		}
-		if (!small && (y + h < 0.0f || y > VIEW_BOTTOM))
+		if (!small && (y + h < VIEW_TOP - 8.0f || y > VIEW_BOTTOM))
 			continue;
 		if (i == s_selected)
 			x += shake;
@@ -457,7 +513,18 @@ static void menu_draw_bottom(void)
 		gfx_text(e->name, x + 26, y + (small ? 2 : 3), 0, scale,
 			available ? C2D_Color32(90, 15, 20, 255) : C2D_Color32(110, 100, 95, 255), C2D_AlignLeft);
 	}
-	gfx_text(GLYPH_DPAD " Elegir   " GLYPH_A " Aceptar   START Salir", BOTTOM_W / 2, 223, 0, 0.45f, COLOR_CREAM,
+	/* Pestañas de las páginas */
+	gfx_rect(0, 0, BOTTOM_W, TAB_H, 0, C2D_Color32(70, 10, 16, 255));
+	gfx_rect(0, TAB_H - 2, BOTTOM_W, 2, 0, C2D_Color32(230, 170, 50, 255));
+	float tw = BOTTOM_W / (float)PAGES;
+	for (int pg = 0; pg < PAGES; pg++) {
+		bool on = pg == s_page;
+		gfx_rrect(pg * tw + 3, 2, tw - 6, TAB_H - 4, 6, 0,
+			on ? C2D_Color32(250, 220, 120, 255) : C2D_Color32(120, 30, 35, 255));
+		gfx_text(PAGE_TITLE[pg], pg * tw + tw / 2, 4, 0, 0.45f, on ? C2D_Color32(90, 15, 20, 255) : COLOR_CREAM,
+			C2D_AlignCenter);
+	}
+	gfx_text(GLYPH_L GLYPH_R " Página  " GLYPH_A " Aceptar  START Salir", BOTTOM_W / 2, 223, 0, 0.45f, COLOR_CREAM,
 		C2D_AlignCenter);
 }
 
