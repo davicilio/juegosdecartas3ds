@@ -62,7 +62,7 @@ static void profile_draw_top(void)
 
 	/* Estadísticas */
 	gfx_panel(210, 16, 178, 208, DEPTH_UI, C2D_Color32(40, 8, 12, 210), C2D_Color32(230, 170, 50, 255));
-	gfx_text(s_welcome ? "¡Bienvenido!" : "Tus estadísticas", 299, 22, DEPTH_UI, 0.55f, COLOR_GOLD, C2D_AlignCenter);
+	gfx_text(s_welcome ? "¡Bienvenido!" : "Ganadas / jugadas", 299, 22, DEPTH_UI, 0.55f, COLOR_GOLD, C2D_AlignCenter);
 	if (s_welcome) {
 		gfx_text_wrap("Elige un Mii de la consola y tu personaje se parecerá a él: nombre, piel, "
 		              "pelo, color favorito... Tus rivales se basan en los demás Miis.",
@@ -71,7 +71,7 @@ static void profile_draw_top(void)
 	}
 	/* Una línea por juego: nombre a la izquierda y resultado a la derecha */
 	for (int g = 0; g < GAME_COUNT; g++) {
-		float y = 42 + g * 18;
+		float y = 40 + g * 14;
 		gfx_text(game_name((GameId)g), 218, y, DEPTH_UI, 0.45f, COLOR_CREAM, C2D_AlignLeft);
 		if (p->played[g] == 0)
 			gfx_text("-", 380, y, DEPTH_UI, 0.45f, C2D_Color32(190, 170, 160, 255), C2D_AlignRight);
@@ -79,8 +79,6 @@ static void profile_draw_top(void)
 			gfx_textf(380, y, DEPTH_UI, 0.45f, COLOR_GOLD, C2D_AlignRight, "%u/%u", (unsigned)p->won[g],
 				(unsigned)p->played[g]);
 	}
-	gfx_text("ganadas / jugadas", 299, 42 + GAME_COUNT * 18, DEPTH_UI, 0.45f, C2D_Color32(190, 170, 160, 255),
-		C2D_AlignCenter);
 }
 
 static void profile_draw_bottom(void)

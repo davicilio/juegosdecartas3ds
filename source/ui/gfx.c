@@ -13,6 +13,7 @@ static C2D_SpriteSheet s_sprites;
 static C2D_SpriteSheet s_backgrounds;
 static C2D_SpriteSheet s_chars;
 static C2D_SpriteSheet s_backs;
+static C2D_SpriteSheet s_board;
 static C2D_TextBuf s_textbuf;
 
 /* Dorso de las cartas: se compone en una textura con las capas de
@@ -48,6 +49,7 @@ bool gfx_init(void)
 	s_backgrounds = C2D_SpriteSheetLoad("romfs:/gfx/backgrounds.t3x");
 	s_chars = C2D_SpriteSheetLoad("romfs:/gfx/chars.t3x");
 	s_backs = C2D_SpriteSheetLoad("romfs:/gfx/backs.t3x");
+	s_board = C2D_SpriteSheetLoad("romfs:/gfx/board.t3x");
 	s_textbuf = C2D_TextBufNew(8192);
 
 	if (C3D_TexInitVRAM(&s_back_tex, BACK_TEX_W, BACK_TEX_H, GPU_RGBA8)) {
@@ -56,7 +58,7 @@ bool gfx_init(void)
 	}
 	cardback_default(&s_back);
 	s_back_dirty = true;
-	return s_sprites && s_backgrounds && s_chars && s_backs && s_textbuf;
+	return s_sprites && s_backgrounds && s_chars && s_backs && s_board && s_textbuf;
 }
 
 void gfx_exit(void)
@@ -71,6 +73,8 @@ void gfx_exit(void)
 		C2D_SpriteSheetFree(s_chars);
 	if (s_backs)
 		C2D_SpriteSheetFree(s_backs);
+	if (s_board)
+		C2D_SpriteSheetFree(s_board);
 	if (s_back_target) {
 		C3D_RenderTargetDelete(s_back_target);
 		C3D_TexDelete(&s_back_tex);
@@ -216,6 +220,11 @@ C2D_Image gfx_sprite_image(int id)
 	return C2D_SpriteSheetGetImage(s_sprites, id);
 }
 
+void gfx_board(int id, float cx, float cy, float scale, float angle, float depth, const C2D_ImageTint* tint)
+{
+	C2D_DrawImageAtRotated(C2D_SpriteSheetGetImage(s_board, id), cx + gfx_dx(depth), cy, 0.5f, angle, tint, scale, scale);
+}
+
 C2D_Image gfx_char_image(int id)
 {
 	return C2D_SpriteSheetGetImage(s_chars, id);
@@ -257,6 +266,11 @@ void gfx_card(Card c, float cx, float cy, float scale, float flip, float angle, 
 static float text_scale(float scale)
 {
 	return scale < MIN_TEXT_SCALE ? MIN_TEXT_SCALE : scale;
+}
+
+C2D_TextBuf gfx_textbuf(void)
+{
+	return s_textbuf;
 }
 
 void gfx_text(const char* str, float x, float y, float depth, float scale, u32 color, u32 align)

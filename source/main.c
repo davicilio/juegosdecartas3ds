@@ -33,6 +33,10 @@ static const Scene* scene_for(SceneId id)
 		return &scene_tute;
 	case SCENE_TUTE_CABRON:
 		return &scene_tute_cabron;
+	case SCENE_UNO:
+		return &scene_uno;
+	case SCENE_RUMMIKUB:
+		return &scene_rummikub;
 	case SCENE_SOLITARIO:
 		return &scene_solitario;
 	case SCENE_PIRAMIDE:

@@ -13,8 +13,10 @@
 #include "games/guinote.h"
 #include "games/mus.h"
 #include "games/piramide.h"
+#include "games/rummikub.h"
 #include "core/profile.h"
 #include "games/sieteymedia.h"
+#include "games/uno.h"
 #include "games/solitario.h"
 
 static int failures = 0;
@@ -1583,6 +1585,271 @@ static void test_pyr_simulation(void)
 	CHECK(won > 0);
 }
 
+/* ---------------------------------------------------------------------------
+ * Uno
+ * ------------------------------------------------------------------------- */
+
+static int uno_count_cards(const Uno* g)
+{
+	int n = g->deck_count + g->discard_count;
+	for (int p = 0; p < UNO_PLAYERS; p++)
+		n += g->hand_count[p];
+	return n;
+}
+
+static void test_uno_rules(void)
+{
+	Uno g;
+	uno_init(&g, 12);
+	CHECK(uno_count_cards(&g) == UNO_DECK_SIZE);
+	CHECK(!uno_is_wild(uno_top(&g)));
+	int wild = 0, zeros = 0;
+	for (int i = 0; i < g.deck_count; i++) {
+		wild += uno_is_wild(g.deck[i]);
+		zeros += g.deck[i].value == 0;
+	}
+	CHECK(uno_card_points((UnoCard){ UNO_RED, 7 }) == 7);
+	CHECK(uno_card_points((UnoCard){ UNO_RED, UNO_SKIP }) == 20);
+	CHECK(uno_card_points((UnoCard){ UNO_WILD, UNO_DRAW4 }) == 50);
+
+	/* Reglas de juego en una situación preparada */
+	g.phase = UNO_PHASE_PLAYING;
+	g.current = 0;
+	g.direction = 1;
+	g.drew = false;
+	g.drawn_index = -1;
+	g.discard[0] = (UnoCard){ UNO_RED, 5 };
+	g.discard_count = 1;
+	g.color = UNO_RED;
+	g.hand_count[0] = 5;
+	g.hands[0][0] = (UnoCard){ UNO_BLUE, 5 };  /* mismo número */
+	g.hands[0][1] = (UnoCard){ UNO_RED, 9 };   /* mismo color */
+	g.hands[0][2] = (UnoCard){ UNO_GREEN, 2 }; /* no vale */
+	g.hands[0][3] = (UnoCard){ UNO_WILD, UNO_WILDCARD };
+	g.hands[0][4] = (UnoCard){ UNO_RED, UNO_DRAW2 };
+	CHECK(uno_can_play(&g, 0, 0) && uno_can_play(&g, 0, 1) && !uno_can_play(&g, 0, 2) && uno_can_play(&g, 0, 3));
+	CHECK(!uno_can_play(&g, 1, 0));
+	/* Roba dos: el siguiente roba y pierde el turno */
+	int before = g.hand_count[1];
+	CHECK(uno_play(&g, 4));
+	CHECK(g.hand_count[1] == before + 2 && g.current == 2);
+	/* Cambio de sentido */
+	g.current = 0;
+	g.hands[0][g.hand_count[0]++] = (UnoCard){ UNO_RED, UNO_REVERSE };
+	CHECK(uno_play(&g, g.hand_count[0] - 1));
+	CHECK(g.direction == -1 && g.current == 3);
+	/* Salta */
+	g.current = 0;
+	g.hands[0][g.hand_count[0]++] = (UnoCard){ UNO_RED, UNO_SKIP };
+	CHECK(uno_play(&g, g.hand_count[0] - 1));
+	CHECK(g.current == 2);
+	/* Comodín: hay que elegir color */
+	g.current = 0;
+	int w = -1;
+	for (int i = 0; i < g.hand_count[0]; i++)
+		if (g.hands[0][i].value == UNO_WILDCARD)
+			w = i;
+	CHECK(w >= 0 && uno_play(&g, w));
+	CHECK(g.phase == UNO_PHASE_CHOOSE_COLOR && g.current == 0);
+	CHECK(uno_choose_color(&g, UNO_GREEN));
+	CHECK(g.color == UNO_GREEN && g.phase == UNO_PHASE_PLAYING && g.current == 3);
+
+	/* ¡Uno! y pillar al que no lo dice */
+	g.current = 1;
+	g.hand_count[1] = 2;
+	g.hands[1][0] = (UnoCard){ UNO_GREEN, 3 };
+	g.hands[1][1] = (UnoCard){ UNO_BLUE, 8 };
+	g.said_uno[1] = false;
+	CHECK(uno_play(&g, 0));
+	CHECK(uno_catchable(&g, 1) && uno_catch(&g, 1) && g.hand_count[1] == 3);
+	CHECK(!uno_catchable(&g, 1));
+	g.hand_count[2] = 2;
+	g.hands[2][0] = (UnoCard){ UNO_GREEN, 4 };
+	g.hands[2][1] = (UnoCard){ UNO_BLUE, 8 };
+	g.current = 2;
+	CHECK(uno_say_uno(&g, 2) && uno_play(&g, 0));
+	CHECK(!uno_catchable(&g, 2));
+
+	/* Robar: solo una vez y solo se puede echar la robada */
+	uno_init(&g, 31);
+	int p = g.current;
+	int n = g.hand_count[p];
+	CHECK(uno_draw(&g));
+	CHECK(g.hand_count[p] == n + 1);
+	if (g.current == p) {
+		CHECK(!uno_draw(&g));
+		CHECK(uno_can_play(&g, p, g.drawn_index));
+		CHECK(uno_pass(&g) && g.current != p);
+	}
+}
+
+static void test_uno_simulation(void)
+{
+	int wins[UNO_PLAYERS] = { 0 };
+	for (int game = 0; game < 200; game++) {
+		Uno g;
+		uno_init(&g, 7000 + game);
+		Rng r;
+		rng_seed(&r, game);
+		int guard = 0;
+		while (g.phase != UNO_PHASE_GAME_OVER && guard++ < 100000) {
+			if (g.phase == UNO_PHASE_ROUND_OVER) {
+				uno_new_round(&g);
+				continue;
+			}
+			CHECK(uno_count_cards(&g) == UNO_DECK_SIZE);
+			int p = g.current;
+			if (g.phase == UNO_PHASE_CHOOSE_COLOR) {
+				CHECK(uno_choose_color(&g, p == 0 ? uno_ai_color(&g, p) : (int)rng_range(&r, UNO_COLORS)));
+				continue;
+			}
+			if (g.hand_count[p] == 2)
+				uno_say_uno(&g, p);
+			int i;
+			if (p == 0) {
+				i = uno_ai_choose(&g, p);
+			} else {
+				/* Los demás echan una carta válida al azar */
+				int legal[UNO_MAX_HAND], n = 0;
+				for (int k = 0; k < g.hand_count[p]; k++)
+					if (uno_can_play(&g, p, k))
+						legal[n++] = k;
+				i = n ? legal[rng_range(&r, n)] : -1;
+			}
+			if (i >= 0)
+				CHECK(uno_play(&g, i));
+			else if (!g.drew)
+				CHECK(uno_draw(&g));
+			else
+				CHECK(uno_pass(&g));
+		}
+		CHECK(g.phase == UNO_PHASE_GAME_OVER);
+		int w = uno_game_winner(&g);
+		CHECK(w >= 0);
+		if (w >= 0)
+			wins[w]++;
+	}
+	printf("  uno: IA %d - azar %d/%d/%d\n", wins[0], wins[1], wins[2], wins[3]);
+	CHECK(wins[0] > wins[1] && wins[0] > wins[2] && wins[0] > wins[3]);
+}
+
+/* ---------------------------------------------------------------------------
+ * Rummikub
+ * ------------------------------------------------------------------------- */
+
+#define T(c, v) ((RkTile){ c, v })
+#define JK ((RkTile){ RK_JOKER, 0 })
+
+static int rk_count_tiles(const Rummikub* g)
+{
+	int n = g->pool_count;
+	for (int p = 0; p < RK_PLAYERS; p++)
+		n += g->rack_count[p];
+	for (int s = 0; s < g->table_count; s++)
+		n += g->table[s].n;
+	return n;
+}
+
+static void test_rk_rules(void)
+{
+	RkSet s;
+	RkTile run[] = { T(0, 6), T(0, 4), T(0, 5) };
+	CHECK(rk_make_set(run, 3, &s) && s.tiles[0].number == 4 && s.tiles[2].number == 6);
+	CHECK(rk_set_points(&s) == 15);
+	RkTile group[] = { T(0, 9), T(2, 9), T(3, 9) };
+	CHECK(rk_make_set(group, 3, &s) && rk_set_points(&s) == 27);
+	RkTile bad_group[] = { T(0, 9), T(0, 9), T(3, 9) };
+	CHECK(!rk_make_set(bad_group, 3, &s));
+	RkTile mixed[] = { T(0, 4), T(1, 5), T(0, 6) };
+	CHECK(!rk_make_set(mixed, 3, &s));
+	RkTile two[] = { T(0, 4), T(0, 5) };
+	CHECK(!rk_make_set(two, 2, &s));
+	/* Comodín en el hueco: 4 J 6 vale 4+5+6 */
+	RkTile gap[] = { T(1, 4), JK, T(1, 6) };
+	CHECK(rk_make_set(gap, 3, &s) && s.tiles[1].color == RK_JOKER && rk_set_points(&s) == 15);
+	/* Comodín al final de la escalera; en el 13, por abajo */
+	RkTile top[] = { T(2, 12), T(2, 13), JK };
+	CHECK(rk_make_set(top, 3, &s) && s.tiles[0].color == RK_JOKER && rk_set_points(&s) == 36);
+	/* Grupo con comodín */
+	RkTile gj[] = { T(0, 11), JK, T(3, 11) };
+	CHECK(rk_make_set(gj, 3, &s) && rk_set_points(&s) == 33);
+	/* Ni el 14 ni números repetidos en la escalera */
+	RkTile rep[] = { T(0, 3), T(0, 3), T(0, 4) };
+	CHECK(!rk_make_set(rep, 3, &s));
+
+	Rummikub g;
+	rk_init(&g, 5);
+	CHECK(rk_count_tiles(&g) == RK_TILES);
+	for (int p = 0; p < RK_PLAYERS; p++)
+		CHECK(g.rack_count[p] == RK_START);
+	/* Primera jugada: menos de 30 no vale y se roba */
+	int p = g.current;
+	g.rack_count[p] = 5;
+	g.racks[p][0] = T(0, 1);
+	g.racks[p][1] = T(0, 2);
+	g.racks[p][2] = T(0, 3);
+	g.racks[p][3] = T(1, 10);
+	g.racks[p][4] = T(2, 10);
+	/* El turno empieza con este atril */
+	memcpy(g.saved_rack, g.racks[p], sizeof(RkTile) * 5);
+	g.saved_rack_count = 5;
+	int idx[3] = { 0, 1, 2 };
+	CHECK(rk_play_set(&g, idx, 3) && g.rack_count[p] == 2 && g.table_count == 1);
+	CHECK(!rk_turn_valid(&g));
+	CHECK(rk_end_turn(&g)); /* se deshace y roba */
+	CHECK(g.table_count == 0 && g.rack_count[p] == 6 && !g.melded[p] && g.current != p);
+
+	/* Con 30 o más vale; luego se pueden añadir fichas a la mesa */
+	rk_init(&g, 6);
+	p = g.current;
+	g.rack_count[p] = 6;
+	g.racks[p][0] = T(3, 10);
+	g.racks[p][1] = T(3, 11);
+	g.racks[p][2] = T(3, 12);
+	g.racks[p][3] = T(3, 13);
+	g.racks[p][4] = T(1, 2);
+	g.racks[p][5] = T(1, 9);
+	memcpy(g.saved_rack, g.racks[p], sizeof(RkTile) * 6);
+	g.saved_rack_count = 6;
+	int meld[3] = { 0, 1, 2 };
+	CHECK(rk_play_set(&g, meld, 3) && rk_turn_valid(&g));
+	CHECK(rk_can_add(&g, 0, 0)); /* el 13 alarga la escalera */
+	CHECK(rk_add(&g, 0, 0) && g.table[0].n == 4);
+	CHECK(!rk_can_add(&g, 0, 0)); /* el 2 azul no encaja */
+	CHECK(!rk_end_turn(&g) && g.melded[p]);
+	CHECK(rk_count_tiles(&g) == RK_TILES - (RK_START - 6));
+}
+
+static void test_rk_simulation(void)
+{
+	int wins[RK_PLAYERS] = { 0 };
+	int rounds = 0, placed = 0;
+	for (int game = 0; game < 120; game++) {
+		Rummikub g;
+		rk_init(&g, 9000 + game);
+		int guard = 0;
+		while (g.phase == RK_PHASE_PLAYING && guard++ < 2000) {
+			placed += rk_ai_turn(&g);
+			/* Todas las jugadas de la mesa son válidas */
+			for (int s = 0; s < g.table_count; s++) {
+				RkSet tmp;
+				CHECK(rk_make_set(g.table[s].tiles, g.table[s].n, &tmp));
+			}
+			CHECK(rk_count_tiles(&g) + 0 == RK_TILES);
+		}
+		CHECK(g.phase == RK_PHASE_ROUND_OVER);
+		int sum = 0;
+		for (int p = 0; p < RK_PLAYERS; p++)
+			sum += g.score[p];
+		CHECK(sum == 0); /* lo que gana uno lo pierden los demás */
+		if (g.round_winner >= 0)
+			wins[g.round_winner]++;
+		rounds++;
+	}
+	printf("  rummikub: %d rondas, %d fichas puestas, victorias %d/%d/%d/%d\n", rounds, placed, wins[0], wins[1],
+		wins[2], wins[3]);
+}
+
 int main(void)
 {
 	printf("Ejecutando tests...\n");
@@ -1614,6 +1881,10 @@ int main(void)
 	test_gn_points();
 	test_gn_simulation();
 	test_tute_rules();
+	test_uno_rules();
+	test_uno_simulation();
+	test_rk_rules();
+	test_rk_simulation();
 	test_sol_rules();
 	test_sol_simulation();
 	test_pyr_rules();

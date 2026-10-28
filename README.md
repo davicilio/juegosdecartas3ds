@@ -94,6 +94,8 @@ pueden jugar; la lista se desplaza con la cruceta) y, en pequeño, **Configuraci
 | Solitario en pirámide | ✅ Disponible |
 | Tute | ✅ Disponible |
 | Tute cabrón | ✅ Disponible |
+| Uno (juego de mesa) | ✅ Disponible |
+| Rummikub (juego de mesa) | ✅ Disponible |
 | Culo | 🕓 Próximamente |
 | Mentiroso | 🕓 Próximamente |
 | Mierda | 🕓 Próximamente |
@@ -234,6 +236,27 @@ puntos suma y la partida, quien gana tres manos.
 
 En el **tute** se juega por parejas, como en el guiñote; en el **tute cabrón**,
 cada uno para sí (y hay que matar siempre, aunque la baza la vaya ganando otro).
+
+### Uno (juego de mesa)
+Tú contra tres personajes, con cartas de colores dibujadas para el juego (diseño
+propio). Echa una carta del mismo color o del mismo número o símbolo que la del
+montón, o un comodín (y eliges el color). Si no puedes, robas una (Ⓧ) y, si vale,
+puedes echarla. **Salta**, **cambio de sentido**, **roba dos** y **roba cuatro**
+funcionan como siempre (sin acumular). Cuando te quede una carta, di **¡Uno!** (Ⓨ)
+o te pillarán y robarás dos; si a un rival se le olvida, el mismo botón dice
+**¡Pillado!**. La ronda la gana quien se queda sin cartas y se lleva los puntos de
+las cartas de los demás; la partida, el primero en llegar a 200.
+
+### Rummikub (juego de mesa)
+Cuatro jugadores con 14 fichas cada uno (del 1 al 13 en cuatro colores, dos de cada,
+y dos comodines). Toca las fichas de tu atril para elegirlas y pulsa **Bajar** (Ⓧ)
+para poner una escalera (números seguidos del mismo color) o un grupo (el mismo
+número en colores distintos). La primera vez tienes que bajar al menos 30 puntos.
+Después puedes **Añadir** (Ⓨ) fichas a las jugadas de la mesa. **Atrás** (L)
+deshace tu turno y **Fin** (R) lo termina; si no has bajado nada, **Robar** coge una
+ficha. SELECT ordena el atril por colores o por números. Gana la ronda quien se
+queda sin fichas. En esta versión no se pueden reorganizar las jugadas que ya están
+en la mesa, solo añadirles fichas.
 
 ### Solitario tradicional
 Siete columnas y 12 cartas en el mazo. Lleva las 40 cartas a sus palos, del as al

@@ -122,6 +122,15 @@ static const MenuEntry entries[] = {
 	{ "Pumba",
 	  "Quédate sin cartas antes que nadie, con cartas que hacen robar o saltar turno. ¡Pumba!",
 	  SCENE_COUNT, SUIT_ESPADAS, { C(ESPADAS, 2), C(OROS, 2), C(COPAS, RANK_SOTA) }, { -1, -1, -1 } },
+	/* Juegos de mesa */
+	{ "Uno",
+	  "Echa cartas del mismo color o número. Salta, cambio de sentido, roba dos y comodines... "
+	  "¡y no te olvides de decir \"¡Uno!\" cuando te quede una carta!",
+	  SCENE_UNO, SUIT_OROS, { C(OROS, 1), C(OROS, 1), C(OROS, 1) }, { CPU_PEPE, CPU_LOLA, CPU_CARMEN }, 1 },
+	{ "Rummikub",
+	  "Fichas del 1 al 13 en cuatro colores. Baja escaleras y grupos (la primera vez, de al menos 30 "
+	  "puntos) y añade fichas a la mesa. Gana quien se quede sin fichas.",
+	  SCENE_RUMMIKUB, SUIT_OROS, { C(OROS, 1), C(OROS, 1), C(OROS, 1) }, { CPU_PACO, CPU_LUCIA, CPU_MANOLO }, 1 },
 	/* Configuración */
 	{ "Mi perfil",
 	  "Tu Mii, tus estadísticas y tus rivales: los Miis de tu consola (o los Miis invitados) "
@@ -336,10 +345,20 @@ static void menu_draw_top(void)
 		float a = (i - 1) * 0.32f + sinf(t * 1.3f + i) * 0.04f;
 		float cx = 78 + (i - 1) * 26.0f;
 		float cy = 160 + fabsf((float)(i - 1)) * 8.0f + sinf(t * 2.0f + i * 0.7f) * 2.0f;
-		gfx_sprite_ex(SPR_CARD_SHADOW, cx + 4, cy + 5, 1.0f, 1.0f, a, DEPTH_CARDS, NULL);
+		if (e->scene != SCENE_RUMMIKUB)
+			gfx_sprite_ex(SPR_CARD_SHADOW, cx + 4, cy + 5, 1.0f, 1.0f, a, DEPTH_CARDS, NULL);
 		if (e->scene == SCENE_CARDBACK)
 			gfx_card_back(cx, cy, 1.0f, 1.0f, a, DEPTH_CARDS + i * 0.4f, NULL);
-		else
+		else if (e->scene == SCENE_UNO) {
+			static const int uno[3] = { BOARD_UNO_FIRST + 0 * 13 + 7, BOARD_UNO_FIRST + 3 * 13 + 11, BOARD_UNO_WILD };
+			gfx_board(uno[i], cx, cy, 1.0f, a, DEPTH_CARDS + i * 0.4f, NULL);
+		} else if (e->scene == SCENE_RUMMIKUB) {
+			/* Una escalera de fichas */
+			gfx_board(BOARD_TILE, 52 + i * 30, 150, 1.4f, 0.0f, DEPTH_CARDS + i * 0.2f, NULL);
+			static const u32 col[3] = { 0xD2282D, 0xD2282D, 0xD2282D };
+			gfx_textf(52 + i * 30, 130, DEPTH_CARDS + i * 0.2f, 0.85f, gfx_rgb(col[i], 255), C2D_AlignCenter, "%d",
+				7 + i);
+		} else
 			gfx_sprite_ex(SPR_CARD_FIRST + card_index(e->fan[i]), cx, cy, 1.0f, 1.0f, a, DEPTH_CARDS + i * 0.4f, NULL);
 	}
 
@@ -350,6 +369,10 @@ static void menu_draw_top(void)
 	gfx_panel(156, 108, 232, 106, DEPTH_UI, C2D_Color32(40, 8, 12, 200), C2D_Color32(230, 170, 50, 255));
 	if (e->scene == SCENE_PROFILE)
 		mii_draw(me, 176, 126, 8, DEPTH_UI, EXPR_HAPPY, false);
+	else if (e->scene == SCENE_UNO)
+		gfx_board(BOARD_UNO_WILD, 176, 126, 0.24f, 0.15f, DEPTH_UI, NULL);
+	else if (e->scene == SCENE_RUMMIKUB)
+		gfx_board(BOARD_JOKER, 176, 128, 0.8f, 0.0f, DEPTH_UI, NULL);
 	else
 		gfx_sprite(SPR_SUIT_FIRST + e->icon, 176, 126, 0.8f, DEPTH_UI);
 	gfx_text(e->scene == SCENE_PROFILE ? me->name : e->name, 192, 115, DEPTH_UI, 0.6f, COLOR_GOLD, C2D_AlignLeft);
@@ -421,6 +444,10 @@ static void menu_draw_bottom(void)
 			mii_draw(&profile_get()->avatar, x + 13, y + h / 2, small ? 6 : 8, 0, EXPR_NORMAL, false);
 		else if (e->scene == SCENE_CARDBACK)
 			gfx_card_back(x + 13, y + h / 2, 0.16f, 0.16f, 0.15f, 0, NULL);
+		else if (e->scene == SCENE_UNO)
+			gfx_board(BOARD_UNO_WILD, x + 13, y + h / 2, 0.2f, 0.15f, 0, NULL);
+		else if (e->scene == SCENE_RUMMIKUB)
+			gfx_board(BOARD_JOKER, x + 13, y + h / 2 + 2, 0.75f, 0.0f, 0, NULL);
 		else
 			gfx_sprite(SPR_SUIT_FIRST + e->icon, x + 13, y + h / 2, icon, 0);
 		float scale = small ? 0.45f : 0.52f;

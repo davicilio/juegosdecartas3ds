@@ -37,6 +37,16 @@ enum {
 	BACK_EMBLEM_FIRST = BACK_PATTERN_FIRST + CB_PATTERNS - 1, /* + emblema - 1 */
 };
 
+/* Índices del atlas gfx/board.t3s (el orden lo fija tools/gen_board.py). */
+enum {
+	BOARD_UNO_FIRST = 0, /* + color * 13 + valor (0..9, salta, cambio de sentido, roba dos) */
+	BOARD_UNO_WILD = 52,
+	BOARD_UNO_DRAW4,
+	BOARD_UNO_BACK,
+	BOARD_TILE,  /* ficha del Rummikub (26x34) */
+	BOARD_JOKER, /* carita del comodín, encima de una ficha */
+};
+
 /* Índices del atlas gfx/backgrounds.t3s. */
 enum {
 	BG_TITLE_TOP,
@@ -88,6 +98,8 @@ float gfx_time(void);
 
 void gfx_background(int bg);
 C2D_Image gfx_sprite_image(int id);
+/* Sprite del atlas de los juegos de mesa, centrado en (cx, cy). */
+void gfx_board(int id, float cx, float cy, float scale, float angle, float depth, const C2D_ImageTint* tint);
 /* Pieza de los personajes (atlas gfx/chars.t3s, índices CHR_* de ui/chars_layout.h). */
 C2D_Image gfx_char_image(int id);
 /* Dibuja un sprite centrado en (cx, cy). */
@@ -104,6 +116,8 @@ void gfx_set_card_back(const CardBack* b);
 const CardBack* gfx_card_back_design(void);
 void gfx_card_back(float cx, float cy, float sx, float sy, float angle, float depth, const C2D_ImageTint* tint);
 
+/* Búfer de texto del fotograma, para dibujar texto a mano con C2D_DrawText. */
+C2D_TextBuf gfx_textbuf(void);
 /* Texto con sombra. align: C2D_AlignLeft, C2D_AlignCenter o C2D_AlignRight. */
 void gfx_text(const char* str, float x, float y, float depth, float scale, u32 color, u32 align);
 void gfx_textf(float x, float y, float depth, float scale, u32 color, u32 align, const char* fmt, ...)

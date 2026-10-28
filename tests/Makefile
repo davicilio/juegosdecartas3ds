@@ -7,7 +7,7 @@ OBJS    := test_main.c $(SRC)/core/cards.c $(SRC)/core/rng.c \
            $(SRC)/games/sieteymedia.c $(SRC)/games/cinquillo.c \
            $(SRC)/games/brisca.c $(SRC)/games/escoba.c \
            $(SRC)/games/chinchon.c $(SRC)/games/mus.c \
-           $(SRC)/games/guinote.c $(SRC)/games/solitario.c $(SRC)/games/piramide.c
+           $(SRC)/games/guinote.c $(SRC)/games/solitario.c $(SRC)/games/piramide.c $(SRC)/games/uno.c $(SRC)/games/rummikub.c
 
 .PHONY: all run clean
 

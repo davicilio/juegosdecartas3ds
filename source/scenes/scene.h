@@ -14,6 +14,8 @@ typedef enum {
 	SCENE_GUINOTE,
 	SCENE_TUTE,
 	SCENE_TUTE_CABRON,
+	SCENE_UNO,
+	SCENE_RUMMIKUB,
 	SCENE_SOLITARIO,
 	SCENE_PIRAMIDE,
 	SCENE_PROFILE,
@@ -41,6 +43,8 @@ extern const Scene scene_mus;
 extern const Scene scene_guinote;
 extern const Scene scene_tute;
 extern const Scene scene_tute_cabron;
+extern const Scene scene_uno;
+extern const Scene scene_rummikub;
 extern const Scene scene_solitario;
 extern const Scene scene_piramide;
 extern const Scene scene_profile;
