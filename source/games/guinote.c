@@ -1,6 +1,26 @@
 #include "games/guinote.h"
 
-int gn_card_points(Card c)
+int gn_sides(const Guinote* g)
+{
+	return g->variant == GN_TUTE_CABRON ? GN_PLAYERS : 2;
+}
+
+int gn_side(const Guinote* g, int player)
+{
+	return g->variant == GN_TUTE_CABRON ? player : player % 2;
+}
+
+int gn_hand_size(const Guinote* g)
+{
+	return g->variant == GN_GUINOTE ? 6 : GN_MAX_HAND;
+}
+
+int gn_cante_rank(const Guinote* g)
+{
+	return g->variant == GN_GUINOTE ? RANK_SOTA : RANK_CABALLO;
+}
+
+int gn_card_points(const Guinote* g, Card c)
 {
 	switch (c.rank) {
 	case 1:
@@ -10,26 +30,29 @@ int gn_card_points(Card c)
 	case RANK_REY:
 		return 4;
 	case RANK_SOTA:
-		return 3;
+		return g->variant == GN_GUINOTE ? 3 : 2;
 	case RANK_CABALLO:
-		return 2;
+		return g->variant == GN_GUINOTE ? 2 : 3;
 	default:
 		return 0;
 	}
 }
 
-int gn_card_strength(Card c)
+int gn_card_strength(const Guinote* g, Card c)
 {
-	/* índice = rango: 1..12 */
-	static const int strength[13] = { 0, 10, 1, 9, 2, 3, 4, 5, 0, 0, 7, 6, 8 };
-	return c.rank <= 12 ? strength[c.rank] : 0;
+	/* índice = rango: 1..12. En el guiñote la sota gana al caballo. */
+	static const int guinote[13] = { 0, 10, 1, 9, 2, 3, 4, 5, 0, 0, 7, 6, 8 };
+	static const int tute[13] = { 0, 10, 1, 9, 2, 3, 4, 5, 0, 0, 6, 7, 8 };
+	if (c.rank > 12)
+		return 0;
+	return g->variant == GN_GUINOTE ? guinote[c.rank] : tute[c.rank];
 }
 
-bool gn_beats(Card challenger, Card best, int trump)
+bool gn_beats(const Guinote* g, Card challenger, Card best)
 {
 	if (challenger.suit == best.suit)
-		return gn_card_strength(challenger) > gn_card_strength(best);
-	return challenger.suit == trump;
+		return gn_card_strength(g, challenger) > gn_card_strength(g, best);
+	return challenger.suit == g->trump;
 }
 
 bool gn_arrastre(const Guinote* g)
@@ -37,17 +60,26 @@ bool gn_arrastre(const Guinote* g)
 	return g->deck.count == 0;
 }
 
-void gn_init(Guinote* g, uint32_t seed)
+/* Se puede cantar: en el guiñote solo mientras queda mazo */
+static bool cantes_open(const Guinote* g)
+{
+	return g->variant != GN_GUINOTE || !gn_arrastre(g);
+}
+
+void gn_init(Guinote* g, GnVariant variant, uint32_t seed)
 {
 	rng_seed(&g->rng, seed);
-	g->games_won[0] = g->games_won[1] = 0;
+	g->variant = variant;
+	for (int s = 0; s < GN_PLAYERS; s++)
+		g->games_won[s] = 0;
 	g->first_leader = 0;
 	gn_new_game(g);
 }
 
 void gn_new_game(Guinote* g)
 {
-	g->score[0] = g->score[1] = 0;
+	for (int s = 0; s < GN_PLAYERS; s++)
+		g->score[s] = 0;
 	g->hands_played = 0;
 	gn_new_hand(g);
 }
@@ -55,7 +87,7 @@ void gn_new_game(Guinote* g)
 static bool draw_to(Guinote* g, int player)
 {
 	Card c;
-	if (g->hand_count[player] >= GN_HAND_SIZE || !deck_draw(&g->deck, &c))
+	if (g->hand_count[player] >= gn_hand_size(g) || !deck_draw(&g->deck, &c))
 		return false;
 	g->hands[player][g->hand_count[player]++] = c;
 	return true;
@@ -69,30 +101,41 @@ void gn_new_hand(Guinote* g)
 		g->hand_count[p] = 0;
 		g->trick_played[p] = false;
 	}
-	/* Reparte quien está a la izquierda del que sale; da igual el orden */
-	for (int i = 0; i < GN_HAND_SIZE; i++)
-		for (int p = 0; p < GN_PLAYERS; p++)
+	/* Se reparte empezando por quien sale; la última carta es de quien reparte */
+	Card last = { 0, 1 };
+	for (int i = 0; i < gn_hand_size(g); i++)
+		for (int k = 0; k < GN_PLAYERS; k++) {
+			int p = (g->first_leader + k) % GN_PLAYERS;
 			draw_to(g, p);
+			last = g->hands[p][g->hand_count[p] - 1];
+		}
 
-	/* La muestra pasa al fondo del mazo para robarse la última. */
-	Card muestra;
-	deck_draw(&g->deck, &muestra);
-	for (int i = g->deck.count; i > 0; i--)
-		g->deck.cards[i] = g->deck.cards[i - 1];
-	g->deck.cards[0] = muestra;
-	g->deck.count++;
-	g->trump_card = muestra;
-	g->trump = muestra.suit;
+	if (g->variant == GN_GUINOTE) {
+		/* La muestra pasa al fondo del mazo para robarse la última. */
+		Card muestra;
+		deck_draw(&g->deck, &muestra);
+		for (int i = g->deck.count; i > 0; i--)
+			g->deck.cards[i] = g->deck.cards[i - 1];
+		g->deck.cards[0] = muestra;
+		g->deck.count++;
+		g->trump_card = muestra;
+	} else {
+		g->trump_card = last; /* la última carta repartida, que se queda quien reparte */
+	}
+	g->trump = g->trump_card.suit;
 
 	for (int s = 0; s < NUM_SUITS; s++)
 		g->sung[s] = false;
-	g->points[0] = g->points[1] = 0;
+	for (int s = 0; s < GN_PLAYERS; s++)
+		g->points[s] = 0;
 	g->leader = g->current = g->first_leader;
 	g->first_leader = (g->first_leader + 1) % GN_PLAYERS;
 	g->played_in_trick = 0;
 	g->trick_winner = -1;
 	g->trick_points = 0;
-	g->last_trick_team = -1;
+	g->last_trick_side = -1;
+	g->hand_winner = -1;
+	g->tute = false;
 	g->last_cante_player = -1;
 	g->last_cante_suit = -1;
 	g->last_cante_points = 0;
@@ -107,14 +150,12 @@ int gn_trick_leader_now(const Guinote* g)
 	int best = g->leader;
 	for (int k = 1; k < g->played_in_trick; k++) {
 		int p = (g->leader + k) % GN_PLAYERS;
-		if (gn_beats(g->trick[p], g->trick[best], g->trump))
+		if (gn_beats(g, g->trick[p], g->trick[best]))
 			best = p;
 	}
 	return best;
 }
 
-/* Reglas del arrastre: asistir y montar; si no hay del palo, fallar (y
- * montar el fallo). Sin obligación si la baza la gana el compañero. */
 bool gn_can_play(const Guinote* g, int player, int hand_index)
 {
 	if (g->phase != GN_PHASE_PLAYING || player != g->current || hand_index < 0 ||
@@ -129,18 +170,18 @@ bool gn_can_play(const Guinote* g, int player, int hand_index)
 	Card lead = g->trick[g->leader];
 	int best_player = gn_trick_leader_now(g);
 	Card best = g->trick[best_player];
-	bool partner_winning = gn_team(best_player) == gn_team(player);
+	bool partner_winning = best_player != player && gn_side(g, best_player) == gn_side(g, player);
 
 	bool has_suit = false, can_beat_in_suit = false, has_trump = false, can_beat_trump = false;
 	for (int i = 0; i < n; i++) {
 		if (hand[i].suit == lead.suit) {
 			has_suit = true;
-			if (gn_beats(hand[i], best, g->trump))
+			if (gn_beats(g, hand[i], best))
 				can_beat_in_suit = true;
 		}
 		if (hand[i].suit == g->trump) {
 			has_trump = true;
-			if (gn_beats(hand[i], best, g->trump))
+			if (gn_beats(g, hand[i], best))
 				can_beat_trump = true;
 		}
 	}
@@ -148,7 +189,7 @@ bool gn_can_play(const Guinote* g, int player, int hand_index)
 		if (c.suit != lead.suit)
 			return false;
 		if (!partner_winning && can_beat_in_suit)
-			return gn_beats(c, best, g->trump);
+			return gn_beats(g, c, best);
 		return true;
 	}
 	if (partner_winning || !has_trump)
@@ -157,7 +198,7 @@ bool gn_can_play(const Guinote* g, int player, int hand_index)
 	if (c.suit != g->trump)
 		return false;
 	if (can_beat_trump)
-		return gn_beats(c, best, g->trump);
+		return gn_beats(g, c, best);
 	return true;
 }
 
@@ -181,9 +222,37 @@ bool gn_play(Guinote* g, int hand_index)
 	g->trick_winner = gn_trick_leader_now(g);
 	g->trick_points = 0;
 	for (int q = 0; q < GN_PLAYERS; q++)
-		g->trick_points += gn_card_points(g->trick[q]);
+		g->trick_points += gn_card_points(g, g->trick[q]);
 	g->phase = GN_PHASE_TRICK_DONE;
 	return true;
+}
+
+/* Fin de la mano: suma la mano a la partida y mira si alguien ha ganado */
+static void end_hand(Guinote* g)
+{
+	g->hands_played++;
+	if (g->variant == GN_GUINOTE) {
+		for (int s = 0; s < 2; s++)
+			g->score[s] += g->points[s];
+		g->hand_winner = g->points[0] >= g->points[1] ? 0 : 1;
+	} else {
+		if (!g->tute) {
+			int best = 0;
+			for (int s = 1; s < gn_sides(g); s++)
+				if (g->points[s] > g->points[best] ||
+					(g->points[s] == g->points[best] && s == g->last_trick_side))
+					best = s;
+			g->hand_winner = best;
+		}
+		g->score[g->hand_winner]++;
+	}
+	int winner = gn_game_winner(g);
+	if (winner >= 0) {
+		g->games_won[winner]++;
+		g->phase = GN_PHASE_GAME_OVER;
+	} else {
+		g->phase = GN_PHASE_HAND_OVER;
+	}
 }
 
 bool gn_collect(Guinote* g)
@@ -191,9 +260,9 @@ bool gn_collect(Guinote* g)
 	if (g->phase != GN_PHASE_TRICK_DONE)
 		return false;
 	int w = g->trick_winner;
-	int team = gn_team(w);
-	g->points[team] += g->trick_points;
-	g->last_trick_team = team;
+	int side = gn_side(g, w);
+	g->points[side] += g->trick_points;
+	g->last_trick_side = side;
 	for (int p = 0; p < GN_PLAYERS; p++)
 		g->trick_played[p] = false;
 	g->played_in_trick = 0;
@@ -207,28 +276,24 @@ bool gn_collect(Guinote* g)
 		g->phase = GN_PHASE_PLAYING;
 		return true;
 	}
-	/* Fin de la mano: diez de últimas y recuento */
-	g->points[team] += GN_LAST_TRICK;
-	g->hands_played++;
-	for (int t = 0; t < 2; t++)
-		g->score[t] += g->points[t];
-	int winner = gn_game_winner(g);
-	if (winner >= 0) {
-		g->games_won[winner]++;
-		g->phase = GN_PHASE_GAME_OVER;
-	} else {
-		g->phase = GN_PHASE_HAND_OVER;
-	}
+	g->points[side] += GN_LAST_TRICK; /* diez de últimas */
+	end_hand(g);
 	return true;
 }
 
 int gn_game_winner(const Guinote* g)
 {
+	if (g->variant != GN_GUINOTE) {
+		for (int s = 0; s < gn_sides(g); s++)
+			if (g->score[s] >= GN_TUTE_HANDS)
+				return s;
+		return -1;
+	}
 	bool a = g->score[0] >= GN_GAME_POINTS, b = g->score[1] >= GN_GAME_POINTS;
 	if (!a && !b)
 		return -1;
 	if (a && b && g->score[0] == g->score[1])
-		return g->last_trick_team >= 0 ? g->last_trick_team : 0;
+		return g->last_trick_side >= 0 ? g->last_trick_side : 0;
 	if (a && b)
 		return g->score[0] > g->score[1] ? 0 : 1;
 	return a ? 0 : 1;
@@ -236,27 +301,28 @@ int gn_game_winner(const Guinote* g)
 
 static bool may_act(const Guinote* g, int player)
 {
-	/* Tras ganar su pareja la última baza, en su turno y con mazo */
-	return g->phase == GN_PHASE_PLAYING && g->current == player && g->last_trick_team == gn_team(player) &&
-	       !gn_arrastre(g);
+	/* Tras ganar su bando la última baza, en su turno */
+	return g->phase == GN_PHASE_PLAYING && g->current == player && g->last_trick_side == gn_side(g, player) &&
+	       !g->trick_played[player];
 }
 
 int gn_cante_suit(const Guinote* g, int player)
 {
-	if (!may_act(g, player))
+	if (!may_act(g, player) || !cantes_open(g))
 		return -1;
+	int other = gn_cante_rank(g);
 	int found = -1;
 	for (int s = 0; s < NUM_SUITS; s++) {
 		if (g->sung[s])
 			continue;
-		bool rey = false, sota = false;
+		bool rey = false, pareja = false;
 		for (int i = 0; i < g->hand_count[player]; i++) {
 			if (g->hands[player][i].suit != s)
 				continue;
 			rey |= g->hands[player][i].rank == RANK_REY;
-			sota |= g->hands[player][i].rank == RANK_SOTA;
+			pareja |= g->hands[player][i].rank == other;
 		}
-		if (rey && sota) {
+		if (rey && pareja) {
 			if (s == g->trump)
 				return s;
 			if (found < 0)
@@ -273,17 +339,42 @@ bool gn_cante(Guinote* g, int player)
 		return false;
 	int pts = s == g->trump ? 40 : 20;
 	g->sung[s] = true;
-	g->points[gn_team(player)] += pts;
+	g->points[gn_side(g, player)] += pts;
 	g->last_cante_player = player;
 	g->last_cante_suit = s;
 	g->last_cante_points = pts;
 	return true;
 }
 
+bool gn_can_sing_tute(const Guinote* g, int player)
+{
+	if (g->variant == GN_GUINOTE || !may_act(g, player))
+		return false;
+	int reyes = 0, caballos = 0;
+	for (int i = 0; i < g->hand_count[player]; i++) {
+		reyes += g->hands[player][i].rank == RANK_REY;
+		caballos += g->hands[player][i].rank == RANK_CABALLO;
+	}
+	return reyes == 4 || caballos == 4;
+}
+
+bool gn_sing_tute(Guinote* g, int player)
+{
+	if (!gn_can_sing_tute(g, player))
+		return false;
+	g->tute = true;
+	g->hand_winner = gn_side(g, player);
+	g->last_cante_player = player;
+	g->last_cante_suit = -1;
+	g->last_cante_points = 0;
+	end_hand(g);
+	return true;
+}
+
 int gn_swap_index(const Guinote* g, int player)
 {
-	/* Con mazo además de la muestra, y si la muestra vale más que el 7 */
-	if (!may_act(g, player) || g->deck.count < 2 || g->trick_played[player])
+	/* Guiñote: con mazo además de la muestra, y si la muestra vale más que el 7 */
+	if (g->variant != GN_GUINOTE || !may_act(g, player) || gn_arrastre(g) || g->deck.count < 2)
 		return -1;
 	int r = g->trump_card.rank;
 	if (!(r == 1 || r == 3 || r >= RANK_SOTA))
@@ -314,13 +405,14 @@ bool gn_swap(Guinote* g, int player)
 /* Coste de deshacerse de una carta: puntos, triunfos y piezas para cantar. */
 static int keep_value(const Guinote* g, int player, Card c)
 {
-	int v = gn_card_points(c) * 10 + gn_card_strength(c);
+	int v = gn_card_points(g, c) * 10 + gn_card_strength(g, c);
 	if (c.suit == g->trump)
-		v += 40 + gn_card_strength(c) * 4;
-	if ((c.rank == RANK_REY || c.rank == RANK_SOTA) && !g->sung[c.suit] && !gn_arrastre(g)) {
-		int other = c.rank == RANK_REY ? RANK_SOTA : RANK_REY;
+		v += 40 + gn_card_strength(g, c) * 4;
+	int other = gn_cante_rank(g);
+	if ((c.rank == RANK_REY || c.rank == other) && !g->sung[c.suit] && cantes_open(g)) {
+		int need = c.rank == RANK_REY ? other : RANK_REY;
 		for (int i = 0; i < g->hand_count[player]; i++)
-			if (g->hands[player][i].suit == c.suit && g->hands[player][i].rank == other)
+			if (g->hands[player][i].suit == c.suit && g->hands[player][i].rank == need)
 				v += c.suit == g->trump ? 120 : 60;
 	}
 	return v;
@@ -333,7 +425,7 @@ int gn_ai_choose(const Guinote* g, int player)
 	int leader_now = gn_trick_leader_now(g);
 	int trick_pts = 0;
 	for (int k = 0; k < g->played_in_trick; k++)
-		trick_pts += gn_card_points(g->trick[(g->leader + k) % GN_PLAYERS]);
+		trick_pts += gn_card_points(g, g->trick[(g->leader + k) % GN_PLAYERS]);
 	bool last = g->played_in_trick == GN_PLAYERS - 1;
 
 	for (int i = 0; i < n; i++) {
@@ -345,20 +437,20 @@ int gn_ai_choose(const Guinote* g, int player)
 		if (leader_now < 0) {
 			/* Salir: con lo que menos duela, sin regalar puntos */
 			score = -keep;
-		} else if (gn_team(leader_now) == gn_team(player)) {
+		} else if (leader_now != player && gn_side(g, leader_now) == gn_side(g, player)) {
 			/* Gana el compañero: si es seguro, se le cargan puntos */
 			Card best_card = g->trick[leader_now];
-			bool safe = last || (best_card.suit == g->trump && gn_card_strength(best_card) >= 9) ||
-			            (best_card.suit != g->trump && gn_card_strength(best_card) == 10 && gn_arrastre(g));
-			score = safe ? gn_card_points(c) * 12 - (c.suit == g->trump ? 80 : 0) - gn_card_strength(c) : -keep;
+			bool safe = last || (best_card.suit == g->trump && gn_card_strength(g, best_card) >= 9) ||
+			            (best_card.suit != g->trump && gn_card_strength(g, best_card) == 10 && gn_arrastre(g));
+			score = safe ? gn_card_points(g, c) * 12 - (c.suit == g->trump ? 80 : 0) - gn_card_strength(g, c) : -keep;
 		} else {
-			bool wins = gn_beats(c, g->trick[leader_now], g->trump);
-			int pts = trick_pts + gn_card_points(c);
+			bool wins = gn_beats(g, c, g->trick[leader_now]);
+			int pts = trick_pts + gn_card_points(g, c);
 			if (wins) {
 				/* Merece la pena ganar si hay puntos o se juega el último */
 				int worth = pts * 12 + (last ? 15 : 0) + (gn_arrastre(g) ? 20 : 0);
 				score = worth - keep / 2;
-				if (!last && c.suit != g->trump && gn_card_strength(c) < 9)
+				if (!last && c.suit != g->trump && gn_card_strength(g, c) < 9)
 					score -= 20; /* los que faltan aún pueden ganarla */
 			} else {
 				score = -keep - pts * 3;

@@ -127,7 +127,7 @@ void profile_record(PlayerProfile* p, GameId game, bool won)
 const char* game_name(GameId game)
 {
 	static const char* names[GAME_COUNT] = { "Siete y media", "Cinquillo", "Brisca", "Escoba", "Mus", "Chinchón",
-		"Guiñote", "Solitario", "Pirámide" };
+		"Guiñote", "Solitario", "Pirámide", "Tute", "Tute cabrón" };
 	return game < GAME_COUNT ? names[game] : "?";
 }
 

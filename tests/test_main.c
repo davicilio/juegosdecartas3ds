@@ -1130,33 +1130,35 @@ static void test_rivals(void)
 
 static void test_gn_rules(void)
 {
-	CHECK(gn_card_points(card_make(SUIT_OROS, 1)) == 11);
-	CHECK(gn_card_points(card_make(SUIT_OROS, RANK_SOTA)) == 3);
-	CHECK(gn_card_points(card_make(SUIT_OROS, RANK_CABALLO)) == 2);
+	Guinote g;
+	gn_init(&g, GN_GUINOTE, 42);
+	g.trump = SUIT_OROS;
+	CHECK(gn_card_points(&g, card_make(SUIT_OROS, 1)) == 11);
+	CHECK(gn_card_points(&g, card_make(SUIT_OROS, RANK_SOTA)) == 3);
+	CHECK(gn_card_points(&g, card_make(SUIT_OROS, RANK_CABALLO)) == 2);
 	/* En el guiñote la sota gana al caballo */
-	CHECK(gn_beats(card_make(SUIT_COPAS, RANK_SOTA), card_make(SUIT_COPAS, RANK_CABALLO), SUIT_OROS));
-	CHECK(gn_beats(card_make(SUIT_COPAS, RANK_REY), card_make(SUIT_COPAS, RANK_SOTA), SUIT_OROS));
-	CHECK(gn_beats(card_make(SUIT_COPAS, 3), card_make(SUIT_COPAS, RANK_REY), SUIT_OROS));
-	CHECK(gn_beats(card_make(SUIT_OROS, 2), card_make(SUIT_COPAS, 1), SUIT_OROS));
-	CHECK(!gn_beats(card_make(SUIT_ESPADAS, 1), card_make(SUIT_COPAS, 2), SUIT_OROS));
+	CHECK(gn_beats(&g, card_make(SUIT_COPAS, RANK_SOTA), card_make(SUIT_COPAS, RANK_CABALLO)));
+	CHECK(gn_beats(&g, card_make(SUIT_COPAS, RANK_REY), card_make(SUIT_COPAS, RANK_SOTA)));
+	CHECK(gn_beats(&g, card_make(SUIT_COPAS, 3), card_make(SUIT_COPAS, RANK_REY)));
+	CHECK(gn_beats(&g, card_make(SUIT_OROS, 2), card_make(SUIT_COPAS, 1)));
+	CHECK(!gn_beats(&g, card_make(SUIT_ESPADAS, 1), card_make(SUIT_COPAS, 2)));
 	int total = 0;
 	for (int i = 0; i < DECK_SIZE; i++)
-		total += gn_card_points(card_from_index(i));
+		total += gn_card_points(&g, card_from_index(i));
 	CHECK(total == 120);
 
-	Guinote g;
-	gn_init(&g, 42);
-	CHECK(g.deck.count == DECK_SIZE - GN_PLAYERS * GN_HAND_SIZE);
+	gn_init(&g, GN_GUINOTE, 42);
+	CHECK(g.deck.count == DECK_SIZE - GN_PLAYERS * gn_hand_size(&g));
 	CHECK(card_equal(g.deck.cards[0], g.trump_card) && g.trump == g.trump_card.suit);
 	for (int p = 0; p < GN_PLAYERS; p++)
-		CHECK(g.hand_count[p] == GN_HAND_SIZE);
+		CHECK(g.hand_count[p] == gn_hand_size(&g));
 	/* Con mazo se puede jugar cualquier carta */
-	for (int i = 0; i < GN_HAND_SIZE; i++)
+	for (int i = 0; i < gn_hand_size(&g); i++)
 		CHECK(gn_can_play(&g, g.current, i));
 	CHECK(!gn_can_play(&g, (g.current + 1) % GN_PLAYERS, 0));
 
 	/* Arrastre: asistir y montar */
-	gn_init(&g, 7);
+	gn_init(&g, GN_GUINOTE, 7);
 	g.deck.count = 0;
 	g.trump = SUIT_OROS;
 	g.leader = g.current = 0;
@@ -1198,12 +1200,12 @@ static void test_gn_rules(void)
 	CHECK(!gn_can_play(&g, 2, 0) && gn_can_play(&g, 2, 1) && !gn_can_play(&g, 2, 2));
 
 	/* Cantes y cambio del 7 */
-	gn_init(&g, 9);
+	gn_init(&g, GN_GUINOTE, 9);
 	g.trump = SUIT_BASTOS;
 	g.trump_card = card_make(SUIT_BASTOS, 1);
 	g.deck.cards[0] = g.trump_card;
 	g.current = 2;
-	g.last_trick_team = 0;
+	g.last_trick_side = 0;
 	g.hands[2][0] = card_make(SUIT_COPAS, RANK_REY);
 	g.hands[2][1] = card_make(SUIT_COPAS, RANK_SOTA);
 	g.hands[2][2] = card_make(SUIT_BASTOS, RANK_REY);
@@ -1220,23 +1222,23 @@ static void test_gn_rules(void)
 	CHECK(gn_swap_index(&g, 2) == 4);
 	CHECK(gn_swap(&g, 2));
 	CHECK(g.hands[2][4].rank == 1 && g.trump_card.rank == 7 && g.deck.cards[0].rank == 7);
-	g.last_trick_team = 1; /* sin ganar baza no se canta ni se cambia */
+	g.last_trick_side = 1; /* sin ganar baza no se canta ni se cambia */
 	CHECK(gn_cante_suit(&g, 2) < 0 && gn_swap_index(&g, 2) < 0);
 }
 
 /* Partidas completas: las reglas se cumplen y la IA gana a jugadas al azar. */
-static void test_gn_simulation(void)
+static void gn_simulate(GnVariant variant, const char* name)
 {
-	int wins[2] = { 0, 0 };
+	int wins[GN_PLAYERS] = { 0 };
 	for (int game = 0; game < 300; game++) {
 		Guinote g;
-		gn_init(&g, 5000 + game);
+		gn_init(&g, variant, 5000 + game);
 		Rng r;
 		rng_seed(&r, 77 + game);
 		int guard = 0;
-		while (g.phase != GN_PHASE_GAME_OVER && guard++ < 2000) {
+		while (g.phase != GN_PHASE_GAME_OVER && guard++ < 5000) {
 			if (g.phase == GN_PHASE_HAND_OVER) {
-				CHECK(g.hand_count[0] == 0 && g.deck.count == 0);
+				CHECK((g.hand_count[0] == 0 && g.deck.count == 0) || g.tute);
 				gn_new_hand(&g);
 				continue;
 			}
@@ -1245,8 +1247,10 @@ static void test_gn_simulation(void)
 				continue;
 			}
 			int p = g.current;
-			if (gn_team(p) == 0) {
-				/* La pareja 0 juega con la IA, canta y cambia el 7 */
+			if (gn_side(&g, p) == 0) {
+				/* El bando 0 juega con la IA, canta y cambia el 7 */
+				if (gn_sing_tute(&g, p))
+					continue;
 				gn_swap(&g, p);
 				while (gn_cante(&g, p))
 					;
@@ -1254,7 +1258,7 @@ static void test_gn_simulation(void)
 				CHECK(i >= 0 && gn_can_play(&g, p, i));
 				CHECK(gn_play(&g, i));
 			} else {
-				int legal[GN_HAND_SIZE], n = 0;
+				int legal[GN_MAX_HAND], n = 0;
 				for (int i = 0; i < g.hand_count[p]; i++)
 					if (gn_can_play(&g, p, i))
 						legal[n++] = i;
@@ -1266,13 +1270,87 @@ static void test_gn_simulation(void)
 		}
 		CHECK(g.phase == GN_PHASE_GAME_OVER);
 		int w = gn_game_winner(&g);
-		CHECK(w == 0 || w == 1);
-		CHECK(g.score[w] >= GN_GAME_POINTS);
+		CHECK(w >= 0 && w < gn_sides(&g));
+		if (variant == GN_GUINOTE)
+			CHECK(g.score[w] >= GN_GAME_POINTS);
+		else
+			CHECK(g.score[w] == GN_TUTE_HANDS);
 		if (w >= 0)
 			wins[w]++;
 	}
-	printf("  guiñote: IA %d - azar %d\n", wins[0], wins[1]);
-	CHECK(wins[0] > wins[1] * 2);
+	int others = 0;
+	for (int s = 1; s < GN_PLAYERS; s++)
+		others += wins[s];
+	printf("  %s: IA %d - azar %d\n", name, wins[0], others);
+	/* En el tute cabrón la IA juega sola contra tres */
+	if (variant == GN_TUTE_CABRON)
+		CHECK(wins[0] * 3 > others);
+	else
+		CHECK(wins[0] > others * 2);
+}
+
+static void test_gn_simulation(void)
+{
+	gn_simulate(GN_GUINOTE, "guiñote");
+	gn_simulate(GN_TUTE, "tute");
+	gn_simulate(GN_TUTE_CABRON, "tute cabrón");
+}
+
+static void test_tute_rules(void)
+{
+	Guinote g;
+	gn_init(&g, GN_TUTE, 21);
+	CHECK(g.deck.count == 0 && gn_arrastre(&g));
+	for (int p = 0; p < GN_PLAYERS; p++)
+		CHECK(g.hand_count[p] == GN_MAX_HAND);
+	/* El triunfo es la última carta, que tiene quien reparte (el de antes del que sale) */
+	int dealer = (g.leader + GN_PLAYERS - 1) % GN_PLAYERS;
+	CHECK(card_equal(g.hands[dealer][GN_MAX_HAND - 1], g.trump_card) && g.trump == g.trump_card.suit);
+	/* En el tute el caballo gana a la sota y vale 3 */
+	CHECK(gn_beats(&g, card_make(SUIT_COPAS, RANK_CABALLO), card_make(SUIT_COPAS, RANK_SOTA)));
+	CHECK(gn_card_points(&g, card_make(SUIT_COPAS, RANK_CABALLO)) == 3);
+	CHECK(gn_cante_rank(&g) == RANK_CABALLO);
+	/* Asistir desde la primera baza */
+	CHECK(gn_can_play(&g, g.current, 0));
+
+	/* Cantes con rey y caballo, también sin mazo */
+	g.current = 1;
+	g.last_trick_side = 1;
+	g.trump = SUIT_ESPADAS;
+	g.hands[1][0] = card_make(SUIT_ESPADAS, RANK_REY);
+	g.hands[1][1] = card_make(SUIT_ESPADAS, RANK_CABALLO);
+	for (int s = 0; s < NUM_SUITS; s++)
+		g.sung[s] = false;
+	int before = g.points[1];
+	CHECK(gn_cante_suit(&g, 1) == SUIT_ESPADAS);
+	CHECK(gn_cante(&g, 1) && g.points[1] == before + 40);
+	CHECK(gn_swap_index(&g, 1) < 0); /* en el tute no hay cambio del 7 */
+
+	/* El tute: cuatro reyes ganan la mano */
+	g.hands[1][0] = card_make(SUIT_OROS, RANK_REY);
+	g.hands[1][1] = card_make(SUIT_COPAS, RANK_REY);
+	g.hands[1][2] = card_make(SUIT_ESPADAS, RANK_REY);
+	g.hands[1][3] = card_make(SUIT_BASTOS, RANK_REY);
+	g.hand_count[1] = 4;
+	CHECK(gn_can_sing_tute(&g, 1));
+	CHECK(!gn_can_sing_tute(&g, 3)); /* no es su turno */
+	CHECK(gn_sing_tute(&g, 1));
+	CHECK(g.tute && g.hand_winner == 1 && g.score[1] == 1 && g.phase == GN_PHASE_HAND_OVER);
+
+	/* Tute cabrón: cada uno para sí, sin excepción del compañero */
+	gn_init(&g, GN_TUTE_CABRON, 3);
+	CHECK(gn_sides(&g) == 4 && gn_side(&g, 2) == 2);
+	g.trump = SUIT_OROS;
+	g.leader = 0;
+	g.current = 2;
+	g.played_in_trick = 2;
+	g.trick[0] = card_make(SUIT_COPAS, 1);
+	g.trick[1] = card_make(SUIT_COPAS, 2);
+	g.trick_played[0] = g.trick_played[1] = true;
+	g.hand_count[2] = 2;
+	g.hands[2][0] = card_make(SUIT_BASTOS, 4);
+	g.hands[2][1] = card_make(SUIT_OROS, 4);
+	CHECK(!gn_can_play(&g, 2, 0) && gn_can_play(&g, 2, 1)); /* hay que fallar aunque gane el 0 */
 }
 
 /* Una mano completa reparte 130 puntos más los cantes */
@@ -1280,7 +1358,7 @@ static void test_gn_points(void)
 {
 	for (int seed = 0; seed < 200; seed++) {
 		Guinote g;
-		gn_init(&g, seed);
+		gn_init(&g, GN_GUINOTE, seed);
 		while (g.phase == GN_PHASE_PLAYING || g.phase == GN_PHASE_TRICK_DONE) {
 			if (g.phase == GN_PHASE_TRICK_DONE)
 				gn_collect(&g);
@@ -1289,6 +1367,21 @@ static void test_gn_points(void)
 		}
 		CHECK(g.points[0] + g.points[1] == 120 + GN_LAST_TRICK);
 	}
+	for (int v = GN_TUTE; v < GN_VARIANTS; v++)
+		for (int seed = 0; seed < 100; seed++) {
+			Guinote g;
+			gn_init(&g, (GnVariant)v, seed);
+			while (g.phase == GN_PHASE_PLAYING || g.phase == GN_PHASE_TRICK_DONE) {
+				if (g.phase == GN_PHASE_TRICK_DONE)
+					gn_collect(&g);
+				else
+					gn_play(&g, gn_ai_choose(&g, g.current));
+			}
+			int total = 0;
+			for (int s = 0; s < gn_sides(&g); s++)
+				total += g.points[s];
+			CHECK(total == 120 + GN_LAST_TRICK);
+		}
 }
 
 /* ---------------------------------------------------------------------------
@@ -1520,6 +1613,7 @@ int main(void)
 	test_gn_rules();
 	test_gn_points();
 	test_gn_simulation();
+	test_tute_rules();
 	test_sol_rules();
 	test_sol_simulation();
 	test_pyr_rules();

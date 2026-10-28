@@ -14,6 +14,7 @@ typedef struct {
 	Suit icon;
 	Card fan[3];
 	int rivals[3]; /* Miis contra (o con) los que se juega; -1 = nadie */
+	int board;     /* juego de mesa (sin baraja española) */
 } MenuEntry;
 
 #define C(s, r) { SUIT_##s, r }
@@ -56,9 +57,9 @@ static const MenuEntry entries[] = {
 	  "quita de la base las iguales: si sacas un caballo, busca un caballo.",
 	  SCENE_PIRAMIDE, SUIT_COPAS, { C(COPAS, RANK_CABALLO), C(ESPADAS, RANK_CABALLO), C(BASTOS, 5) }, { -1, -1, -1 } },
 	{ "Tute",
-	  "Juego de bazas con triunfo. Canta las veinte y las cuarenta con el rey y el caballo del mismo palo, "
-	  "¡o el tute con los cuatro reyes o los cuatro caballos!",
-	  SCENE_COUNT, SUIT_COPAS, { C(COPAS, RANK_CABALLO), C(COPAS, RANK_REY), C(OROS, 1) }, { -1, -1, -1 } },
+	  "Por parejas, con las 40 cartas repartidas. Asiste y mata, canta las veinte y las cuarenta con "
+	  "rey y caballo... ¡y si juntas los cuatro reyes o caballos, canta el tute!",
+	  SCENE_TUTE, SUIT_COPAS, { C(COPAS, RANK_CABALLO), C(COPAS, RANK_REY), C(OROS, 1) }, { CPU_LOLA, CPU_PACO, CPU_MANOLO } },
 	{ "Culo",
 	  "Quítate las cartas de encima antes que nadie. El primero que acaba manda en la siguiente mano "
 	  "y el último... es el culo.",
@@ -80,8 +81,9 @@ static const MenuEntry entries[] = {
 	  "elige el triunfo.",
 	  SCENE_COUNT, SUIT_COPAS, { C(COPAS, 1), C(COPAS, 3), C(COPAS, RANK_REY) }, { -1, -1, -1 } },
 	{ "Tute cabrón",
-	  "Tute de todos contra todos: cada uno juega para sí y nadie tiene compañero.",
-	  SCENE_COUNT, SUIT_ESPADAS, { C(ESPADAS, RANK_REY), C(BASTOS, RANK_REY), C(OROS, 3) }, { -1, -1, -1 } },
+	  "El tute de cada uno para sí: cuatro jugadores sin compañero. Gana la mano quien más puntos "
+	  "sume; la partida, el primero que gane tres manos.",
+	  SCENE_TUTE_CABRON, SUIT_ESPADAS, { C(ESPADAS, RANK_REY), C(BASTOS, RANK_REY), C(OROS, 3) }, { CPU_PEPE, CPU_LUCIA, CPU_CARMEN } },
 	{ "Julepe",
 	  "Juego de bazas con triunfo: hay que hacer al menos dos bazas o pagar el julepe.",
 	  SCENE_COUNT, SUIT_BASTOS, { C(BASTOS, 1), C(BASTOS, 3), C(COPAS, 7) }, { -1, -1, -1 } },
@@ -132,28 +134,76 @@ static const MenuEntry entries[] = {
 };
 
 #define NUM_ENTRIES ((int)(sizeof entries / sizeof entries[0]))
-#define NUM_CONFIG 2
-#define NUM_GAMES (NUM_ENTRIES - NUM_CONFIG)
 
-/* Juegos y próximos juegos: cuadrículas de dos columnas. Configuración: dos
- * botones pequeños debajo. */
-#define NUM_READY   9 /* los primeros juegos ya se pueden jugar */
+/* Apartados de la lista que se desplaza: cada uno con su título y sus juegos
+ * en dos columnas. Configuración va aparte, fija abajo y en pequeño. */
+enum { SEC_CARDS, SEC_BOARD, SEC_SOON, SEC_LIST, SEC_CONFIG = SEC_LIST };
+static const char* const SECTION_TITLE[SEC_LIST] = { "Juegos de cartas", "Juegos de mesa", "Próximamente" };
+
 #define COL_X(c)    (8.0f + (c) * 156.0f)
 #define HEAD_H      15.0f
-#define GAME_Y      (2.0f + HEAD_H)
 #define GAME_W      148.0f
 #define GAME_H      22.0f
 #define GAME_STEP   24.0f
-#define READY_ROWS  ((NUM_READY + 1) / 2)
-#define SOON_ROWS   ((NUM_GAMES - NUM_READY + 1) / 2)
-#define SOON_HEAD   (GAME_Y + READY_ROWS * GAME_STEP + 1.0f)
-#define SOON_Y      (SOON_HEAD + HEAD_H)
-/* Configuración se queda fija abajo; los juegos se desplazan por encima */
 #define VIEW_BOTTOM 186.0f
 #define CONFIG_HEAD (VIEW_BOTTOM + 2.0f)
 #define CONFIG_Y    (CONFIG_HEAD + 13.0f)
 #define CONFIG_H    18.0f
-#define CONTENT_H   (SOON_Y + SOON_ROWS * GAME_STEP + 2.0f)
+#define MAX_ROWS    64
+
+static int section_of(int i)
+{
+	const MenuEntry* e = &entries[i];
+	if (e->scene == SCENE_PROFILE || e->scene == SCENE_CARDBACK)
+		return SEC_CONFIG;
+	if (e->scene == SCENE_COUNT)
+		return SEC_SOON;
+	return e->board ? SEC_BOARD : SEC_CARDS;
+}
+
+/* Posiciones calculadas una vez: y de cada elemento (en la lista), su
+ * columna y su fila para la cruceta; y de cada título. */
+static float s_item_y[NUM_ENTRIES];
+static int s_item_col[NUM_ENTRIES], s_item_row[NUM_ENTRIES];
+static int s_row_item[MAX_ROWS][2];
+static int s_rows;
+static float s_head_y[SEC_LIST];
+static int s_section_count[SEC_LIST + 1];
+static float s_content_h;
+static bool s_layout_ready;
+
+static void layout(void)
+{
+	if (s_layout_ready)
+		return;
+	s_layout_ready = true;
+	float y = 2.0f;
+	s_rows = 0;
+	for (int sec = 0; sec <= SEC_LIST; sec++) {
+		int k = 0;
+		if (sec < SEC_LIST) {
+			s_head_y[sec] = y;
+			y += HEAD_H;
+		}
+		for (int i = 0; i < NUM_ENTRIES; i++) {
+			if (section_of(i) != sec)
+				continue;
+			if (k % 2 == 0) {
+				s_row_item[s_rows][0] = s_row_item[s_rows][1] = i;
+				s_rows++;
+			}
+			s_row_item[s_rows - 1][k % 2] = i;
+			s_item_col[i] = k % 2;
+			s_item_row[i] = s_rows - 1;
+			s_item_y[i] = sec == SEC_CONFIG ? CONFIG_Y : y + (k / 2) * GAME_STEP;
+			k++;
+		}
+		s_section_count[sec] = k;
+		if (sec < SEC_LIST)
+			y += (k + 1) / 2 * GAME_STEP + (k ? 1.0f : 0.0f);
+	}
+	s_content_h = y + 2.0f;
+}
 
 static int s_selected;
 static Mood s_mood;
@@ -163,22 +213,16 @@ static float s_shake; /* sacudida al elegir un juego no disponible */
 
 static bool is_config(int i)
 {
-	return i >= NUM_GAMES;
+	return section_of(i) == SEC_CONFIG;
 }
 
 static void item_rect(int i, float* x, float* y, float* w, float* h)
 {
-	if (is_config(i)) {
-		*x = COL_X(i - NUM_GAMES);
-		*y = CONFIG_Y;
-		*h = CONFIG_H;
-	} else {
-		int k = i < NUM_READY ? i : i - NUM_READY;
-		*x = COL_X(k % 2);
-		*y = (i < NUM_READY ? GAME_Y : SOON_Y) + (k / 2) * GAME_STEP;
-		*h = GAME_H;
-	}
+	layout();
+	*x = COL_X(s_item_col[i]);
+	*y = s_item_y[i];
 	*w = GAME_W;
+	*h = is_config(i) ? CONFIG_H : GAME_H;
 }
 
 /* Posición en pantalla: los juegos se mueven con el desplazamiento */
@@ -196,15 +240,17 @@ static float scroll_for(int i)
 	item_rect(i, &x, &y, &w, &h);
 	if (is_config(i))
 		return s_scroll;
-	float top = i < 2 ? 0.0f : y - HEAD_H - 4.0f; /* con el título del apartado */
-	if (i >= NUM_READY && i < NUM_READY + 2)
-		top = SOON_HEAD - 4.0f;
+	int sec = section_of(i);
+	/* En la primera fila de un apartado se ve también su título */
+	float top = y - 4.0f;
+	if (y - s_head_y[sec] - HEAD_H < GAME_STEP)
+		top = s_head_y[sec] - 2.0f;
 	float target = s_scroll;
 	if (top < target)
 		target = top;
 	if (y + h + 4.0f > target + VIEW_BOTTOM)
 		target = y + h + 4.0f - VIEW_BOTTOM;
-	float max = CONTENT_H - VIEW_BOTTOM;
+	float max = s_content_h - VIEW_BOTTOM;
 	return target < 0.0f ? 0.0f : target > max ? max : target;
 }
 
@@ -226,48 +272,14 @@ static SceneId launch(int i)
 	return entries[i].scene;
 }
 
-/* Movimiento con la cruceta. Las filas de los tres apartados se recorren
- * seguidas: juegos, próximamente y configuración. */
-#define NAV_ROWS (READY_ROWS + SOON_ROWS + 1)
-
-static void nav_pos(int i, int* row, int* col)
-{
-	if (i < NUM_READY) {
-		*row = i / 2;
-		*col = i % 2;
-	} else if (i < NUM_GAMES) {
-		*row = READY_ROWS + (i - NUM_READY) / 2;
-		*col = (i - NUM_READY) % 2;
-	} else {
-		*row = NAV_ROWS - 1;
-		*col = i - NUM_GAMES;
-	}
-}
-
-static int nav_item(int row, int col)
-{
-	int first, count;
-	if (row < READY_ROWS) {
-		first = row * 2;
-		count = NUM_READY;
-	} else if (row < READY_ROWS + SOON_ROWS) {
-		first = NUM_READY + (row - READY_ROWS) * 2;
-		count = NUM_GAMES;
-	} else {
-		first = NUM_GAMES;
-		count = NUM_ENTRIES;
-	}
-	/* Si la fila solo tiene una columna, se va a la de la izquierda */
-	return first + col < count ? first + col : first;
-}
-
+/* Movimiento con la cruceta: las filas de todos los apartados seguidas */
 static int move(int i, int dx, int dy)
 {
-	int row, col;
-	nav_pos(i, &row, &col);
+	layout();
+	int row = s_item_row[i], col = s_item_col[i];
 	col = (col + dx + 2) % 2;
-	row = (row + dy + NAV_ROWS) % NAV_ROWS;
-	return nav_item(row, col);
+	row = (row + dy + s_rows) % s_rows;
+	return s_row_item[row][col]; /* en una fila de un solo juego, ese */
 }
 
 static SceneId menu_update(const Input* in, float dt)
@@ -358,9 +370,15 @@ static void menu_draw_top(void)
 static void menu_draw_bottom(void)
 {
 	gfx_background(BG_MENU_BOTTOM);
-	gfx_text("Juegos", BOTTOM_W / 2, 2 - s_scroll, 0, 0.55f, COLOR_GOLD, C2D_AlignCenter);
-	gfx_textf(BOTTOM_W / 2, SOON_HEAD - s_scroll, 0, 0.45f, C2D_Color32(220, 200, 180, 255), C2D_AlignCenter,
-		"Próximamente (%d)", NUM_GAMES - NUM_READY);
+	layout();
+	for (int sec = 0; sec < SEC_LIST; sec++) {
+		if (s_section_count[sec] == 0)
+			continue;
+		bool soon = sec == SEC_SOON;
+		gfx_textf(BOTTOM_W / 2, s_head_y[sec] - s_scroll, 0, soon ? 0.45f : 0.5f,
+			soon ? C2D_Color32(220, 200, 180, 255) : COLOR_GOLD, C2D_AlignCenter, soon ? "%s (%d)" : "%s",
+			SECTION_TITLE[sec], s_section_count[sec]);
+	}
 
 	float shake = s_shake > 0.0f ? sinf(s_shake * 60.0f) * 4.0f : 0.0f;
 
@@ -378,21 +396,20 @@ static void menu_draw_bottom(void)
 		bool small = is_config(i);
 		float x, y, w, h;
 		screen_rect(i, &x, &y, &w, &h);
-		if (i == NUM_GAMES) {
+		bool first_config = is_config(i) && (i == 0 || !is_config(i - 1));
+		if (first_config) {
 			/* Franja fija de configuración, que tapa la lista al desplazarse */
 			gfx_rect(0, VIEW_BOTTOM, BOTTOM_W, SCREEN_H - VIEW_BOTTOM, 0, C2D_Color32(70, 10, 16, 255));
 			gfx_rect(0, VIEW_BOTTOM, BOTTOM_W, 2, 0, C2D_Color32(230, 170, 50, 255));
 			gfx_text("Configuración", BOTTOM_W / 2, CONFIG_HEAD, 0, 0.45f, COLOR_GOLD, C2D_AlignCenter);
-			if (s_scroll < CONTENT_H - VIEW_BOTTOM - 1.0f)
+			if (s_scroll < s_content_h - VIEW_BOTTOM - 1.0f)
 				gfx_triangle(BOTTOM_W - 22, VIEW_BOTTOM - 10, BOTTOM_W - 10, VIEW_BOTTOM - 10, BOTTOM_W - 16,
 					VIEW_BOTTOM - 3, 0, COLOR_GOLD);
-			if (i == s_selected)
+			/* El cursor de configuración va encima de la franja */
+			if (is_config(s_selected))
 				gfx_rrect(s_cursor_x - 3 + shake, s_cursor_y - 3, cw + 6, ch + 6, 10, 0,
 					C2D_Color32(255, 215, 90, (u8)(150 + 100 * pulse)));
 		}
-		if (i == NUM_GAMES + 1 && i == s_selected)
-			gfx_rrect(s_cursor_x - 3 + shake, s_cursor_y - 3, cw + 6, ch + 6, 10, 0,
-				C2D_Color32(255, 215, 90, (u8)(150 + 100 * pulse)));
 		if (!small && (y + h < 0.0f || y > VIEW_BOTTOM))
 			continue;
 		if (i == s_selected)

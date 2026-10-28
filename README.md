@@ -77,7 +77,7 @@ El juego compone el dorso en una textura con las capas que genera
 
 ## Juegos
 
-El menú tiene tres apartados: **Juegos**, **Próximamente** (los que todavía no se
+El menú tiene estos apartados: **Juegos de cartas**, **Juegos de mesa**, **Próximamente** (los que todavía no se
 pueden jugar; la lista se desplaza con la cruceta) y, en pequeño, **Configuración** (*Mi perfil* y *Dorso de las cartas*).
 
 
@@ -92,14 +92,14 @@ pueden jugar; la lista se desplaza con la cruceta) y, en pequeño, **Configuraci
 | Guiñote | ✅ Disponible |
 | Solitario tradicional | ✅ Disponible |
 | Solitario en pirámide | ✅ Disponible |
-| Tute | 🕓 Próximamente |
+| Tute | ✅ Disponible |
+| Tute cabrón | ✅ Disponible |
 | Culo | 🕓 Próximamente |
 | Mentiroso | 🕓 Próximamente |
 | Mierda | 🕓 Próximamente |
 | Burro | 🕓 Próximamente |
 | As, 2, 3 | 🕓 Próximamente |
 | Tute subastado | 🕓 Próximamente |
-| Tute cabrón | 🕓 Próximamente |
 | Julepe | 🕓 Próximamente |
 | Tresillo | 🕓 Próximamente |
 | Cuatrillo | 🕓 Próximamente |
@@ -221,6 +221,19 @@ mazo llega el **arrastre**: hay que asistir al palo y matar si se puede, o falla
 con triunfo; si la baza la gana tu compañero no hace falta. Las cartas que no
 puedes jugar se ven oscurecidas. Gana la pareja que llegue a **101**; si nadie
 llega, se juega otra mano "de vueltas" sumando los puntos.
+
+### Tute y tute cabrón
+Se reparten las 40 cartas, diez a cada uno, y la última (la de quien reparte, que
+se ve como "pinta") marca el triunfo. Orden: as, tres, rey, caballo, sota, 7...
+2; puntos: as 11, tres 10, rey 4, caballo 3, sota 2, más 10 de últimas. Desde la
+primera baza hay que asistir, matar si se puede y, si no tienes del palo, fallar.
+Quien gana una baza (o su compañero) puede cantar rey y caballo del mismo palo
+(Ⓧ): las veinte, o las cuarenta en triunfo. Con los cuatro reyes o los cuatro
+caballos se canta **el tute** (Ⓨ) y se gana la mano. Cada mano la gana quien más
+puntos suma y la partida, quien gana tres manos.
+
+En el **tute** se juega por parejas, como en el guiñote; en el **tute cabrón**,
+cada uno para sí (y hay que matar siempre, aunque la baza la vaya ganando otro).
 
 ### Solitario tradicional
 Siete columnas y 12 cartas en el mazo. Lleva las 40 cartas a sus palos, del as al

@@ -158,9 +158,9 @@ const char* cpu_name(CpuId id)
 const char* cpu_role(CpuId id)
 {
 	static const char* const roles[CPU_COUNT] = {
-		[CPU_PACO] = "Cinquillo y mus (rival)",
-		[CPU_LOLA] = "Cinquillo y mus (compañero)",
-		[CPU_MANOLO] = "Cinquillo y mus (rival)",
+		[CPU_PACO] = "Cinquillo, mus y tute (rival)",
+		[CPU_LOLA] = "Cinquillo, mus y tute (compañero)",
+		[CPU_MANOLO] = "Cinquillo, mus y tute (rival)",
 		[CPU_CARMEN] = "Brisca y guiñote (rival)",
 		[CPU_PEPE] = "Escoba y guiñote (compañero)",
 		[CPU_LUCIA] = "Chinchón y guiñote (rival)",
