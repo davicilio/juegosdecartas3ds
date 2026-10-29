@@ -124,6 +124,13 @@ void gn_new_hand(Guinote* g)
 	}
 	g->trump = g->trump_card.suit;
 
+	g->bid = 0;
+	g->bidder = -1;
+	g->last_bid_player = -1;
+	g->last_bid = 0;
+	g->bid_made = false;
+	for (int p = 0; p < GN_PLAYERS; p++)
+		g->passed[p] = false;
 	for (int s = 0; s < NUM_SUITS; s++)
 		g->sung[s] = false;
 	for (int s = 0; s < GN_PLAYERS; s++)
@@ -141,6 +148,10 @@ void gn_new_hand(Guinote* g)
 	g->last_cante_points = 0;
 	g->swapped = false;
 	g->phase = GN_PHASE_PLAYING;
+	if (g->variant == GN_TUTE_SUBASTADO) {
+		g->trump = -1; /* lo elige quien gane la subasta */
+		g->phase = GN_PHASE_BIDDING;
+	}
 }
 
 int gn_trick_leader_now(const Guinote* g)
@@ -231,7 +242,12 @@ bool gn_play(Guinote* g, int hand_index)
 static void end_hand(Guinote* g)
 {
 	g->hands_played++;
-	if (g->variant == GN_GUINOTE) {
+	if (g->variant == GN_TUTE_SUBASTADO) {
+		int bs = gn_side(g, g->bidder);
+		g->bid_made = g->tute ? g->hand_winner == bs : g->points[bs] >= g->bid;
+		g->hand_winner = g->bid_made ? bs : 1 - bs;
+		g->score[bs] += g->bid_made ? g->bid : -g->bid;
+	} else if (g->variant == GN_GUINOTE) {
 		for (int s = 0; s < 2; s++)
 			g->score[s] += g->points[s];
 		g->hand_winner = g->points[0] >= g->points[1] ? 0 : 1;
@@ -283,6 +299,14 @@ bool gn_collect(Guinote* g)
 
 int gn_game_winner(const Guinote* g)
 {
+	if (g->variant == GN_TUTE_SUBASTADO) {
+		bool a = g->score[0] >= GN_SUB_POINTS, b = g->score[1] >= GN_SUB_POINTS;
+		if (!a && !b)
+			return -1;
+		if (a && b)
+			return g->score[0] >= g->score[1] ? 0 : 1;
+		return a ? 0 : 1;
+	}
 	if (g->variant != GN_GUINOTE) {
 		for (int s = 0; s < gn_sides(g); s++)
 			if (g->score[s] >= GN_TUTE_HANDS)
@@ -462,4 +486,116 @@ int gn_ai_choose(const Guinote* g, int player)
 		}
 	}
 	return best;
+}
+
+/* ---------------------------------------------------------------------------
+ * Tute subastado
+ * ------------------------------------------------------------------------- */
+
+int gn_min_bid(const Guinote* g)
+{
+	return g->bid == 0 ? GN_MIN_BID : g->bid + GN_BID_STEP;
+}
+
+bool gn_must_bid(const Guinote* g)
+{
+	if (g->phase != GN_PHASE_BIDDING || g->bidder >= 0)
+		return false;
+	int passed = 0;
+	for (int p = 0; p < GN_PLAYERS; p++)
+		passed += g->passed[p];
+	return passed == GN_PLAYERS - 1;
+}
+
+bool gn_bid(Guinote* g, int amount)
+{
+	if (g->phase != GN_PHASE_BIDDING)
+		return false;
+	int p = g->current;
+	if (amount == 0) {
+		if (gn_must_bid(g))
+			return false;
+		g->passed[p] = true;
+	} else {
+		if (amount < gn_min_bid(g) || amount > GN_MAX_BID)
+			return false;
+		g->bid = amount;
+		g->bidder = p;
+	}
+	g->last_bid_player = p;
+	g->last_bid = amount;
+	/* Siguiente que no haya pasado */
+	int next = -1;
+	for (int i = 1; i <= GN_PLAYERS; i++) {
+		int q = (p + i) % GN_PLAYERS;
+		if (!g->passed[q]) {
+			next = q;
+			break;
+		}
+	}
+	if (next == g->bidder || (next == p && amount > 0)) {
+		g->phase = GN_PHASE_CHOOSE_TRUMP;
+		g->current = g->bidder;
+	} else {
+		g->current = next;
+	}
+	return true;
+}
+
+bool gn_choose_trump(Guinote* g, int suit)
+{
+	if (g->phase != GN_PHASE_CHOOSE_TRUMP || suit < 0 || suit >= NUM_SUITS)
+		return false;
+	g->trump = suit;
+	g->trump_card = card_make((Suit)suit, 1);
+	g->leader = g->current = g->bidder;
+	g->phase = GN_PHASE_PLAYING;
+	return true;
+}
+
+/* Puntos que espera hacer la pareja con ese triunfo */
+static int estimate(const Guinote* g, int player, int suit)
+{
+	int pts = 0, trumps = 0, top_trumps = 0, cantes = 0;
+	bool rey[NUM_SUITS] = { false }, caballo[NUM_SUITS] = { false };
+	for (int i = 0; i < g->hand_count[player]; i++) {
+		Card c = g->hands[player][i];
+		pts += gn_card_points(g, c);
+		if (c.suit == suit) {
+			trumps++;
+			if (c.rank == 1 || c.rank == 3)
+				top_trumps++;
+		}
+		rey[c.suit] |= c.rank == RANK_REY;
+		caballo[c.suit] |= c.rank == RANK_CABALLO;
+	}
+	for (int s = 0; s < NUM_SUITS; s++)
+		if (rey[s] && caballo[s])
+			cantes += s == suit ? 40 : 20;
+	return pts * 9 / 10 + trumps * 8 + top_trumps * 6 + cantes * 3 / 4 + 22;
+}
+
+int gn_ai_trump(const Guinote* g, int player)
+{
+	int best = 0, best_v = -1;
+	for (int s = 0; s < NUM_SUITS; s++) {
+		int v = estimate(g, player, s);
+		if (v > best_v) {
+			best_v = v;
+			best = s;
+		}
+	}
+	return best;
+}
+
+int gn_ai_bid(const Guinote* g, int player)
+{
+	int v = estimate(g, player, gn_ai_trump(g, player));
+	int need = gn_min_bid(g);
+	/* No se le quita la subasta al compañero sin una buena mano */
+	if (g->bidder >= 0 && gn_side(g, g->bidder) == gn_side(g, player))
+		need += 20;
+	if (need <= v && gn_min_bid(g) <= GN_MAX_BID)
+		return gn_min_bid(g);
+	return gn_must_bid(g) ? GN_MIN_BID : 0;
 }

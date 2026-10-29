@@ -28,6 +28,13 @@
  * los cuatro caballos se canta el tute y se gana la mano. Cada mano la gana
  * quien suma más puntos; gana la partida quien gana tres manos.
  *
+ * TUTE SUBASTADO. Como el tute por parejas, pero sin pinta: antes de jugar
+ * se puja por los puntos (cartas, cantes y diez de últimas) que hará la
+ * pareja, desde GN_MIN_BID y de diez en diez; quien pasa ya no vuelve a
+ * pujar y, si pasan los tres primeros, el último tiene que pujar. Quien gana
+ * la subasta elige el triunfo y sale. Si su pareja llega a lo pujado se lo
+ * apunta; si no, se lo resta. Gana la pareja que llega a GN_SUB_POINTS.
+ *
  * ARRASTRE: hay que asistir al palo y ganar la baza si se puede; quien no
  * tiene del palo debe fallar (con triunfo, y por encima si ya se ha fallado).
  * Por parejas, si la baza la va ganando el compañero no hay obligación de
@@ -38,11 +45,16 @@
 #define GN_GAME_POINTS 101 /* guiñote */
 #define GN_TUTE_HANDS  3   /* tute: manos para ganar la partida */
 #define GN_LAST_TRICK  10
+#define GN_MIN_BID     70  /* tute subastado */
+#define GN_BID_STEP    10
+#define GN_MAX_BID     230
+#define GN_SUB_POINTS  300
 
 typedef enum {
 	GN_GUINOTE,
 	GN_TUTE,
 	GN_TUTE_CABRON,
+	GN_TUTE_SUBASTADO,
 	GN_VARIANTS
 } GnVariant;
 
@@ -50,7 +62,9 @@ typedef enum {
 	GN_PHASE_PLAYING,
 	GN_PHASE_TRICK_DONE, /* las cuatro cartas están en la mesa: falta recogerlas */
 	GN_PHASE_HAND_OVER,  /* se ha acabado una mano, pero no la partida */
-	GN_PHASE_GAME_OVER
+	GN_PHASE_GAME_OVER,
+	GN_PHASE_BIDDING,      /* tute subastado: puja el jugador current */
+	GN_PHASE_CHOOSE_TRUMP  /* tute subastado: el que ganó la subasta elige el triunfo */
 } GnPhase;
 
 typedef struct {
@@ -81,6 +95,13 @@ typedef struct {
 	bool swapped; /* se acaba de cambiar el 7 (para la interfaz) */
 	int hands_played;
 	int first_leader;
+	/* Tute subastado */
+	int bid;          /* puja más alta (0 si nadie ha pujado) */
+	int bidder;       /* quién la tiene, o -1 */
+	bool passed[GN_PLAYERS];
+	int last_bid_player;
+	int last_bid;     /* 0 = pasó */
+	bool bid_made;    /* al acabar la mano: la pareja llegó a lo pujado */
 	GnPhase phase;
 	Rng rng;
 } Guinote;
@@ -127,6 +148,16 @@ int gn_swap_index(const Guinote* g, int player);
 bool gn_swap(Guinote* g, int player);
 
 int gn_ai_choose(const Guinote* g, int player);
+
+/* Tute subastado */
+int gn_min_bid(const Guinote* g);
+/* Quien tiene que pujar no puede pasar (han pasado los otros tres sin pujar) */
+bool gn_must_bid(const Guinote* g);
+/* Puja amount (0 para pasar) */
+bool gn_bid(Guinote* g, int amount);
+bool gn_choose_trump(Guinote* g, int suit);
+int gn_ai_bid(const Guinote* g, int player);
+int gn_ai_trump(const Guinote* g, int player);
 /* Bando ganador de la partida al acabar, o -1. */
 int gn_game_winner(const Guinote* g);
 

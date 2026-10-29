@@ -49,6 +49,14 @@ static const Scene* scene_for(SceneId id)
 		return &scene_damas;
 	case SCENE_DOMINO:
 		return &scene_domino;
+	case SCENE_PUMBA:
+		return &scene_pumba;
+	case SCENE_JULEPE:
+		return &scene_julepe;
+	case SCENE_TUTE_SUBASTADO:
+		return &scene_tute_subastado;
+	case SCENE_TRUCO:
+		return &scene_truco;
 	case SCENE_AS23:
 		return &scene_as23;
 	case SCENE_MONA:

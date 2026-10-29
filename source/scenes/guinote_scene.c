@@ -18,9 +18,10 @@ static const CpuId SEAT_CPU[GN_VARIANTS][GN_PLAYERS] = {
 	[GN_GUINOTE] = { CPU_COUNT, CPU_LUCIA, CPU_PEPE, CPU_CARMEN },
 	[GN_TUTE] = { CPU_COUNT, CPU_PACO, CPU_LOLA, CPU_MANOLO },
 	[GN_TUTE_CABRON] = { CPU_COUNT, CPU_LUCIA, CPU_PEPE, CPU_CARMEN },
+	[GN_TUTE_SUBASTADO] = { CPU_COUNT, CPU_MANOLO, CPU_CARMEN, CPU_RAMON },
 };
-static const SceneId SCENE_OF[GN_VARIANTS] = { SCENE_GUINOTE, SCENE_TUTE, SCENE_TUTE_CABRON };
-static const GameId GAME_OF[GN_VARIANTS] = { GAME_GUINOTE, GAME_TUTE, GAME_TUTE_CABRON };
+static const SceneId SCENE_OF[GN_VARIANTS] = { SCENE_GUINOTE, SCENE_TUTE, SCENE_TUTE_CABRON, SCENE_TUTE_SUBASTADO };
+static const GameId GAME_OF[GN_VARIANTS] = { GAME_GUINOTE, GAME_TUTE, GAME_TUTE_CABRON, GAME_TUTE_SUBASTADO };
 static const float SEAT_X[GN_PLAYERS] = { 200, 360, 200, 40 };
 static const float SEAT_Y[GN_PLAYERS] = { 290, 78, 30, 78 };
 static const float TRICK_X[GN_PLAYERS] = { 200, 244, 200, 156 };
@@ -37,6 +38,9 @@ static bool s_started[GN_VARIANTS];
 static GnVariant s_variant;
 #define G (&s_games[s_variant])
 #define PAIRS (G->variant != GN_TUTE_CABRON)
+#define SUB   (G->variant == GN_TUTE_SUBASTADO)
+static int s_bid_amount = GN_MIN_BID;
+static Button s_btn_suit[NUM_SUITS];
 static Mood s_mood[GN_PLAYERS];
 static VisCard s_hand[DECK_SIZE]; /* tus cartas, por card_index */
 static VisCard s_trick[GN_PLAYERS];
@@ -88,7 +92,10 @@ static void reset_visuals(void)
 	s_cpu_timer = s_trick_timer = s_result_time = 0.0f;
 	s_prev_phase = G->phase;
 	char buf[96];
-	if (G->current == 0)
+	s_bid_amount = GN_MIN_BID;
+	if (G->phase == GN_PHASE_BIDDING)
+		snprintf(buf, sizeof buf, "Subasta: empieza a pujar %s", G->current == 0 ? "tú" : seat_name(G->current));
+	else if (G->current == 0)
 		snprintf(buf, sizeof buf, "Triunfo: %s. Sales tú", suit_name((Suit)G->trump));
 	else
 		snprintf(buf, sizeof buf, "Triunfo: %s. Sale %s", suit_name((Suit)G->trump), seat_name(G->current));
@@ -107,6 +114,10 @@ static void enter_variant(GnVariant v)
 		reset_visuals();
 	}
 	button_set(&s_btn_menu, 258, 6, 54, 20, "Menú", C2D_Color32(120, 30, 35, 255), KEY_START);
+	static const char* const names[NUM_SUITS] = { "Oros", "Copas", "Espadas", "Bastos" };
+	for (int i = 0; i < NUM_SUITS; i++)
+		button_set(&s_btn_suit[i], 20 + (i % 2) * 144, 60 + (i / 2) * 60, 136, 50, names[i],
+			C2D_Color32(60, 90, 160, 255), 0);
 }
 
 static void guinote_enter(void)
@@ -122,6 +133,52 @@ static void tute_enter(void)
 static void cabron_enter(void)
 {
 	enter_variant(GN_TUTE_CABRON);
+}
+
+static void subastado_enter(void)
+{
+	enter_variant(GN_TUTE_SUBASTADO);
+}
+
+/* Tute subastado: alguien puja o pasa */
+static void after_bid(void)
+{
+	int p = G->last_bid_player;
+	char buf[96];
+	if (G->last_bid > 0) {
+		char num[12];
+		snprintf(num, sizeof num, "%d", G->last_bid);
+		bubble(p, num);
+		if (p == 0)
+			snprintf(buf, sizeof buf, "Pujas %d", G->last_bid);
+		else
+			snprintf(buf, sizeof buf, "%s puja %d", seat_name(p), G->last_bid);
+	} else {
+		bubble(p, "Paso");
+		if (p == 0)
+			snprintf(buf, sizeof buf, "Pasas");
+		else
+			snprintf(buf, sizeof buf, "%s pasa", seat_name(p));
+	}
+	set_message(buf);
+	audio_play(SFX_SELECT);
+	if (G->phase == GN_PHASE_CHOOSE_TRUMP) {
+		if (G->bidder == 0)
+			snprintf(buf, sizeof buf, "Ganas la subasta con %d: elige el triunfo", G->bid);
+		else
+			snprintf(buf, sizeof buf, "%s gana la subasta con %d", seat_name(G->bidder), G->bid);
+		set_message(buf);
+	}
+}
+
+static void after_trump(void)
+{
+	char buf[96];
+	snprintf(buf, sizeof buf, "Triunfo: %s. %s", suit_name((Suit)G->trump),
+		G->current == 0 ? "Sales tú" : "Sale quien pujó");
+	set_message(buf);
+	bubble(G->bidder, suit_name((Suit)G->trump));
+	audio_play(SFX_FLIP);
 }
 
 static bool busy(void)
@@ -337,6 +394,63 @@ static SceneId gn_scene_update(const Input* in, float dt)
 			}
 		}
 		break;
+	case GN_PHASE_BIDDING: {
+		int min = gn_min_bid(G);
+		static char label[24];
+		if (s_bid_amount < min)
+			s_bid_amount = min;
+		if (s_bid_amount > GN_MAX_BID)
+			s_bid_amount = GN_MAX_BID;
+		snprintf(label, sizeof label, GLYPH_A " Pujo %d", s_bid_amount);
+		button_set(&s_btn_play, 12, y, 144, h, label, C2D_Color32(40, 140, 60, 255), KEY_A);
+		button_set(&s_btn_swap, 164, y, 144, h, GLYPH_B " Paso", C2D_Color32(190, 60, 50, 255), KEY_B);
+		bool mine = G->current == 0;
+		s_btn_play.enabled = mine && min <= GN_MAX_BID;
+		s_btn_swap.enabled = mine && !gn_must_bid(G);
+		s_btn_sing.enabled = false;
+		if (mine) {
+			if (in->repeat & (KEY_R | KEY_UP | KEY_RIGHT))
+				s_bid_amount += GN_BID_STEP;
+			if (in->repeat & (KEY_L | KEY_DOWN | KEY_LEFT))
+				s_bid_amount -= GN_BID_STEP;
+			if (s_bid_amount < min)
+				s_bid_amount = min;
+			if (s_bid_amount > GN_MAX_BID)
+				s_bid_amount = GN_MAX_BID;
+			if (button_update(&s_btn_play, in)) {
+				if (gn_bid(G, s_bid_amount))
+					after_bid();
+			} else if (button_update(&s_btn_swap, in)) {
+				if (gn_bid(G, 0))
+					after_bid();
+			}
+		} else {
+			s_cpu_timer += dt;
+			if (s_cpu_timer > 0.9f) {
+				s_cpu_timer = 0.0f;
+				gn_bid(G, gn_ai_bid(G, G->current));
+				after_bid();
+			}
+		}
+		break;
+	}
+	case GN_PHASE_CHOOSE_TRUMP:
+		s_btn_play.enabled = s_btn_sing.enabled = s_btn_swap.enabled = false;
+		if (G->current == 0) {
+			for (int i = 0; i < NUM_SUITS; i++)
+				if (button_update(&s_btn_suit[i], in) && gn_choose_trump(G, i)) {
+					after_trump();
+					break;
+				}
+		} else {
+			s_cpu_timer += dt;
+			if (s_cpu_timer > 0.9f) {
+				s_cpu_timer = 0.0f;
+				gn_choose_trump(G, gn_ai_trump(G, G->current));
+				after_trump();
+			}
+		}
+		break;
 	case GN_PHASE_TRICK_DONE:
 		s_btn_play.enabled = s_btn_sing.enabled = s_btn_swap.enabled = false;
 		if (!is_busy) {
@@ -420,7 +534,8 @@ static void draw_seat(int p)
 	}
 	float ax = p == 2 ? x - 50 : x;
 	mii_draw(seat_avatar(p), ax, y, 17, DEPTH_UI + 0.5f, mood_expr(&s_mood[p]), false);
-	bool turn = G->current == p && G->phase == GN_PHASE_PLAYING;
+	bool turn = G->current == p && (G->phase == GN_PHASE_PLAYING || G->phase == GN_PHASE_BIDDING ||
+	                                 G->phase == GN_PHASE_CHOOSE_TRUMP);
 	u32 border = turn ? COLOR_GOLD : gn_side(G, p) == gn_side(G, 0) ? C2D_Color32(60, 120, 200, 255) : C2D_Color32(190, 60, 50, 255);
 	float nx = p == 2 ? x - 50 : x, ny = y + 20;
 	gfx_panel(nx - 36, ny, 72, 18, DEPTH_UI, C2D_Color32(10, 50, 25, 220), border);
@@ -452,6 +567,10 @@ static void draw_result(void)
 	char title[64];
 	if (G->variant == GN_GUINOTE && !over)
 		snprintf(title, sizeof title, "Nadie llega a 101: ¡de vueltas!");
+	else if (SUB && !over)
+		snprintf(title, sizeof title, G->bid_made ? "¡%s la subasta!" : "%s la subasta",
+			G->bid_made ? (gn_side(G, G->bidder) == 0 ? "Cumplís" : "Cumplen")
+			            : (gn_side(G, G->bidder) == 0 ? "No llegáis a" : "No llegan a"));
 	else if (PAIRS)
 		snprintf(title, sizeof title, over ? (w == 0 ? "¡Ganáis la partida!" : "Ganan los rivales")
 		                                   : (w == 0 ? "¡Ganáis la mano!" : "Los rivales ganan la mano"));
@@ -463,6 +582,10 @@ static void draw_result(void)
 
 	if (G->tute) {
 		gfx_text("¡Con el tute!", 200, 100, DEPTH_BANNER, 0.55f, COLOR_CREAM, C2D_AlignCenter);
+	} else if (SUB) {
+		int bs = gn_side(G, G->bidder);
+		gfx_textf(200, 100, DEPTH_BANNER, 0.47f, COLOR_CREAM, C2D_AlignCenter, "%s %d y %s %d",
+			bs == 0 ? "Pujasteis" : "Pujaron", G->bid, bs == 0 ? "hicisteis" : "hicieron", G->points[bs]);
 	} else if (PAIRS) {
 		gfx_textf(200, 100, DEPTH_BANNER, 0.5f, COLOR_CREAM, C2D_AlignCenter, "Esta mano: nosotros %d - ellos %d",
 			G->points[0], G->points[1]);
@@ -473,6 +596,9 @@ static void draw_result(void)
 	if (G->variant == GN_GUINOTE)
 		gfx_textf(200, 124, DEPTH_BANNER, 0.55f, COLOR_GOLD, C2D_AlignCenter, "Total: nosotros %d - ellos %d",
 			G->score[0], G->score[1]);
+	else if (SUB)
+		gfx_textf(200, 124, DEPTH_BANNER, 0.55f, COLOR_GOLD, C2D_AlignCenter, "Total: nosotros %d - ellos %d (a %d)",
+			G->score[0], G->score[1], GN_SUB_POINTS);
 	else if (PAIRS)
 		gfx_textf(200, 124, DEPTH_BANNER, 0.55f, COLOR_GOLD, C2D_AlignCenter, "Manos: nosotros %d - ellos %d (a %d)",
 			G->score[0], G->score[1], GN_TUTE_HANDS);
@@ -493,6 +619,15 @@ static void gn_scene_draw_top(void)
 			gfx_card_back(DECK_X - i * 0.5f, DECK_Y - i * 0.7f, 0.55f, 0.55f, 0.0f, DEPTH_CARDS + 0.3f + i * 0.08f, NULL);
 		gfx_textf(DECK_X + 10, DECK_Y - 44, DEPTH_UI, 0.4f, COLOR_CREAM, C2D_AlignCenter, "Mazo: %d",
 			G->deck.count);
+	} else if (SUB) {
+		gfx_text("Subasta", DECK_X + 10, DECK_Y - 44, DEPTH_UI, 0.42f, COLOR_CREAM, C2D_AlignCenter);
+		if (G->bidder >= 0) {
+			gfx_textf(DECK_X + 10, DECK_Y - 26, DEPTH_UI, 0.6f, COLOR_GOLD, C2D_AlignCenter, "%d", G->bid);
+			gfx_text(G->bidder == 0 ? "Tú" : seat_name(G->bidder), DECK_X + 10, DECK_Y - 6, DEPTH_UI, 0.42f,
+				COLOR_CREAM, C2D_AlignCenter);
+		}
+		if (G->trump >= 0)
+			gfx_sprite(SPR_SUIT_FIRST + G->trump, DECK_X + 10, DECK_Y + 22, 0.8f, DEPTH_UI);
 	} else if (G->variant == GN_GUINOTE) {
 		gfx_text("Arrastre", DECK_X + 10, DECK_Y - 8, DEPTH_UI, 0.55f, COLOR_GOLD, C2D_AlignCenter);
 	} else {
@@ -503,8 +638,12 @@ static void gn_scene_draw_top(void)
 
 	/* Marcador */
 	gfx_panel(8, 168, 112, 64, DEPTH_UI, C2D_Color32(10, 50, 25, 210), C2D_Color32(20, 60, 30, 255));
-	gfx_sprite(SPR_SUIT_FIRST + G->trump, 24, 182, 0.55f, DEPTH_UI);
-	gfx_text(suit_name((Suit)G->trump), 38, 174, DEPTH_UI, 0.42f, COLOR_GOLD, C2D_AlignLeft);
+	if (G->trump >= 0) {
+		gfx_sprite(SPR_SUIT_FIRST + G->trump, 24, 182, 0.55f, DEPTH_UI);
+		gfx_text(suit_name((Suit)G->trump), 38, 174, DEPTH_UI, 0.42f, COLOR_GOLD, C2D_AlignLeft);
+	} else {
+		gfx_text("Sin triunfo", 64, 174, DEPTH_UI, 0.42f, COLOR_GOLD, C2D_AlignCenter);
+	}
 	if (G->variant == GN_GUINOTE) {
 		gfx_textf(64, 192, DEPTH_UI, 0.42f, C2D_Color32(140, 200, 255, 255), C2D_AlignCenter, "Nosotros %d",
 			total_points(0));
@@ -543,8 +682,19 @@ static void gn_scene_draw_bottom(void)
 	button_draw(&s_btn_menu, false);
 
 	bool my_turn = G->phase == GN_PHASE_PLAYING && G->current == 0;
+	if (G->phase == GN_PHASE_CHOOSE_TRUMP && G->current == 0) {
+		gfx_text("Elige el triunfo", BOTTOM_W / 2, 30, 0, 0.6f, COLOR_GOLD, C2D_AlignCenter);
+		for (int i = 0; i < NUM_SUITS; i++) {
+			button_draw(&s_btn_suit[i], true);
+			gfx_sprite_ex(SPR_SUIT_FIRST + i, s_btn_suit[i].x + 22, s_btn_suit[i].y + 25, 0.8f, 0.8f, 0.0f, 0, NULL);
+		}
+		return;
+	}
 	if (my_turn)
 		gfx_text("¡Tu turno!", BOTTOM_W / 2, 32, 0, 0.55f, COLOR_GOLD, C2D_AlignCenter);
+	else if (G->phase == GN_PHASE_BIDDING && G->current == 0)
+		gfx_text(gn_must_bid(G) ? "Han pasado todos: tienes que pujar" : "¿Cuánto pujas? (L/R para cambiar)",
+			BOTTOM_W / 2, 32, 0, 0.5f, COLOR_GOLD, C2D_AlignCenter);
 	if (my_turn && G->hand_count[0] > 0 && !busy()) {
 		const VisCard* v = &s_hand[card_index(G->hands[0][s_selected])];
 		float pulse = 0.75f + 0.25f * sinf(gfx_time() * 6.0f);
@@ -559,6 +709,9 @@ static void gn_scene_draw_bottom(void)
 	if (G->variant == GN_GUINOTE)
 		gfx_textf(BOTTOM_W / 2, 160, 0, 0.45f, COLOR_CREAM, C2D_AlignCenter, "Nosotros %d - Ellos %d   (a %d)",
 			total_points(0), total_points(1), GN_GAME_POINTS);
+	else if (SUB)
+		gfx_textf(BOTTOM_W / 2, 160, 0, 0.45f, COLOR_CREAM, C2D_AlignCenter, "Partida: nosotros %d - ellos %d   (a %d)",
+			G->score[0], G->score[1], GN_SUB_POINTS);
 	else
 		gfx_textf(BOTTOM_W / 2, 160, 0, 0.45f, COLOR_CREAM, C2D_AlignCenter, "Manos ganadas: %s %d - %s %d   (a %d)",
 			PAIRS ? "nosotros" : "tú", G->score[0], PAIRS ? "ellos" : "el mejor rival",
@@ -570,12 +723,14 @@ static void gn_scene_draw_bottom(void)
 		BOTTOM_W / 2, 180, 0, 0.4f, C2D_Color32(200, 230, 200, 255), C2D_AlignCenter);
 
 	bool playing = G->phase == GN_PHASE_PLAYING;
+	bool bidding = G->phase == GN_PHASE_BIDDING;
 	button_draw(&s_btn_play, s_btn_play.enabled);
 	if (playing)
 		button_draw(&s_btn_sing, s_btn_sing.enabled);
-	button_draw(&s_btn_swap, s_btn_swap.enabled && playing);
+	button_draw(&s_btn_swap, s_btn_swap.enabled && (playing || bidding));
 }
 
 const Scene scene_guinote = { guinote_enter, gn_scene_update, gn_scene_draw_top, gn_scene_draw_bottom };
 const Scene scene_tute = { tute_enter, gn_scene_update, gn_scene_draw_top, gn_scene_draw_bottom };
 const Scene scene_tute_cabron = { cabron_enter, gn_scene_update, gn_scene_draw_top, gn_scene_draw_bottom };
+const Scene scene_tute_subastado = { subastado_enter, gn_scene_update, gn_scene_draw_top, gn_scene_draw_bottom };

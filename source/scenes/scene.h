@@ -14,6 +14,7 @@ typedef enum {
 	SCENE_GUINOTE,
 	SCENE_TUTE,
 	SCENE_TUTE_CABRON,
+	SCENE_TUTE_SUBASTADO,
 	SCENE_UNO,
 	SCENE_POKER,
 	SCENE_BLACKJACK,
@@ -23,6 +24,9 @@ typedef enum {
 	SCENE_DAMAS,
 	SCENE_DOMINO,
 	SCENE_AS23,
+	SCENE_PUMBA,
+	SCENE_JULEPE,
+	SCENE_TRUCO,
 	SCENE_MONA,
 	SCENE_CUCU,
 	SCENE_TREINTAYUNA,
@@ -56,6 +60,7 @@ extern const Scene scene_mus;
 extern const Scene scene_guinote;
 extern const Scene scene_tute;
 extern const Scene scene_tute_cabron;
+extern const Scene scene_tute_subastado;
 extern const Scene scene_uno;
 extern const Scene scene_poker;
 extern const Scene scene_blackjack;
@@ -65,6 +70,9 @@ extern const Scene scene_conecta4;
 extern const Scene scene_damas;
 extern const Scene scene_domino;
 extern const Scene scene_as23;
+extern const Scene scene_pumba;
+extern const Scene scene_julepe;
+extern const Scene scene_truco;
 extern const Scene scene_mona;
 extern const Scene scene_cucu;
 extern const Scene scene_treintayuna;

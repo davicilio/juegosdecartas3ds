@@ -26,6 +26,9 @@
 #include "games/poker.h"
 #include "games/treintayuna.h"
 #include "games/as23.h"
+#include "games/julepe.h"
+#include "games/pumba.h"
+#include "games/truco.h"
 #include "games/mona.h"
 #include "games/mentiroso.h"
 #include "games/culo.h"
@@ -1382,7 +1385,7 @@ static void test_gn_points(void)
 		}
 		CHECK(g.points[0] + g.points[1] == 120 + GN_LAST_TRICK);
 	}
-	for (int v = GN_TUTE; v < GN_VARIANTS; v++)
+	for (int v = GN_TUTE; v <= GN_TUTE_CABRON; v++)
 		for (int seed = 0; seed < 100; seed++) {
 			Guinote g;
 			gn_init(&g, (GnVariant)v, seed);
@@ -1946,6 +1949,335 @@ static void test_as23(void)
 		printf("  as, 2, 3 con %d: %ld cartas de media, %d alargadas, ganan %d/%d/%d/%d\n", players, plays / 500, capped,
 			wins[0], wins[1], wins[2], wins[3]);
 	}
+}
+
+static void test_pumba(void)
+{
+	Pumba g;
+	pu_init(&g, 5);
+	CHECK(g.hand_count[0] == PU_START_HAND && g.deck_count == DECK_SIZE - 4 * PU_START_HAND - 1);
+	/* Los doses se acumulan y el que no tiene roba todos */
+	g.current = 0;
+	g.direction = 1;
+	g.suit = SUIT_OROS;
+	g.discard[g.discard_count - 1] = card_make(SUIT_OROS, 5);
+	g.hand_count[0] = 2;
+	g.hands[0][0] = card_make(SUIT_OROS, 2);
+	g.hands[0][1] = card_make(SUIT_COPAS, 6);
+	g.hand_count[1] = 2;
+	g.hands[1][0] = card_make(SUIT_ESPADAS, 2);
+	g.hands[1][1] = card_make(SUIT_ESPADAS, 6);
+	g.hand_count[2] = 1;
+	g.hands[2][0] = card_make(SUIT_BASTOS, 7);
+	CHECK(pu_play(&g, 0) && g.pending == 2 && g.current == 1);
+	CHECK(!pu_can_play(&g, 1, 1) && pu_can_play(&g, 1, 0));
+	CHECK(pu_play(&g, 0) && g.pending == 4 && g.current == 2);
+	CHECK(!pu_can_play(&g, 2, 0));
+	CHECK(pu_draw(&g) && g.hand_count[2] == 5 && g.pending == 0 && g.current == 3);
+	/* El caballo vale sobre cualquier carta y cambia el palo */
+	g.hand_count[3] = 2;
+	g.hands[3][0] = card_make(SUIT_COPAS, RANK_CABALLO);
+	g.hands[3][1] = card_make(SUIT_COPAS, 4);
+	g.suit = SUIT_ESPADAS;
+	CHECK(pu_can_play(&g, 3, 0) && !pu_can_play(&g, 3, 1));
+	CHECK(pu_play(&g, 0) && g.phase == PU_PHASE_CHOOSE_SUIT);
+	CHECK(pu_choose_suit(&g, SUIT_BASTOS) && g.suit == SUIT_BASTOS && g.current == 0);
+	/* La sota cambia el sentido y el as salta */
+	g.hand_count[0] = 3;
+	g.hands[0][0] = card_make(SUIT_BASTOS, RANK_SOTA);
+	g.hands[0][1] = card_make(SUIT_BASTOS, 1);
+	g.hands[0][2] = card_make(SUIT_BASTOS, 3);
+	CHECK(pu_play(&g, 0) && g.direction == -1 && g.current == 3);
+	g.current = 0;
+	CHECK(pu_play(&g, 0) && g.current == 2);
+
+	int wins[PU_PLAYERS] = { 0 };
+	for (int game = 0; game < 200; game++) {
+		pu_init(&g, 900 + game);
+		int guard = 0;
+		while (g.phase != PU_PHASE_GAME_OVER && guard++ < 100000) {
+			if (g.phase == PU_PHASE_ROUND_OVER) {
+				pu_new_round(&g);
+				continue;
+			}
+			int total = g.deck_count + g.discard_count;
+			for (int p = 0; p < PU_PLAYERS; p++)
+				total += g.hand_count[p];
+			CHECK(total == DECK_SIZE);
+			int p = g.current;
+			if (g.phase == PU_PHASE_CHOOSE_SUIT) {
+				CHECK(pu_choose_suit(&g, pu_ai_suit(&g, p)));
+				continue;
+			}
+			if (g.hand_count[p] == 2)
+				pu_say(&g, p);
+			int i = pu_ai_choose(&g, p);
+			if (i >= 0)
+				CHECK(pu_play(&g, i));
+			else if (!g.drew)
+				CHECK(pu_draw(&g));
+			else
+				CHECK(pu_pass(&g));
+		}
+		CHECK(g.phase == PU_PHASE_GAME_OVER);
+		wins[pu_game_winner(&g)]++;
+	}
+	printf("  pumba: ganan %d/%d/%d/%d\n", wins[0], wins[1], wins[2], wins[3]);
+}
+
+static void test_julepe(void)
+{
+	Julepe g;
+	ju_init(&g, 3);
+	g.trump = SUIT_OROS;
+	CHECK(ju_strength(card_make(SUIT_COPAS, 1)) > ju_strength(card_make(SUIT_COPAS, 3)));
+	CHECK(ju_strength(card_make(SUIT_COPAS, 3)) > ju_strength(card_make(SUIT_COPAS, RANK_REY)));
+	CHECK(ju_strength(card_make(SUIT_COPAS, RANK_SOTA)) > ju_strength(card_make(SUIT_COPAS, 7)));
+	CHECK(ju_strength(card_make(SUIT_COPAS, 4)) > ju_strength(card_make(SUIT_COPAS, 2)));
+	CHECK(ju_beats(&g, card_make(SUIT_OROS, 2), card_make(SUIT_COPAS, 1)));
+	CHECK(!ju_beats(&g, card_make(SUIT_ESPADAS, 1), card_make(SUIT_COPAS, 2)));
+	/* Si solo entra uno, quien reparte no puede pasar */
+	ju_init(&g, 4);
+	while (g.current != g.dealer)
+		CHECK(ju_decide(&g, g.current == (g.dealer + 1) % JU_PLAYERS));
+	CHECK(ju_must_play(&g, g.dealer) && !ju_decide(&g, false) && ju_decide(&g, true));
+	CHECK(g.phase == JU_DISCARDING && ju_entered(&g) == 2);
+	/* Si no entra nadie, el plato se queda */
+	ju_init(&g, 5);
+	int pot = g.pot;
+	while (g.phase == JU_DECIDING)
+		CHECK(ju_decide(&g, false));
+	CHECK(g.void_hand && g.pot == pot && g.phase == JU_HAND_OVER);
+	/* Asistir y montar; fallar si no se tiene el palo */
+	ju_init(&g, 6);
+	g.trump = SUIT_OROS;
+	for (int p = 0; p < JU_PLAYERS; p++)
+		g.playing[p] = true;
+	g.phase = JU_PLAYING;
+	g.leader = g.current = 0;
+	g.played_in_trick = 0;
+	g.hand_count[0] = 1;
+	g.hands[0][0] = card_make(SUIT_COPAS, 5);
+	CHECK(ju_play(&g, 0));
+	g.hand_count[1] = 3;
+	g.hands[1][0] = card_make(SUIT_COPAS, 4);
+	g.hands[1][1] = card_make(SUIT_COPAS, 7);
+	g.hands[1][2] = card_make(SUIT_OROS, 2);
+	CHECK(!ju_can_play(&g, 1, 0) && ju_can_play(&g, 1, 1) && !ju_can_play(&g, 1, 2));
+	CHECK(ju_play(&g, 1));
+	g.hand_count[2] = 2;
+	g.hands[2][0] = card_make(SUIT_ESPADAS, 1);
+	g.hands[2][1] = card_make(SUIT_OROS, 4);
+	CHECK(!ju_can_play(&g, 2, 0) && ju_can_play(&g, 2, 1));
+
+	int wins[JU_PLAYERS] = { 0 }, julepes = 0, voids = 0;
+	for (int game = 0; game < 300; game++) {
+		ju_init(&g, 1200 + game);
+		int guard = 0;
+		while (g.phase != JU_GAME_OVER && guard++ < 10000) {
+			int chips = g.pot;
+			for (int p = 0; p < JU_PLAYERS; p++)
+				chips += g.chips[p];
+			CHECK(chips == JU_PLAYERS * JU_START);
+			int p = g.current;
+			switch (g.phase) {
+			case JU_DECIDING:
+				CHECK(ju_decide(&g, ju_must_play(&g, p) || ju_ai_enter(&g, p)));
+				break;
+			case JU_DISCARDING: {
+				bool sel[JU_HAND];
+				ju_ai_discard(&g, p, sel);
+				CHECK(ju_discard(&g, sel));
+				break;
+			}
+			case JU_PLAYING: {
+				int i = ju_ai_choose(&g, p);
+				CHECK(ju_can_play(&g, p, i));
+				CHECK(ju_play(&g, i));
+				break;
+			}
+			case JU_TRICK_DONE:
+				CHECK(ju_collect(&g));
+				if (g.phase >= JU_HAND_OVER) {
+					int t = 0;
+					for (int q = 0; q < JU_PLAYERS; q++) {
+						t += g.tricks[q];
+						julepes += g.julepe[q];
+					}
+					CHECK(t == JU_HAND);
+				}
+				break;
+			case JU_HAND_OVER:
+				voids += g.void_hand;
+				ju_new_hand(&g);
+				break;
+			default:
+				break;
+			}
+		}
+		CHECK(g.phase == JU_GAME_OVER);
+		wins[ju_winner(&g)]++;
+	}
+	printf("  julepe: ganan %d/%d/%d/%d, %d julepes, %d manos sin jugar\n", wins[0], wins[1], wins[2], wins[3],
+		julepes, voids);
+}
+
+static void test_tute_subastado(void)
+{
+	Guinote g;
+	gn_init(&g, GN_TUTE_SUBASTADO, 77);
+	CHECK(g.phase == GN_PHASE_BIDDING && g.hand_count[0] == 10 && g.trump < 0);
+	int first = g.current;
+	CHECK(!gn_bid(&g, 60) && gn_bid(&g, 70) && g.bidder == first);
+	CHECK(!gn_bid(&g, 70) && gn_bid(&g, 80));
+	CHECK(gn_bid(&g, 0) && gn_bid(&g, 0)); /* pasan los otros dos */
+	CHECK(g.current == first && gn_bid(&g, 0));
+	CHECK(g.phase == GN_PHASE_CHOOSE_TRUMP && g.bidder == (first + 1) % GN_PLAYERS && g.bid == 80);
+	CHECK(gn_choose_trump(&g, SUIT_COPAS) && g.trump == SUIT_COPAS && g.current == g.bidder);
+	/* Si pasan tres, el último tiene que pujar */
+	gn_init(&g, GN_TUTE_SUBASTADO, 78);
+	CHECK(gn_bid(&g, 0) && gn_bid(&g, 0) && gn_bid(&g, 0));
+	CHECK(gn_must_bid(&g) && !gn_bid(&g, 0) && gn_bid(&g, 70) && g.phase == GN_PHASE_CHOOSE_TRUMP);
+
+	int wins[2] = { 0 }, made = 0, hands = 0;
+	for (int game = 0; game < 100; game++) {
+		gn_init(&g, GN_TUTE_SUBASTADO, 3100 + game);
+		int guard = 0;
+		while (g.phase != GN_PHASE_GAME_OVER && guard++ < 20000) {
+			int p = g.current;
+			switch (g.phase) {
+			case GN_PHASE_BIDDING:
+				CHECK(gn_bid(&g, gn_ai_bid(&g, p)));
+				break;
+			case GN_PHASE_CHOOSE_TRUMP:
+				CHECK(gn_choose_trump(&g, gn_ai_trump(&g, p)));
+				break;
+			case GN_PHASE_PLAYING:
+				if (gn_sing_tute(&g, p) || gn_cante(&g, p))
+					break;
+				CHECK(gn_play(&g, gn_ai_choose(&g, p)));
+				break;
+			case GN_PHASE_TRICK_DONE:
+				CHECK(gn_collect(&g));
+				if (g.phase == GN_PHASE_HAND_OVER || g.phase == GN_PHASE_GAME_OVER) {
+					hands++;
+					made += g.bid_made;
+					if (!g.tute)
+						CHECK(g.points[0] + g.points[1] >= 130);
+				}
+				break;
+			case GN_PHASE_HAND_OVER:
+				gn_new_hand(&g);
+				break;
+			default:
+				break;
+			}
+		}
+		CHECK(g.phase == GN_PHASE_GAME_OVER);
+		wins[gn_game_winner(&g)]++;
+	}
+	printf("  tute subastado: ganan %d/%d, %d de %d subastas cumplidas\n", wins[0], wins[1], made, hands);
+}
+
+static void tr_set(Truco* g, int p, Card a, Card b, Card c)
+{
+	g->hand[p][0] = g->dealt[p][0] = a;
+	g->hand[p][1] = g->dealt[p][1] = b;
+	g->hand[p][2] = g->dealt[p][2] = c;
+}
+
+static void test_truco(void)
+{
+	/* Orden de las cartas */
+	CHECK(tr_power(card_make(SUIT_ESPADAS, 1)) > tr_power(card_make(SUIT_BASTOS, 1)));
+	CHECK(tr_power(card_make(SUIT_BASTOS, 1)) > tr_power(card_make(SUIT_ESPADAS, 7)));
+	CHECK(tr_power(card_make(SUIT_ESPADAS, 7)) > tr_power(card_make(SUIT_OROS, 7)));
+	CHECK(tr_power(card_make(SUIT_OROS, 7)) > tr_power(card_make(SUIT_COPAS, 3)));
+	CHECK(tr_power(card_make(SUIT_COPAS, 3)) > tr_power(card_make(SUIT_COPAS, 2)));
+	CHECK(tr_power(card_make(SUIT_COPAS, 2)) > tr_power(card_make(SUIT_OROS, 1)));
+	CHECK(tr_power(card_make(SUIT_OROS, 1)) > tr_power(card_make(SUIT_OROS, RANK_REY)));
+	CHECK(tr_power(card_make(SUIT_OROS, RANK_SOTA)) > tr_power(card_make(SUIT_COPAS, 7)));
+	CHECK(tr_power(card_make(SUIT_COPAS, 7)) > tr_power(card_make(SUIT_COPAS, 6)));
+	CHECK(tr_power(card_make(SUIT_COPAS, 5)) > tr_power(card_make(SUIT_COPAS, 4)));
+	/* Envido */
+	Card e1[3] = { card_make(SUIT_OROS, 7), card_make(SUIT_OROS, 6), card_make(SUIT_COPAS, 5) };
+	CHECK(tr_envido(e1, 3) == 33);
+	Card e2[3] = { card_make(SUIT_OROS, RANK_REY), card_make(SUIT_OROS, RANK_SOTA), card_make(SUIT_COPAS, 5) };
+	CHECK(tr_envido(e2, 3) == 20);
+	Card e3[3] = { card_make(SUIT_OROS, RANK_REY), card_make(SUIT_ESPADAS, 4), card_make(SUIT_COPAS, 6) };
+	CHECK(tr_envido(e3, 3) == 6);
+
+	Truco g;
+	tr_init(&g, 1);
+	g.mano = g.turn = g.baza_leader = 0;
+	tr_set(&g, 0, card_make(SUIT_ESPADAS, 1), card_make(SUIT_OROS, 4), card_make(SUIT_OROS, 5));
+	tr_set(&g, 1, card_make(SUIT_COPAS, 3), card_make(SUIT_COPAS, 7), card_make(SUIT_BASTOS, 6));
+	/* Envido, real envido, quiero: 5 puntos para el que más tiene (29 contra 27) */
+	CHECK(tr_act(&g, 0, TR_ACT_ENVIDO) && g.phase == TR_RESPOND && g.responder == 1);
+	CHECK(tr_act(&g, 1, TR_ACT_REAL) && g.responder == 0);
+	CHECK(!tr_can(&g, 0, TR_ACT_ENVIDO) && !tr_can(&g, 0, TR_ACT_REAL) && tr_can(&g, 0, TR_ACT_FALTA));
+	CHECK(tr_act(&g, 0, TR_ACT_QUIERO));
+	CHECK(g.envido_pts[0] == 29 && g.envido_pts[1] == 30 && g.envido_winner == 1 && g.score[1] == 5);
+	CHECK(g.phase == TR_PLAY && g.turn == 0 && !tr_can(&g, 0, TR_ACT_ENVIDO));
+	/* Truco, quiero; retruco solo puede cantarlo quien quiso */
+	CHECK(tr_act(&g, 0, TR_ACT_TRUCO) && tr_act(&g, 1, TR_ACT_QUIERO) && g.truco_level == 2);
+	CHECK(!tr_can(&g, 0, TR_ACT_TRUCO));
+	CHECK(tr_play(&g, 0, 0)); /* as de espadas */
+	CHECK(tr_can(&g, 1, TR_ACT_TRUCO) && tr_act(&g, 1, TR_ACT_TRUCO) && g.responder == 0);
+	CHECK(tr_act(&g, 0, TR_ACT_TRUCO) && g.truco_call == 4 && g.truco_level == 3); /* vale cuatro */
+	CHECK(tr_act(&g, 1, TR_ACT_NOQUIERO) && g.phase == TR_HAND_OVER && g.hand_winner == 0 && g.hand_points == 3);
+	CHECK(g.score[0] == 3);
+
+	/* Pardas: la primera parda la decide la segunda */
+	tr_init(&g, 2);
+	g.mano = g.turn = g.baza_leader = 1;
+	tr_set(&g, 0, card_make(SUIT_OROS, 3), card_make(SUIT_OROS, 4), card_make(SUIT_ESPADAS, 7));
+	tr_set(&g, 1, card_make(SUIT_COPAS, 3), card_make(SUIT_COPAS, 5), card_make(SUIT_BASTOS, 4));
+	CHECK(tr_play(&g, 1, 0) && tr_play(&g, 0, 0) && g.baza_winner[0] == -1 && g.turn == 1);
+	CHECK(tr_play(&g, 1, 1) && tr_play(&g, 0, 2) && g.phase == TR_HAND_OVER && g.hand_winner == 0);
+	/* Gana la primera y empata la segunda: gana el de la primera */
+	tr_init(&g, 3);
+	g.mano = g.turn = g.baza_leader = 0;
+	tr_set(&g, 0, card_make(SUIT_OROS, 3), card_make(SUIT_OROS, 4), card_make(SUIT_ESPADAS, 6));
+	tr_set(&g, 1, card_make(SUIT_COPAS, 2), card_make(SUIT_COPAS, 4), card_make(SUIT_BASTOS, 5));
+	CHECK(tr_play(&g, 0, 0) && tr_play(&g, 1, 0) && g.baza_winner[0] == 0);
+	CHECK(tr_play(&g, 0, 1) && tr_play(&g, 1, 1) && g.phase == TR_HAND_OVER && g.hand_winner == 0);
+	/* El envido está primero: se contesta al truco con el envido y luego se sigue con el truco */
+	tr_init(&g, 4);
+	g.mano = g.turn = g.baza_leader = 0;
+	tr_set(&g, 0, card_make(SUIT_OROS, 3), card_make(SUIT_OROS, 4), card_make(SUIT_ESPADAS, 6));
+	tr_set(&g, 1, card_make(SUIT_COPAS, 7), card_make(SUIT_COPAS, 6), card_make(SUIT_BASTOS, 5));
+	CHECK(tr_act(&g, 0, TR_ACT_TRUCO) && tr_can(&g, 1, TR_ACT_ENVIDO) && tr_act(&g, 1, TR_ACT_ENVIDO));
+	CHECK(tr_act(&g, 0, TR_ACT_NOQUIERO) && g.score[1] == 1);
+	CHECK(g.phase == TR_RESPOND && g.pending == TR_ACT_TRUCO && g.responder == 1);
+	CHECK(tr_act(&g, 1, TR_ACT_QUIERO) && g.truco_level == 2 && g.phase == TR_PLAY && g.turn == 0);
+	/* Irse al mazo */
+	CHECK(tr_act(&g, 0, TR_ACT_MAZO) && g.hand_winner == 1 && g.score[1] == 3);
+
+	int wins[2] = { 0 }, hands = 0, envidos = 0, trucos = 0;
+	for (int game = 0; game < 400; game++) {
+		tr_init(&g, 5000 + game);
+		int guard = 0;
+		while (g.phase != TR_GAME_OVER && guard++ < 5000) {
+			if (g.phase == TR_HAND_OVER) {
+				hands++;
+				envidos += g.envido_done;
+				trucos += g.truco_level > 1;
+				tr_new_hand(&g);
+				continue;
+			}
+			int p = tr_actor(&g), c;
+			TrAction a = tr_ai(&g, p, &c);
+			if (a == TR_ACT_NONE)
+				CHECK(tr_play(&g, p, c));
+			else
+				CHECK(tr_act(&g, p, a));
+		}
+		CHECK(g.phase == TR_GAME_OVER && tr_winner(&g) >= 0);
+		wins[tr_winner(&g)]++;
+	}
+	printf("  truco: ganan %d/%d, %d manos, %d con envido, %d con truco querido\n", wins[0], wins[1], hands, envidos,
+		trucos);
 }
 
 static void test_cucu(void)
@@ -2536,6 +2868,10 @@ int main(void)
 	test_rk_simulation();
 	test_mona();
 	test_as23();
+	test_truco();
+	test_tute_subastado();
+	test_pumba();
+	test_julepe();
 	test_cucu();
 	test_treintayuna();
 	test_mentiroso();

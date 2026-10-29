@@ -80,16 +80,17 @@ static const MenuEntry entries[] = {
 	  "Si tu carta coincide con lo que dices, te llevas el montón. Gana quien se quede sin cartas.",
 	  SCENE_AS23, SUIT_COPAS, { C(OROS, 1), C(COPAS, 2), C(ESPADAS, 3) }, { CPU_MANOLO, CPU_LUCIA, CPU_RAMON } },
 	{ "Tute subastado",
-	  "Tute por parejas en el que se puja por los puntos que se van a hacer. Quien gana la subasta "
-	  "elige el triunfo.",
-	  SCENE_COUNT, SUIT_COPAS, { C(COPAS, 1), C(COPAS, 3), C(COPAS, RANK_REY) }, { -1, -1, -1 } },
+	  "Tute por parejas sin pinta: se puja por los puntos que hará tu pareja, de 70 en adelante. "
+	  "Quien gana la subasta elige el triunfo. Si llegáis, os lo apuntáis; si no, se resta. A 300.",
+	  SCENE_TUTE_SUBASTADO, SUIT_COPAS, { C(COPAS, 1), C(COPAS, 3), C(COPAS, RANK_REY) }, { CPU_MANOLO, CPU_CARMEN, CPU_RAMON } },
 	{ "Tute cabrón",
 	  "El tute de cada uno para sí: cuatro jugadores sin compañero. Gana la mano quien más puntos "
 	  "sume; la partida, el primero que gane tres manos.",
 	  SCENE_TUTE_CABRON, SUIT_ESPADAS, { C(ESPADAS, RANK_REY), C(BASTOS, RANK_REY), C(OROS, 3) }, { CPU_PEPE, CPU_LUCIA, CPU_CARMEN } },
 	{ "Julepe",
-	  "Juego de bazas con triunfo: hay que hacer al menos dos bazas o pagar el julepe.",
-	  SCENE_COUNT, SUIT_BASTOS, { C(BASTOS, 1), C(BASTOS, 3), C(COPAS, 7) }, { -1, -1, -1 } },
+	  "Di si juegas, cambia las cartas que quieras y haz al menos dos bazas: cada una cobra un "
+	  "quinto del plato. Si haces menos, te dan julepe y pagas lo que había en el plato.",
+	  SCENE_JULEPE, SUIT_BASTOS, { C(BASTOS, 1), C(BASTOS, 3), C(COPAS, 7) }, { CPU_RAMON, CPU_LOLA, CPU_PEPE } },
 	{ "Tresillo",
 	  "Clásico de bazas a tres jugadores, antepasado del julepe, con su famosa espadilla y su basto.",
 	  SCENE_COUNT, SUIT_ESPADAS, { C(ESPADAS, 1), C(BASTOS, 1), C(OROS, RANK_REY) }, { -1, -1, -1 } },
@@ -108,8 +109,9 @@ static const MenuEntry entries[] = {
 	  "compañeros.",
 	  SCENE_COUNT, SUIT_ESPADAS, { C(ESPADAS, 1), C(BASTOS, 1), C(ESPADAS, 7) }, { -1, -1, -1 } },
 	{ "Truco argentino",
-	  "Envido, truco y flor: el juego de faroles más popular de Argentina y Uruguay.",
-	  SCENE_COUNT, SUIT_BASTOS, { C(ESPADAS, 1), C(BASTOS, 1), C(OROS, 7) }, { -1, -1, -1 } },
+	  "Mano a mano, a 15. Tres cartas y tres bazas. Canta el envido si tienes dos del mismo palo, "
+	  "o el truco, el retruco y el vale cuatro... aunque sea de farol. ¡O vete al mazo!",
+	  SCENE_TRUCO, SUIT_BASTOS, { C(ESPADAS, 1), C(BASTOS, 1), C(OROS, 7) }, { CPU_MANOLO, -1, -1 } },
 	{ "Butifarra",
 	  "El gran juego catalán por parejas, con triunfo elegido y contrada.",
 	  SCENE_COUNT, SUIT_COPAS, { C(COPAS, 1), C(COPAS, 7), C(OROS, RANK_REY) }, { -1, -1, -1 } },
@@ -124,8 +126,9 @@ static const MenuEntry entries[] = {
 	  "baja.",
 	  SCENE_CUCU, SUIT_BASTOS, { C(BASTOS, 1), C(OROS, 2), C(COPAS, RANK_REY) }, { -1, -1, -1 } },
 	{ "Pumba",
-	  "Quédate sin cartas antes que nadie, con cartas que hacen robar o saltar turno. ¡Pumba!",
-	  SCENE_COUNT, SUIT_ESPADAS, { C(ESPADAS, 2), C(OROS, 2), C(COPAS, RANK_SOTA) }, { -1, -1, -1 } },
+	  "Echa cartas del mismo palo o número. El as salta, el dos hace robar (y se acumula), la sota "
+	  "cambia el sentido y el caballo cambia el palo. Con una carta, ¡di Pumba!",
+	  SCENE_PUMBA, SUIT_ESPADAS, { C(ESPADAS, 2), C(OROS, 2), C(COPAS, RANK_SOTA) }, { CPU_PACO, CPU_CARMEN, CPU_PEPE } },
 	/* Baraja francesa */
 	{ "Póker",
 	  "Texas Hold'em contra tres personajes: dos cartas tuyas y cinco en la mesa. Pasa, iguala, sube o "

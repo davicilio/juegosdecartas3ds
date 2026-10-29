@@ -8,7 +8,7 @@ OBJS    := test_main.c $(SRC)/core/cards.c $(SRC)/core/rng.c \
            $(SRC)/games/brisca.c $(SRC)/games/escoba.c \
            $(SRC)/games/chinchon.c $(SRC)/games/mus.c \
            $(SRC)/games/guinote.c $(SRC)/games/solitario.c $(SRC)/games/piramide.c $(SRC)/games/uno.c $(SRC)/games/rummikub.c \
-           $(SRC)/games/as23.c $(SRC)/games/mona.c $(SRC)/games/cucu.c $(SRC)/games/treintayuna.c \
+           $(SRC)/games/as23.c $(SRC)/games/pumba.c $(SRC)/games/julepe.c $(SRC)/games/truco.c $(SRC)/games/mona.c $(SRC)/games/cucu.c $(SRC)/games/treintayuna.c \
            $(SRC)/games/mentiroso.c $(SRC)/games/culo.c $(SRC)/games/poker.c \
            $(SRC)/games/blackjack.c $(SRC)/games/corazones.c $(SRC)/games/pocha.c \
            $(SRC)/games/conecta4.c $(SRC)/games/damas.c $(SRC)/games/domino.c

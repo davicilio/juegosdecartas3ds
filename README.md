@@ -111,15 +111,15 @@ pueden jugar; la lista se desplaza con la cruceta) y, en pequeño, **Configuraci
 | Mierda | 🕓 Próximamente |
 | Burro | 🕓 Próximamente |
 | As, 2, 3 | ✅ Disponible |
-| Tute subastado | 🕓 Próximamente |
-| Julepe | 🕓 Próximamente |
+| Tute subastado | ✅ Disponible |
+| Julepe | ✅ Disponible |
 | Tresillo | 🕓 Próximamente |
 | Cuatrillo | 🕓 Próximamente |
 | Subasta | 🕓 Próximamente |
 | Truc | 🕓 Próximamente |
-| Truco argentino | 🕓 Próximamente |
+| Truco argentino | ✅ Disponible |
 | Butifarra | 🕓 Próximamente |
-| Pumba | 🕓 Próximamente |
+| Pumba | ✅ Disponible |
 
 ### Siete y media
 Te enfrentas a la banca. Las cartas del 1 al 7 valen su número y las figuras
@@ -242,6 +242,42 @@ puntos suma y la partida, quien gana tres manos.
 
 En el **tute** se juega por parejas, como en el guiñote; en el **tute cabrón**,
 cada uno para sí (y hay que matar siempre, aunque la baza la vaya ganando otro).
+
+### Tute subastado
+El tute por parejas, pero sin pinta: antes de jugar se puja por los puntos que hará tu
+pareja (cartas, cantes y las diez de últimas), de 70 en adelante y de diez en diez
+(L/R para cambiar la puja). Quien pasa ya no vuelve a pujar; si pasan los tres primeros,
+el último está obligado. Quien gana la subasta elige el triunfo y sale. Si tu pareja llega
+a lo pujado, se lo apunta; si no, se le resta. Gana la pareja que llega a 300.
+
+### Julepe
+Quien reparte pone 5 fichas en el plato y la carta de debajo marca la pinta. Cada uno dice
+si **juega** o **pasa** (si solo ha entrado uno, quien reparte tiene que jugar). Los que
+juegan pueden cambiar las cartas que quieran. Se juegan cinco bazas: hay que asistir y
+montar, y fallar si no tienes del palo. Cada baza cobra una quinta parte del plato; si
+juegas y haces menos de dos, te dan **julepe** y pagas lo que había en el plato.
+
+![Julepe](docs/julepe.png)
+
+### Pumba
+Como el Uno, con la baraja española: echa una carta del mismo palo o número. El **as**
+salta al siguiente, el **dos** le hace robar dos (si tiene otro dos, lo echa y se van
+acumulando), la **sota** cambia el sentido y el **caballo** es comodín: cambia el palo.
+Con una carta, pulsa Ⓨ para decir ¡Pumba! antes de que te pillen. Gana la ronda quien se
+queda sin cartas y se lleva los puntos de las de los demás; la partida, a 100.
+
+![Pumba](docs/pumba.png)
+
+### Truco argentino
+Mano a mano contra la CPU, a 15 puntos. Tres cartas y tres bazas: gana la mano quien gana
+dos. El orden es as de espadas, as de bastos, 7 de espadas, 7 de oros, treses, doses, ases
+falsos, reyes, caballos, sotas, sietes falsos, seises, cincos y cuatros.
+- **Envido** (Ⓨ, solo en la primera baza): dos cartas del mismo palo valen 20 más sus números.
+  Envido 2, real envido 3, falta envido lo que le falta al que va ganando.
+- **Truco** (Ⓧ): la mano pasa a valer 2; retruco 3 y vale cuatro 4. Solo puede subir quien quiso.
+- Si no quieres, el rival se lleva lo de antes. Con L te vas al mazo.
+
+![Truco](docs/truco.png)
 
 ### As, 2, 3
 Para 2, 3 o 4 jugadores (Ⓧ cambia cuántos). Se reparten todas las cartas boca abajo:
