@@ -410,7 +410,7 @@ static void draw_card(int i, float x, float y)
 			gfx_rect(cx + 1, yy + 1, CELL_W - 2, CELL_H - 2, 0, fill);
 			if (!n)
 				continue;
-			gfx_textf(cx + CELL_W / 2, yy + 2, 0, 0.75f, blue, C2D_AlignCenter, "%d", n);
+			gfx_textf_plain(cx + CELL_W / 2, yy + 2, 0, 0.75f, blue, C2D_AlignCenter, "%d", n);
 			if (c->marked[r][k])
 				gfx_ellipse(cx + CELL_W / 2, yy + CELL_H / 2, 10, 10, 0, C2D_Color32(220, 40, 60, 140));
 			else if (!s_auto && s_game.drawn[n])

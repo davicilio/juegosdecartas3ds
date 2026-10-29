@@ -131,6 +131,9 @@ void gfx_textf(float x, float y, float depth, float scale, u32 color, u32 align,
 	__attribute__((format(printf, 7, 8)));
 float gfx_text_width(const char* str, float scale);
 /* Texto alineado a la izquierda que salta de línea al llegar a width. */
+/* Igual que gfx_textf, pero sin sombra */
+void gfx_textf_plain(float x, float y, float depth, float scale, u32 color, u32 align, const char* fmt, ...)
+	__attribute__((format(printf, 7, 8)));
 void gfx_text_wrap(const char* str, float x, float y, float depth, float scale, u32 color, float width);
 
 void gfx_rect(float x, float y, float w, float h, float depth, u32 color);

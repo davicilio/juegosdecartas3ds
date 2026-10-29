@@ -291,7 +291,7 @@ C2D_TextBuf gfx_textbuf(void)
 	return s_textbuf;
 }
 
-void gfx_text(const char* str, float x, float y, float depth, float scale, u32 color, u32 align)
+static void draw_text(const char* str, float x, float y, float depth, float scale, u32 color, u32 align, bool shadow)
 {
 	if (!str || !*str)
 		return;
@@ -303,11 +303,26 @@ void gfx_text(const char* str, float x, float y, float depth, float scale, u32 c
 	x = floorf(x + gfx_dx(depth) + 0.5f);
 	y = floorf(y + 0.5f);
 	/* Sombra solo hacia abajo y suave en el texto pequeño, para no emborronarlo */
-	if (scale > 0.6f)
+	if (shadow && scale > 0.6f)
 		C2D_DrawText(&text, C2D_WithColor | align, x + 2, y + 2, 0.5f, scale, scale, COLOR_SHADOW);
-	else
+	else if (shadow)
 		C2D_DrawText(&text, C2D_WithColor | align, x, y + 1, 0.5f, scale, scale, C2D_Color32(0, 0, 0, 110));
 	C2D_DrawText(&text, C2D_WithColor | align, x, y, 0.5f, scale, scale, color);
+}
+
+void gfx_text(const char* str, float x, float y, float depth, float scale, u32 color, u32 align)
+{
+	draw_text(str, x, y, depth, scale, color, align, true);
+}
+
+void gfx_textf_plain(float x, float y, float depth, float scale, u32 color, u32 align, const char* fmt, ...)
+{
+	char buf[256];
+	va_list ap;
+	va_start(ap, fmt);
+	vsnprintf(buf, sizeof buf, fmt, ap);
+	va_end(ap);
+	draw_text(buf, x, y, depth, scale, color, align, false);
 }
 
 void gfx_textf(float x, float y, float depth, float scale, u32 color, u32 align, const char* fmt, ...)
