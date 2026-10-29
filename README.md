@@ -99,7 +99,13 @@ pueden jugar; la lista se desplaza con la cruceta) y, en pequeño, **Configuraci
 | Treinta y una | ✅ Disponible |
 | Mentiroso | ✅ Disponible |
 | Culo | ✅ Disponible |
+| Pocha | ✅ Disponible |
 | Póker (baraja francesa) | ✅ Disponible |
+| Blackjack (baraja francesa) | ✅ Disponible |
+| Corazones (baraja francesa) | ✅ Disponible |
+| Conecta 4 (juego de mesa) | ✅ Disponible |
+| Damas (juego de mesa) | ✅ Disponible |
+| Dominó (juego de mesa) | ✅ Disponible |
 | Uno (juego de mesa) | ✅ Disponible |
 | Rummikub (juego de mesa) | ✅ Disponible |
 | Mierda | 🕓 Próximamente |
@@ -109,7 +115,6 @@ pueden jugar; la lista se desplaza con la cruceta) y, en pequeño, **Configuraci
 | Julepe | 🕓 Próximamente |
 | Tresillo | 🕓 Próximamente |
 | Cuatrillo | 🕓 Próximamente |
-| Pocha | 🕓 Próximamente |
 | Subasta | 🕓 Próximamente |
 | Truc | 🕓 Próximamente |
 | Truco argentino | 🕓 Próximamente |
@@ -275,6 +280,35 @@ alta, pareja, doble pareja, trío, escalera, color, full, póker y escalera de c
 y, si alguien va con todo, se hacen botes secundarios. La partida acaba cuando te
 quedas sin fichas o te llevas las de todos. En la pantalla de abajo siempre ves
 qué jugada tienes.
+
+### Pocha
+Diez manos: en la primera se reparte una carta a cada uno, en la segunda dos... hasta
+diez. Antes de jugar dices cuántas bazas vas a hacer (L/R para cambiar el número);
+quien reparte no puede decir el número que haría cuadrar la suma. Hay que asistir,
+matar y fallar. Si aciertas: 10 puntos más 5 por baza; si no, -5 por cada baza de
+diferencia.
+
+### Blackjack (baraja francesa)
+Contra la banca, con cuatro barajas. Elige la apuesta (L/R ±10, Ⓧ +100) y reparte.
+**Pedir** (Ⓐ), **Plantarse** (Ⓑ), **Doblar** (Ⓧ: doblas la apuesta y recibes una
+carta) y **Separar** (Ⓨ: dos cartas iguales en dos manos). La banca pide hasta 17;
+el blackjack paga 3 a 2. En la pantalla de abajo ves qué haría la estrategia básica.
+
+### Corazones (baraja francesa)
+Cuatro jugadores, trece cartas. Antes de cada mano pasas tres cartas (izquierda,
+derecha, enfrente o ninguna). Sale el 2 de tréboles; hay que asistir. Cada corazón
+es un punto y la reina de picas, trece; no se sale con corazones hasta que alguien
+los "rompe". Si te llevas los 26 puntos, disparas a la luna: los demás suman 26. A
+100 puntos gana quien menos tenga.
+
+### Conecta 4, damas y dominó (juegos de mesa)
+- **Conecta 4**: toca una columna (o elige con la cruceta y Ⓐ) para dejar caer tu
+  ficha roja. Gana quien junta cuatro en línea. Ⓨ cambia la dificultad.
+- **Damas** con reglas españolas: toca tu ficha y luego la casilla de destino (se
+  marcan las jugadas posibles). Comer es obligatorio, y la jugada que más come; las
+  fichas comen hacia delante y la dama vuela. Ⓨ cambia la dificultad.
+- **Dominó** por parejas, a 100 puntos: toca una ficha que case con un extremo (si
+  casa por los dos, eliges el lado con L/R). Si no puedes, pasas (Ⓧ).
 
 ### Uno (juego de mesa)
 Tú contra tres personajes, con cartas de colores dibujadas para el juego (diseño

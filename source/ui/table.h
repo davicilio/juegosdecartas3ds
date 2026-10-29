@@ -5,6 +5,7 @@
 
 #include "core/avatar.h"
 #include "core/cards.h"
+#include "games/poker.h"
 #include "ui/input.h"
 #include "ui/mii.h"
 
@@ -52,5 +53,7 @@ int hand_touched(const Input* in, int n, float scale);
  * señalada con la cruceta (-1 ninguna), playable oscurece las que no valen
  * (puede ser NULL). */
 void hand_draw(const Card* cards, int n, float scale, const bool* sel, int cursor, const bool* playable);
+/* Igual, con cartas de la baraja francesa */
+void hand_draw_french(const PkCard* cards, int n, float scale, const bool* sel, int cursor, const bool* playable);
 
 #endif

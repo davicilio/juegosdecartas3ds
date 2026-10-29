@@ -154,3 +154,21 @@ void hand_draw(const Card* cards, int n, float scale, const bool* sel, int curso
 		gfx_card(cards[i], x, y, scale, 1.0f, 0.0f, 0, dim ? 0.45f : 0.0f, i == 0);
 	}
 }
+
+void hand_draw_french(const PkCard* cards, int n, float scale, const bool* sel, int cursor, const bool* playable)
+{
+	float pulse = 0.75f + 0.25f * sinf(gfx_time() * 6.0f);
+	for (int i = 0; i < n; i++) {
+		float x = hand_x(i, n, scale);
+		float y = HAND_Y - ((sel && sel[i]) ? 14.0f : 0.0f);
+		if (i == cursor) {
+			C2D_ImageTint tint;
+			C2D_AlphaImageTint(&tint, pulse);
+			gfx_sprite_ex(SPR_CARD_GLOW, x, y, scale, scale, 0.0f, 0, &tint);
+		}
+		gfx_french(cards[i].suit * 13 + cards[i].rank - 2, x, y, scale, 0.0f, 0, i == 0);
+		if (playable && !playable[i])
+			gfx_rrect(x - CARD_W * scale / 2, y - CARD_H * scale / 2, CARD_W * scale, CARD_H * scale, 4, 0,
+				C2D_Color32(20, 20, 30, 115));
+	}
+}

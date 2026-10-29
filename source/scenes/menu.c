@@ -96,8 +96,9 @@ static const MenuEntry entries[] = {
 	  "La versión del tresillo para cuatro jugadores.",
 	  SCENE_COUNT, SUIT_OROS, { C(ESPADAS, 1), C(BASTOS, 1), C(COPAS, RANK_SOTA) }, { -1, -1, -1 } },
 	{ "Pocha",
-	  "En cada ronda apuestas cuántas bazas vas a hacer: si aciertas, sumas; si fallas, restas.",
-	  SCENE_COUNT, SUIT_COPAS, { C(COPAS, 1), C(OROS, 3), C(BASTOS, RANK_REY) }, { -1, -1, -1 } },
+	  "Diez manos de una a diez cartas. Antes de jugar, di cuántas bazas vas a hacer: si aciertas, "
+	  "10 puntos más 5 por baza; si fallas, pierdes 5 por cada baza de diferencia.",
+	  SCENE_POCHA, SUIT_COPAS, { C(COPAS, 1), C(OROS, 3), C(BASTOS, RANK_REY) }, { CPU_CARMEN, CPU_RAMON, CPU_LOLA } },
 	{ "Subasta",
 	  "Juego de bazas por parejas en el que se puja por los puntos de la mano.",
 	  SCENE_COUNT, SUIT_OROS, { C(OROS, 1), C(OROS, 3), C(ESPADAS, RANK_REY) }, { -1, -1, -1 } },
@@ -130,7 +131,29 @@ static const MenuEntry entries[] = {
 	  "retírate... ¡o vete con todo! Gana quien se quede con todas las fichas.",
 	  SCENE_POKER, SUIT_OROS, { C(OROS, 1), C(OROS, 1), C(OROS, 1) }, { CPU_RAMON, CPU_LUCIA, CPU_MANOLO },
 	  KIND_FRENCH },
+	{ "Blackjack",
+	  "Contra la banca: acércate a 21 sin pasarte. Pide, plántate, dobla o separa las parejas. "
+	  "El blackjack paga 3 a 2. Abajo te dice qué haría la estrategia básica.",
+	  SCENE_BLACKJACK, SUIT_OROS, { C(OROS, 1), C(OROS, 1), C(OROS, 1) }, { CPU_RAMON, -1, -1 }, KIND_FRENCH },
+	{ "Corazones",
+	  "Evita llevarte corazones (1 punto) y la reina de picas (13). Antes de cada mano se pasan tres "
+	  "cartas. ¡O llévatelos todos y dispara a la luna! A 100 puntos gana quien menos tenga.",
+	  SCENE_CORAZONES, SUIT_OROS, { C(OROS, 1), C(OROS, 1), C(OROS, 1) }, { CPU_LOLA, CPU_PEPE, CPU_PACO },
+	  KIND_FRENCH },
 	/* Juegos de mesa */
+	{ "Conecta 4",
+	  "Deja caer tus fichas rojas en las columnas y junta cuatro en línea antes que la CPU: en "
+	  "horizontal, vertical o diagonal. Tres niveles de dificultad.",
+	  SCENE_CONECTA4, SUIT_OROS, { C(OROS, 1), C(OROS, 1), C(OROS, 1) }, { CPU_PEPE, -1, -1 }, KIND_BOARD },
+	{ "Damas",
+	  "Damas españolas: comer es obligatorio (y la jugada que más come), las fichas comen hacia "
+	  "delante y la dama vuela por las diagonales. Tres niveles de dificultad.",
+	  SCENE_DAMAS, SUIT_OROS, { C(OROS, 1), C(OROS, 1), C(OROS, 1) }, { CPU_MANOLO, -1, -1 }, KIND_BOARD },
+	{ "Dominó",
+	  "Por parejas, como en el bar: casa tus fichas con los extremos de la mesa. Gana la mano quien "
+	  "se queda sin fichas (o la pareja con menos puntos si se cierra). A 100 puntos.",
+	  SCENE_DOMINO, SUIT_OROS, { C(OROS, 1), C(OROS, 1), C(OROS, 1) }, { CPU_LOLA, CPU_PACO, CPU_MANOLO },
+	  KIND_BOARD },
 	{ "Uno",
 	  "Echa cartas del mismo color o número. Salta, cambio de sentido, roba dos y comodines... "
 	  "¡y no te olvides de decir \"¡Uno!\" cuando te quede una carta!",
@@ -385,6 +408,32 @@ static SceneId menu_update(const Input* in, float dt)
 	return SCENE_MENU;
 }
 
+/* Icono de los juegos de mesa sin cartas (s = escala, 1 = unos 16 px) */
+static void draw_board_icon(SceneId scene, float cx, float cy, float s, float depth)
+{
+	float dx = gfx_dx(depth);
+	if (scene == SCENE_CONECTA4) {
+		gfx_rrect(cx - 9 * s + dx, cy - 7 * s, 18 * s, 14 * s, 2 * s, depth, C2D_Color32(30, 70, 170, 255));
+		for (int k = 0; k < 4; k++)
+			gfx_ellipse(cx + (k % 2 ? 4.5f : -4.5f) * s + dx, cy + (k / 2 ? 3.2f : -3.2f) * s, 2.6f * s, 2.6f * s, depth,
+				k == 3 ? C2D_Color32(245, 200, 30, 255) : C2D_Color32(220, 40, 45, 255));
+	} else if (scene == SCENE_DAMAS) {
+		for (int r = 0; r < 2; r++)
+			for (int c = 0; c < 2; c++)
+				gfx_rect(cx + (c - 1) * 8 * s + dx, cy + (r - 1) * 8 * s, 8 * s, 8 * s, depth,
+					(r + c) % 2 ? C2D_Color32(120, 80, 45, 255) : C2D_Color32(235, 215, 175, 255));
+		gfx_ellipse(cx - 4 * s + dx, cy + 4 * s, 3.2f * s, 3.2f * s, depth, C2D_Color32(240, 232, 215, 255));
+		gfx_ellipse(cx + 4 * s + dx, cy - 4 * s, 3.2f * s, 3.2f * s, depth, C2D_Color32(45, 35, 35, 255));
+	} else {
+		gfx_rrect(cx - 5 * s + dx, cy - 9 * s, 10 * s, 18 * s, 2 * s, depth, C2D_Color32(250, 247, 235, 255));
+		gfx_rect(cx - 4 * s + dx, cy - 0.3f * s, 8 * s, 0.6f * s + 0.5f, depth, C2D_Color32(120, 110, 100, 255));
+		for (int k = 0; k < 2; k++)
+			gfx_ellipse(cx + (k ? 2 : -2) * s + dx, cy - 4.5f * s + k * 0 + (k ? 2 : -2) * s * 0.5f, 1.2f * s, 1.2f * s,
+				depth, C2D_Color32(30, 30, 35, 255));
+		gfx_ellipse(cx + dx, cy + 4.5f * s, 1.2f * s, 1.2f * s, depth, C2D_Color32(30, 30, 35, 255));
+	}
+}
+
 static void menu_draw_top(void)
 {
 	float t = gfx_time();
@@ -403,13 +452,20 @@ static void menu_draw_top(void)
 		float a = (i - 1) * 0.32f + sinf(t * 1.3f + i) * 0.04f;
 		float cx = 78 + (i - 1) * 26.0f;
 		float cy = 160 + fabsf((float)(i - 1)) * 8.0f + sinf(t * 2.0f + i * 0.7f) * 2.0f;
-		if (e->scene != SCENE_RUMMIKUB)
+		if (e->scene != SCENE_RUMMIKUB && e->scene != SCENE_CONECTA4 && e->scene != SCENE_DAMAS &&
+			e->scene != SCENE_DOMINO)
 			gfx_sprite_ex(SPR_CARD_SHADOW, cx + 4, cy + 5, 1.0f, 1.0f, a, DEPTH_CARDS, NULL);
 		if (e->scene == SCENE_CARDBACK)
 			gfx_card_back(cx, cy, 1.0f, 1.0f, a, DEPTH_CARDS + i * 0.4f, NULL);
-		else if (e->scene == SCENE_POKER) {
-			static const int hand[3] = { 0 * 13 + 12, 1 * 13 + 12, 2 * 13 + 11 };
-			gfx_french(hand[i], cx, cy, 1.0f, a, DEPTH_CARDS + i * 0.4f, false);
+		else if (e->scene == SCENE_POKER || e->scene == SCENE_BLACKJACK || e->scene == SCENE_CORAZONES) {
+			static const int poker[3] = { 0 * 13 + 12, 1 * 13 + 12, 2 * 13 + 11 };
+			static const int bj[3] = { 3 * 13 + 12, 0 * 13 + 9, 2 * 13 + 6 };
+			static const int hearts[3] = { 1 * 13 + 0, 1 * 13 + 8, 0 * 13 + 10 };
+			const int* f = e->scene == SCENE_POKER ? poker : e->scene == SCENE_BLACKJACK ? bj : hearts;
+			gfx_french(f[i], cx, cy, 1.0f, a, DEPTH_CARDS + i * 0.4f, false);
+		} else if (e->scene == SCENE_CONECTA4 || e->scene == SCENE_DAMAS || e->scene == SCENE_DOMINO) {
+			if (i == 1)
+				draw_board_icon(e->scene, 78, 160, 4.0f, DEPTH_CARDS);
 		} else if (e->scene == SCENE_UNO) {
 			static const int uno[3] = { BOARD_UNO_FIRST + 0 * 13 + 7, BOARD_UNO_FIRST + 3 * 13 + 11, BOARD_UNO_WILD };
 			gfx_board(uno[i], cx, cy, 1.0f, a, DEPTH_CARDS + i * 0.4f, NULL);
@@ -432,8 +488,11 @@ static void menu_draw_top(void)
 		mii_draw(me, 176, 126, 8, DEPTH_UI, EXPR_HAPPY, false);
 	else if (e->scene == SCENE_UNO)
 		gfx_board(BOARD_UNO_WILD, 176, 126, 0.24f, 0.15f, DEPTH_UI, NULL);
-	else if (e->scene == SCENE_POKER)
-		gfx_french(12, 176, 126, 0.24f, 0.15f, DEPTH_UI, false);
+	else if (e->scene == SCENE_POKER || e->scene == SCENE_BLACKJACK || e->scene == SCENE_CORAZONES)
+		gfx_french(e->scene == SCENE_POKER ? 12 : e->scene == SCENE_BLACKJACK ? 3 * 13 + 12 : 1 * 13 + 12, 176, 126,
+			0.24f, 0.15f, DEPTH_UI, false);
+	else if (e->scene == SCENE_CONECTA4 || e->scene == SCENE_DAMAS || e->scene == SCENE_DOMINO)
+		draw_board_icon(e->scene, 176, 126, 1.0f, DEPTH_UI);
 	else if (e->scene == SCENE_RUMMIKUB)
 		gfx_board(BOARD_JOKER, 176, 128, 0.8f, 0.0f, DEPTH_UI, NULL);
 	else
@@ -513,8 +572,11 @@ static void menu_draw_bottom(void)
 			gfx_card_back(x + 13, y + h / 2, 0.16f, 0.16f, 0.15f, 0, NULL);
 		else if (e->scene == SCENE_UNO)
 			gfx_board(BOARD_UNO_WILD, x + 13, y + h / 2, 0.2f, 0.15f, 0, NULL);
-		else if (e->scene == SCENE_POKER)
-			gfx_french(12, x + 13, y + h / 2, 0.2f, 0.15f, 0, false);
+		else if (e->scene == SCENE_POKER || e->scene == SCENE_BLACKJACK || e->scene == SCENE_CORAZONES)
+			gfx_french(e->scene == SCENE_POKER ? 12 : e->scene == SCENE_BLACKJACK ? 3 * 13 + 12 : 1 * 13 + 12, x + 13,
+				y + h / 2, 0.2f, 0.15f, 0, false);
+		else if (e->scene == SCENE_CONECTA4 || e->scene == SCENE_DAMAS || e->scene == SCENE_DOMINO)
+			draw_board_icon(e->scene, x + 13, y + h / 2, 0.8f, 0);
 		else if (e->scene == SCENE_RUMMIKUB)
 			gfx_board(BOARD_JOKER, x + 13, y + h / 2 + 2, 0.75f, 0.0f, 0, NULL);
 		else

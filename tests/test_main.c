@@ -17,6 +17,12 @@
 #include "core/profile.h"
 #include "games/sieteymedia.h"
 #include "games/uno.h"
+#include "games/domino.h"
+#include "games/damas.h"
+#include "games/conecta4.h"
+#include "games/pocha.h"
+#include "games/corazones.h"
+#include "games/blackjack.h"
 #include "games/poker.h"
 #include "games/treintayuna.h"
 #include "games/mona.h"
@@ -2176,6 +2182,269 @@ static void test_poker_game(void)
 	printf("  póker: %d manos, ganadores %d/%d/%d/%d\n", hands, wins[0], wins[1], wins[2], wins[3]);
 }
 
+/* ---------------------------------------------------------------------------
+ * Blackjack, corazones, pocha, conecta 4, damas y dominó
+ * ------------------------------------------------------------------------- */
+
+static void test_blackjack(void)
+{
+	BjHand h = { { { 14, 0 }, { 13, 1 } }, 2, 10, false, false, 0 };
+	CHECK(bj_total(&h, NULL) == 21 && bj_is_blackjack(&h));
+	BjHand s = { { { 14, 0 }, { 6, 1 }, { 9, 2 } }, 3, 10, false, false, 0 };
+	bool soft;
+	CHECK(bj_total(&s, &soft) == 16 && !soft); /* el as pasa a valer 1 */
+	BjHand t = { { { 14, 0 }, { 14, 1 }, { 9, 2 } }, 3, 10, false, false, 0 };
+	CHECK(bj_total(&t, &soft) == 21 && soft);
+
+	Blackjack g;
+	int won = 0, played = 0;
+	for (int game = 0; game < 50; game++) {
+		bj_init(&g, 300 + game);
+		for (int hand = 0; hand < 60 && g.phase != BJ_BROKE; hand++) {
+			int before = g.chips;
+			bj_set_bet(&g, 20);
+			CHECK(bj_deal(&g));
+			int guard = 0;
+			while (g.phase == BJ_PLAYING && guard++ < 50) {
+				char a = bj_advice(&g);
+				if (a == 'P' && bj_split(&g))
+					continue;
+				if (a == 'D' && bj_double(&g))
+					continue;
+				if (a == 'H' || a == 'D' || a == 'P')
+					bj_hit(&g);
+				else
+					bj_stand(&g);
+			}
+			while (g.phase == BJ_DEALER)
+				bj_dealer_step(&g);
+			CHECK(g.phase == BJ_RESULT || g.phase == BJ_BROKE);
+			CHECK(g.chips - before == g.net);
+			bool dsoft;
+			CHECK(bj_total(&g.dealer, &dsoft) >= 17 || bj_is_blackjack(&g.hands[0]) ||
+			      bj_total(&g.hands[0], NULL) > 21 || g.hand_count == 2);
+			played++;
+			won += g.net > 0;
+		}
+	}
+	printf("  blackjack: %d manos, %d ganadas con la estrategia básica\n", played, won);
+	CHECK(won * 100 / played > 35);
+}
+
+static void test_corazones(void)
+{
+	int wins[HE_PLAYERS] = { 0 };
+	for (int game = 0; game < 60; game++) {
+		Corazones g;
+		he_init(&g, 1700 + game);
+		int guard = 0;
+		while (g.phase != HE_GAME_OVER && guard++ < 5000) {
+			if (g.phase == HE_PASSING) {
+				int idx[3];
+				he_ai_pass(&g, 0, idx);
+				CHECK(he_pass(&g, idx));
+				for (int p = 0; p < HE_PLAYERS; p++)
+					CHECK(g.hand_count[p] == HE_HAND);
+				continue;
+			}
+			if (g.phase == HE_HAND_OVER) {
+				int sum = 0;
+				for (int p = 0; p < HE_PLAYERS; p++)
+					sum += g.points[p];
+				CHECK(sum == 26 || (g.moon >= 0 && sum == 78));
+				he_new_hand(&g);
+				continue;
+			}
+			if (g.phase == HE_TRICK_DONE) {
+				CHECK(he_collect(&g));
+				continue;
+			}
+			if (g.tricks == 0 && g.played_in_trick == 0) {
+				/* Sale el 2 de tréboles */
+				bool two = false;
+				for (int i = 0; i < g.hand_count[g.current]; i++)
+					two |= g.hands[g.current][i].suit == 3 && g.hands[g.current][i].rank == 2;
+				CHECK(two);
+			}
+			int i = he_ai_choose(&g, g.current);
+			CHECK(i >= 0 && he_play(&g, i));
+		}
+		CHECK(g.phase == HE_GAME_OVER);
+		wins[he_winner(&g)]++;
+	}
+	printf("  corazones: victorias %d/%d/%d/%d\n", wins[0], wins[1], wins[2], wins[3]);
+}
+
+static void test_pocha(void)
+{
+	Pocha g;
+	po_init(&g, 5);
+	CHECK(g.round == 1 && g.phase == PO_BIDDING);
+	/* El que reparte no puede cuadrar las bazas */
+	for (int k = 0; k < 3; k++)
+		CHECK(po_bid(&g, 0));
+	CHECK(g.current == g.dealer && po_forbidden_bid(&g) == 1 && !po_can_bid(&g, 1) && po_can_bid(&g, 0));
+	int wins[PO_PLAYERS] = { 0 };
+	for (int game = 0; game < 100; game++) {
+		po_init(&g, 1900 + game);
+		int guard = 0;
+		while (g.phase != PO_GAME_OVER && guard++ < 5000) {
+			if (g.phase == PO_ROUND_OVER) {
+				int tricks = 0, bids = 0;
+				for (int p = 0; p < PO_PLAYERS; p++) {
+					tricks += g.tricks_won[p];
+					bids += g.bid[p];
+				}
+				CHECK(tricks == g.round && bids != g.round);
+				po_new_round(&g);
+				continue;
+			}
+			if (g.phase == PO_BIDDING) {
+				CHECK(po_bid(&g, po_ai_bid(&g)));
+				continue;
+			}
+			if (g.phase == PO_TRICK_DONE) {
+				CHECK(po_collect(&g));
+				continue;
+			}
+			int i = po_ai_choose(&g, g.current);
+			CHECK(i >= 0 && po_play(&g, i));
+		}
+		CHECK(g.phase == PO_GAME_OVER && g.round == PO_ROUNDS);
+		wins[po_winner(&g)]++;
+	}
+	printf("  pocha: victorias %d/%d/%d/%d\n", wins[0], wins[1], wins[2], wins[3]);
+}
+
+static void test_conecta4(void)
+{
+	Conecta4 g;
+	c4_init(&g, 1);
+	g.current = 1;
+	/* Cuatro en vertical */
+	for (int k = 0; k < 3; k++) {
+		CHECK(c4_drop(&g, 0));
+		CHECK(c4_drop(&g, 1));
+	}
+	CHECK(c4_drop(&g, 0) && g.winner == 1);
+	/* La CPU tapa un tres en raya */
+	c4_new_game(&g);
+	g.current = 1;
+	c4_drop(&g, 0);
+	c4_drop(&g, 6);
+	c4_drop(&g, 1);
+	c4_drop(&g, 6);
+	c4_drop(&g, 2);
+	CHECK(g.current == 2 && c4_ai_choose(&g) == 3);
+	/* Partidas contra jugadas al azar */
+	int wins = 0;
+	for (int game = 0; game < 20; game++) {
+		c4_init(&g, 50 + game);
+		g.level = 4;
+		while (!g.winner) {
+			int col = g.current == 2 ? c4_ai_choose(&g) : (int)rng_range(&g.rng, C4_COLS);
+			c4_drop(&g, col);
+		}
+		wins += g.winner == 2;
+	}
+	printf("  conecta 4: la CPU gana %d de 20 al azar\n", wins);
+	CHECK(wins >= 18);
+}
+
+static void test_damas(void)
+{
+	Damas g;
+	da_init(&g, 3);
+	CHECK(da_count(&g, 1) == 12 && da_count(&g, 2) == 12);
+	DaMove moves[DA_MAX_MOVES];
+	CHECK(da_moves(&g, moves) == 7); /* jugadas de salida de las blancas */
+	/* Comer es obligatorio y se elige la que más come */
+	memset(g.b, 0, sizeof g.b);
+	g.current = 1;
+	g.b[5][2] = DA_WHITE;
+	g.b[4][3] = DA_BLACK;
+	g.b[2][5] = DA_BLACK;
+	g.b[5][6] = DA_WHITE;
+	int n = da_moves(&g, moves);
+	CHECK(n == 1 && moves[0].n_caps == 2 && moves[0].path[1][0] == 1 && moves[0].path[1][1] == 6);
+	CHECK(da_apply(&g, &moves[0]) && da_count(&g, 2) == 0 && g.winner == 1);
+	/* La dama vuela y come a distancia */
+	memset(g.b, 0, sizeof g.b);
+	g.winner = 0;
+	g.current = 1;
+	g.b[7][0] = DA_WHITE_KING;
+	g.b[3][4] = DA_BLACK;
+	g.b[0][1] = DA_BLACK;
+	n = da_moves(&g, moves);
+	CHECK(n == 3 && moves[0].n_caps == 1); /* puede caer en 2,5 / 1,6 / 0,7 */
+	/* Corona al llegar al final */
+	memset(g.b, 0, sizeof g.b);
+	g.current = 1;
+	g.b[1][2] = DA_WHITE;
+	g.b[6][1] = DA_BLACK;
+	n = da_moves(&g, moves);
+	DaMove up = moves[0];
+	CHECK(da_apply(&g, &up) && g.b[0][up.path[0][1]] == DA_WHITE_KING);
+	/* Partidas de la CPU contra jugadas al azar */
+	int wins = 0;
+	for (int game = 0; game < 6; game++) {
+		da_init(&g, 70 + game);
+		g.level = 3;
+		int guard = 0;
+		while (!g.winner && guard++ < 400) {
+			DaMove m;
+			if (g.current == 2) {
+				CHECK(da_ai_choose(&g, &m) > 0);
+			} else {
+				int k = da_moves(&g, moves);
+				m = moves[rng_range(&g.rng, k)];
+			}
+			CHECK(da_apply(&g, &m));
+			CHECK(da_count(&g, 1) <= 12 && da_count(&g, 2) <= 12);
+		}
+		wins += g.winner == 2;
+	}
+	printf("  damas: la CPU gana %d de 6 al azar\n", wins);
+	CHECK(wins >= 5);
+}
+
+static void test_domino(void)
+{
+	Domino g;
+	do_init(&g, 9);
+	/* Empieza quien tiene el seis doble, y con él */
+	bool has66 = false;
+	for (int i = 0; i < g.hand_count[g.current]; i++)
+		has66 |= g.hands[g.current][i].a == 6 && g.hands[g.current][i].b == 6;
+	CHECK(has66);
+	int wins[2] = { 0 };
+	for (int game = 0; game < 100; game++) {
+		do_init(&g, 2300 + game);
+		int guard = 0;
+		while (g.phase != DO_GAME_OVER && guard++ < 5000) {
+			if (g.phase == DO_HAND_OVER) {
+				do_new_hand(&g);
+				continue;
+			}
+			int idx, side;
+			if (do_ai_choose(&g, &idx, &side))
+				CHECK(do_play(&g, idx, side));
+			else
+				CHECK(do_pass(&g));
+			/* La cadena siempre casa */
+			for (int i = 1; i < g.chain_count; i++)
+				CHECK(g.chain[i - 1].b == g.chain[i].a);
+			int total = g.chain_count;
+			for (int p = 0; p < DO_PLAYERS; p++)
+				total += g.hand_count[p];
+			CHECK(total == DO_TILES);
+		}
+		CHECK(g.phase == DO_GAME_OVER);
+		wins[g.score[0] >= DO_GAME ? 0 : 1]++;
+	}
+	printf("  dominó: parejas %d - %d\n", wins[0], wins[1]);
+}
+
 int main(void)
 {
 	printf("Ejecutando tests...\n");
@@ -2218,6 +2487,12 @@ int main(void)
 	test_culo();
 	test_poker_eval();
 	test_poker_game();
+	test_blackjack();
+	test_corazones();
+	test_pocha();
+	test_conecta4();
+	test_damas();
+	test_domino();
 	test_sol_rules();
 	test_sol_simulation();
 	test_pyr_rules();
