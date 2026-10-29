@@ -1,4 +1,5 @@
-/* Bingo de 90 bolas: el bombo y el panel arriba, tus cartones abajo. */
+/* Bingo de 90 bolas: el bombo y el panel arriba, tus cartones abajo. Una voz
+ * canta las bolas y tú tachas los números de tus cartones. */
 #include <math.h>
 #include <stdio.h>
 #include <string.h>
@@ -18,7 +19,7 @@
 #define CARD_TOTAL_H (CARD_HEAD + BI_ROWS * CELL_H + 4)
 
 static const CpuId RIVAL[BI_PLAYERS] = { CPU_COUNT, CPU_CARMEN, CPU_RAMON, CPU_LOLA };
-static const float SPEEDS[3] = { 4.0f, 2.6f, 1.6f };
+static const float SPEEDS[3] = { 6.0f, 4.5f, 3.2f }; /* que dé tiempo a oír la bola */
 static const char* const SPEED_NAME[3] = { "lento", "normal", "rápido" };
 
 static Bingo s_game;
@@ -26,7 +27,7 @@ static bool s_started;
 static int s_ncards = 2;
 static int s_page;
 static int s_speed = 1;
-static bool s_auto = true;
+static int s_cur_card, s_cur_row, s_cur_col; /* casilla señalada con la cruceta */
 static float s_ball_timer, s_pause, s_ball_anim, s_end_time;
 static float s_claim_at[BI_PLAYERS][2]; /* cuándo canta línea/bingo cada rival (-1 nada) */
 static float s_clock;
@@ -111,15 +112,15 @@ static void start(void)
 	s_banner_time = 99.0f;
 	for (int p = 0; p < BI_PLAYERS; p++)
 		s_claim_at[p][0] = s_claim_at[p][1] = -1.0f;
+	s_cur_card = s_cur_row = s_cur_col = 0;
 	audio_play(SFX_CONFIRM);
-	message("¡Empieza el bingo! Atento a las bolas");
+	audio_say("empieza");
+	message("¡Empieza el bingo! Tacha los números que salgan");
 }
 
-/* Si marcas a mano, la línea o el bingo tienen que estar marcados */
+/* Para cantar, la línea o el cartón tienen que estar tachados */
 static bool marked_ok(bool bingo)
 {
-	if (s_auto)
-		return true;
 	for (int i = 0; i < s_game.card_n[0]; i++) {
 		const BiCard* c = &s_game.cards[0][i];
 		int full_rows = 0;
@@ -147,6 +148,7 @@ static void claimed_line(int p)
 		snprintf(s_message, sizeof s_message, "%s canta línea: %d fichas", name(p), s_game.line_prize);
 	mood_set(&s_mood[p], EXPR_HAPPY, 3.0f);
 	audio_play(p == 0 ? SFX_WIN : SFX_CHIP);
+	audio_say("linea");
 }
 
 static void claimed_bingo(int p)
@@ -157,6 +159,7 @@ static void claimed_bingo(int p)
 	for (int q = 0; q < BI_PLAYERS; q++)
 		mood_set(&s_mood[q], q == p ? EXPR_HAPPY : EXPR_SAD, 5.0f);
 	audio_play(p == 0 ? SFX_WIN : SFX_LOSE);
+	audio_say("bingo");
 	profile_record_game(GAME_BINGO, p == 0);
 	s_end_time = 0.0f;
 }
@@ -172,14 +175,14 @@ static void draw_ball(void)
 	if (!b)
 		return;
 	s_ball_anim = 0.0f;
-	audio_play(SFX_CHIP);
+	char voice[4];
+	snprintf(voice, sizeof voice, "%02d", b);
+	audio_say(voice);
 	const char* nick = nickname(b);
 	if (nick)
 		snprintf(s_message, sizeof s_message, "¡El %d! %s", b, nick);
 	else
 		snprintf(s_message, sizeof s_message, "El %d", b);
-	if (s_auto)
-		bi_mark_all(&s_game, 0);
 	/* Los rivales cantan en cuanto se dan cuenta */
 	for (int p = 1; p < BI_PLAYERS; p++) {
 		if (bi_has_line(&s_game, p) && s_claim_at[p][0] < 0)
@@ -187,10 +190,6 @@ static void draw_ball(void)
 		if (bi_has_bingo(&s_game, p) && s_claim_at[p][1] < 0)
 			s_claim_at[p][1] = s_clock + rnd(0.7f, 2.0f);
 	}
-	if (bi_has_bingo(&s_game, 0))
-		message("¡Tienes bingo! ¡Cántalo con " GLYPH_Y "!");
-	else if (bi_has_line(&s_game, 0))
-		message("¡Tienes línea! ¡Cántala con " GLYPH_X "!");
 }
 
 /* Cartón i en la pantalla de abajo: su esquina superior izquierda */
@@ -211,18 +210,11 @@ static SceneId bi_update(const Input* in, float dt)
 	s_clock += dt;
 	s_ball_anim += dt;
 	s_banner_time += dt;
-	if (in->down & KEY_SELECT) {
-		s_auto = !s_auto;
-		if (s_auto)
-			bi_mark_all(&s_game, 0);
-		message(s_auto ? "Las bolas se marcan solas" : "Marca tú los números tocándolos");
-	}
-	if (in->down & KEY_UP)
-		s_speed = s_speed < 2 ? s_speed + 1 : 2;
-	if (in->down & KEY_DOWN)
-		s_speed = s_speed > 0 ? s_speed - 1 : 0;
-
 	if (s_game.phase == BI_SETUP || s_game.phase == BI_OVER) {
+		if (in->down & KEY_UP)
+			s_speed = s_speed < 2 ? s_speed + 1 : 2;
+		if (in->down & KEY_DOWN)
+			s_speed = s_speed > 0 ? s_speed - 1 : 0;
 		for (int i = 0; i < BI_MAX_CARDS; i++)
 			if (button_update(&s_btn_n[i], in))
 				s_ncards = i + 1;
@@ -246,7 +238,7 @@ static SceneId bi_update(const Input* in, float dt)
 				claimed_line(0);
 			else {
 				audio_play(SFX_ERROR);
-				message(s_auto || !bi_has_line(&s_game, 0) ? "¡No tienes línea!" : "Marca antes los números de la línea");
+				message(!bi_has_line(&s_game, 0) ? "¡No tienes línea!" : "Tacha antes los números de la línea");
 			}
 		}
 		if (button_update(&s_btn_bingo, in)) {
@@ -254,17 +246,45 @@ static SceneId bi_update(const Input* in, float dt)
 				claimed_bingo(0);
 			else {
 				audio_play(SFX_ERROR);
-				message(s_auto || !bi_has_bingo(&s_game, 0) ? "¡Aún no tienes bingo!" : "Marca antes todos los números");
+				message(!bi_has_bingo(&s_game, 0) ? "¡Aún no tienes bingo!" : "Tacha antes todos los números");
 			}
 		}
 		/* Cambiar de cartones */
 		int pages = (s_game.card_n[0] + 1) / 2;
-		if (pages > 1 && (in->down & (KEY_L | KEY_R)))
+		if (pages > 1 && ((in->down & (KEY_L | KEY_R)) || (in->touch_down && in->tx > 262 && in->ty > 204))) {
 			s_page = (s_page + 1) % pages;
-		if (pages > 1 && in->touch_down && in->tx > 262 && in->ty > 204)
-			s_page = (s_page + 1) % pages;
-		/* Marcar a mano */
-		if (!s_auto && in->touch_down)
+			s_cur_card = s_page * 2;
+		}
+		/* Cruceta: moverse por las casillas de los cartones que se ven; Ⓐ tacha */
+		int last_card = s_page * 2 + 1 < s_game.card_n[0] ? s_page * 2 + 1 : s_page * 2;
+		if (s_cur_card < s_page * 2 || s_cur_card > last_card)
+			s_cur_card = s_page * 2;
+		if (in->repeat & KEY_LEFT)
+			s_cur_col = (s_cur_col + BI_COLS - 1) % BI_COLS;
+		if (in->repeat & KEY_RIGHT)
+			s_cur_col = (s_cur_col + 1) % BI_COLS;
+		if (in->repeat & KEY_DOWN) {
+			if (++s_cur_row >= BI_ROWS) {
+				s_cur_row = 0;
+				s_cur_card = s_cur_card < last_card ? s_cur_card + 1 : s_page * 2;
+			}
+		}
+		if (in->repeat & KEY_UP) {
+			if (--s_cur_row < 0) {
+				s_cur_row = BI_ROWS - 1;
+				s_cur_card = s_cur_card > s_page * 2 ? s_cur_card - 1 : last_card;
+			}
+		}
+		if ((in->down & KEY_A) && s_game.cards[0][s_cur_card].num[s_cur_row][s_cur_col]) {
+			if (bi_mark(&s_game, s_cur_card, s_cur_row, s_cur_col))
+				audio_play(SFX_SELECT);
+			else {
+				audio_play(SFX_ERROR);
+				message("Ese número todavía no ha salido");
+			}
+		}
+		/* Tachar tocando */
+		if (in->touch_down)
 			for (int i = 0; i < s_game.card_n[0]; i++) {
 				float x, y;
 				if (!bingo_card_pos(i, &x, &y))
@@ -272,11 +292,16 @@ static SceneId bi_update(const Input* in, float dt)
 				float cy = y + CARD_HEAD;
 				if (in->tx >= x && in->tx < x + BI_COLS * CELL_W && in->ty >= cy && in->ty < cy + BI_ROWS * CELL_H) {
 					int col = (int)((in->tx - x) / CELL_W), row = (int)((in->ty - cy) / CELL_H);
+					s_cur_card = i;
+					s_cur_row = row;
+					s_cur_col = col;
 					if (s_game.cards[0][i].num[row][col]) {
 						if (bi_mark(&s_game, i, row, col))
 							audio_play(SFX_SELECT);
-						else
+						else {
 							audio_play(SFX_ERROR);
+							message("Ese número todavía no ha salido");
+						}
 					}
 				}
 			}
@@ -372,7 +397,7 @@ static void bi_draw_top(void)
 				n == last ? C2D_Color32(250, 200, 50, 255) : gfx_rgb(ball_color(n), 255));
 		gfx_textf(x + 10, y, DEPTH_UI, 0.45f, on ? COLOR_WHITE : C2D_Color32(90, 130, 100, 255), C2D_AlignCenter, "%d", n);
 	}
-	gfx_textf(px + 105, py + 140, DEPTH_UI, 0.42f, COLOR_CREAM, C2D_AlignCenter, "Bolas: %d · velocidad %s (cruceta)",
+	gfx_textf(px + 105, py + 140, DEPTH_UI, 0.42f, COLOR_CREAM, C2D_AlignCenter, "Bolas: %d · velocidad %s",
 		s_game.drawn_n, SPEED_NAME[s_speed]);
 	/* Premios y rivales */
 	if (s_game.phase != BI_SETUP) {
@@ -411,15 +436,29 @@ static void draw_card(int i, float x, float y)
 			if (!n)
 				continue;
 			gfx_textf_plain(cx + CELL_W / 2, yy + 2, 0, 0.75f, blue, C2D_AlignCenter, "%d", n);
-			if (c->marked[r][k])
-				gfx_ellipse(cx + CELL_W / 2, yy + CELL_H / 2, 10, 10, 0, C2D_Color32(220, 40, 60, 140));
-			else if (!s_auto && s_game.drawn[n])
-				gfx_ellipse(cx + CELL_W - 5, yy + 5, 2.5f, 2.5f, 0, C2D_Color32(220, 40, 60, 200));
+			if (c->marked[r][k]) {
+				/* Tachado con rotulador */
+				u32 ink = C2D_Color32(215, 30, 50, 220);
+				C2D_DrawLine(cx + 5, yy + 4, ink, cx + CELL_W - 5, yy + CELL_H - 4, ink, 3.0f, 0.5f);
+				C2D_DrawLine(cx + CELL_W - 5, yy + 4, ink, cx + 5, yy + CELL_H - 4, ink, 3.0f, 0.5f);
+			}
 		}
+	if (s_game.phase == BI_PLAYING && i == s_cur_card) {
+		float pulse = 0.6f + 0.4f * sinf(gfx_time() * 6.0f);
+		u32 col = C2D_Color32(255, 200, 40, (u8)(255 * pulse));
+		float sx = x + s_cur_col * CELL_W, sy = cy + s_cur_row * CELL_H;
+		gfx_rect(sx, sy, CELL_W, 2, 0, col);
+		gfx_rect(sx, sy + CELL_H - 2, CELL_W, 2, 0, col);
+		gfx_rect(sx, sy, 2, CELL_H, 0, col);
+		gfx_rect(sx + CELL_W - 2, sy, 2, CELL_H, 0, col);
+	}
 	if (s_game.phase == BI_PLAYING) {
-		int m = bi_card_missing(&s_game, c);
-		gfx_textf(x + BI_COLS * CELL_W, y - 2, 0, 0.42f, m <= 3 ? COLOR_GOLD : COLOR_WHITE, C2D_AlignRight,
-			m ? "Faltan %d" : "¡Completo!", m);
+		int crossed = 0;
+		for (int r = 0; r < BI_ROWS; r++)
+			for (int k = 0; k < BI_COLS; k++)
+				crossed += c->num[r][k] && c->marked[r][k];
+		gfx_textf(x + BI_COLS * CELL_W, y - 2, 0, 0.42f, crossed >= 12 ? COLOR_GOLD : COLOR_WHITE, C2D_AlignRight,
+			"Tachados %d/15", crossed);
 	}
 }
 
@@ -439,8 +478,8 @@ static void bi_draw_bottom(void)
 			s_btn_n[i].color = i + 1 == s_ncards ? C2D_Color32(220, 150, 30, 255) : C2D_Color32(60, 90, 160, 255);
 			button_draw(&s_btn_n[i], (i + 1) * BI_PRICE <= s_game.chips[0]);
 		}
-		gfx_text(s_auto ? "SELECT: se marcan solas" : "SELECT: marcas tú", BOTTOM_W / 2, 172, 0, 0.42f, COLOR_CREAM,
-			C2D_AlignCenter);
+		gfx_textf(BOTTOM_W / 2, 172, 0, 0.42f, COLOR_CREAM, C2D_AlignCenter, "Velocidad: %s (cruceta arriba/abajo)",
+			SPEED_NAME[s_speed]);
 		button_draw(&s_btn_go, s_btn_go.enabled);
 		return;
 	}

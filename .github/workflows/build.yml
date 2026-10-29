@@ -13,12 +13,53 @@ jobs:
       - name: Ejecutar tests
         run: make -C tests
 
+  voz:
+    name: Voz del bingo
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Instalar espeak-ng
+        run: sudo apt-get update && sudo apt-get install -y espeak-ng
+      - name: Instalar Piper y su voz en castellano
+        id: piper
+        continue-on-error: true
+        run: |
+          pip install piper-tts==1.2.0
+          base=https://huggingface.co/rhasspy/piper-voices/resolve/main/es/es_ES/davefx/medium
+          curl -fsSL -o es_ES-davefx-medium.onnx "$base/es_ES-davefx-medium.onnx"
+          curl -fsSL -o es_ES-davefx-medium.onnx.json "$base/es_ES-davefx-medium.onnx.json"
+          echo "Piper listo" && piper --help > /dev/null
+      - name: Generar la voz
+        run: |
+          if [ "${{ steps.piper.outcome }}" = "success" ] && python3 tools/gen_voice.py --piper es_ES-davefx-medium.onnx; then
+            echo "Voz de Piper"
+          else
+            python3 tools/gen_voice.py
+          fi
+      - name: Guardar la voz
+        uses: actions/upload-artifact@v4
+        with:
+          name: voz
+          path: romfs/voz/
+
   build-3ds:
     name: Compilar para 3DS
     runs-on: ubuntu-latest
     container: devkitpro/devkitarm:latest
+    needs: voz
+    # Si la voz no se ha podido generar, el juego se compila igual (sin voz)
+    if: ${{ !cancelled() }}
     steps:
       - uses: actions/checkout@v4
+      - name: Traer la voz del bingo
+        continue-on-error: true
+        uses: actions/download-artifact@v4
+        with:
+          name: voz
+          path: romfs/voz/
       - name: Compilar
         run: make -j"$(nproc)"
       - name: Subir JuegosDeCartas.3dsx
@@ -40,6 +81,7 @@ jobs:
     name: Crear el .cia
     runs-on: ubuntu-latest
     needs: build-3ds
+    if: ${{ !cancelled() && needs.build-3ds.result == 'success' }}
     permissions:
       contents: write
     steps:

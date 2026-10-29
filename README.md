@@ -294,10 +294,16 @@ por baza: 72 en total; la pareja que pasa de 36 se apunta lo que pasa. A 101.
 ### Bingo (juego de mesa)
 Bingo de 90 bolas con los cartones de siempre: 3 filas y 9 columnas, 15 números (5 por
 fila), cada columna con su decena (del 1 al 9, del 10 al 19... y del 80 al 90). Elige de 1 a
-4 cartones (5 fichas cada uno) y juega contra tres rivales. Las bolas salen del bombo y se
-marcan solas (con SELECT las marcas tú tocándolas); la cruceta cambia la velocidad y L/R
-el par de cartones que ves. Canta **línea** (Ⓧ) y **bingo** (Ⓨ) antes que nadie: la línea
-se lleva el 30 % del bote y el bingo, el resto.
+4 cartones (5 fichas cada uno) y juega contra tres rivales. Una voz canta cada bola que sale
+del bombo y **tú tachas** los números de tus cartones: tocándolos, o con la cruceta y Ⓐ. L/R
+cambia el par de cartones que ves y la velocidad se elige antes de empezar. Canta **línea** (Ⓧ)
+y **bingo** (Ⓨ) antes que nadie, con los números tachados: la línea se lleva el 30 % del bote
+y el bingo, el resto.
+
+La voz se genera al compilar en GitHub Actions con `tools/gen_voice.py`: usa
+[Piper](https://github.com/rhasspy/piper) con la voz en castellano *davefx* y, si no está
+disponible, espeak-ng. Si compilas en tu ordenador sin generarla, el bingo funciona igual,
+sin voz.
 
 ![Bingo](docs/bingo.png)
 
