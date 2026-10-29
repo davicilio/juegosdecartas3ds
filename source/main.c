@@ -55,6 +55,12 @@ static const Scene* scene_for(SceneId id)
 		return &scene_julepe;
 	case SCENE_TUTE_SUBASTADO:
 		return &scene_tute_subastado;
+	case SCENE_REVERSI:
+		return &scene_reversi;
+	case SCENE_OCA:
+		return &scene_oca;
+	case SCENE_BUTIFARRA:
+		return &scene_butifarra;
 	case SCENE_TRUCO:
 		return &scene_truco;
 	case SCENE_AS23:

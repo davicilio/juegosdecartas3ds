@@ -113,8 +113,9 @@ static const MenuEntry entries[] = {
 	  "o el truco, el retruco y el vale cuatro... aunque sea de farol. ¡O vete al mazo!",
 	  SCENE_TRUCO, SUIT_BASTOS, { C(ESPADAS, 1), C(BASTOS, 1), C(OROS, 7) }, { CPU_MANOLO, -1, -1 } },
 	{ "Butifarra",
-	  "El gran juego catalán por parejas, con triunfo elegido y contrada.",
-	  SCENE_COUNT, SUIT_COPAS, { C(COPAS, 1), C(COPAS, 7), C(OROS, RANK_REY) }, { -1, -1, -1 } },
+	  "El gran juego catalán por parejas, con la baraja de 48. Quien reparte elige triunfo, "
+	  "butifarra (sin triunfo, doble) o delega. ¡Contro, recontro y Sant Vicenç! A 101.",
+	  SCENE_BUTIFARRA, SUIT_COPAS, { C(COPAS, 9), C(COPAS, 1), C(OROS, RANK_REY) }, { CPU_PEPE, CPU_LUCIA, CPU_RAMON } },
 	{ "Treinta y una",
 	  "Acércate a 31 sumando cartas del mismo palo, sin pasarte de la raya.",
 	  SCENE_TREINTAYUNA, SUIT_OROS, { C(OROS, 1), C(OROS, RANK_REY), C(OROS, RANK_CABALLO) }, { -1, -1, -1 } },
@@ -158,6 +159,14 @@ static const MenuEntry entries[] = {
 	  "se queda sin fichas (o la pareja con menos puntos si se cierra). A 100 puntos.",
 	  SCENE_DOMINO, SUIT_OROS, { C(OROS, 1), C(OROS, 1), C(OROS, 1) }, { CPU_LOLA, CPU_PACO, CPU_MANOLO },
 	  KIND_BOARD },
+	{ "Reversi",
+	  "Pon ficha encerrando en línea las del rival entre la nueva y otra tuya: se dan la vuelta. "
+	  "Si no puedes, pasas. Gana quien acaba con más fichas. Tres niveles de dificultad.",
+	  SCENE_REVERSI, SUIT_OROS, { C(OROS, 1), C(OROS, 1), C(OROS, 1) }, { CPU_LUCIA, -1, -1 }, KIND_BOARD },
+	{ "La oca",
+	  "De oca a oca y tiro porque me toca. Tira el dado y llega justo a la 63 esquivando la posada, "
+	  "el pozo, el laberinto, la cárcel... ¡y la muerte! De 2 a 4 jugadores.",
+	  SCENE_OCA, SUIT_OROS, { C(OROS, 1), C(OROS, 1), C(OROS, 1) }, { CPU_PACO, CPU_LOLA, CPU_PEPE }, KIND_BOARD },
 	{ "Uno",
 	  "Echa cartas del mismo color o número. Salta, cambio de sentido, roba dos y comodines... "
 	  "¡y no te olvides de decir \"¡Uno!\" cuando te quede una carta!",
@@ -413,9 +422,30 @@ static SceneId menu_update(const Input* in, float dt)
 }
 
 /* Icono de los juegos de mesa sin cartas (s = escala, 1 = unos 16 px) */
+static bool has_board_icon(SceneId scene)
+{
+	return scene == SCENE_CONECTA4 || scene == SCENE_DAMAS || scene == SCENE_DOMINO || scene == SCENE_REVERSI ||
+	       scene == SCENE_OCA;
+}
+
 static void draw_board_icon(SceneId scene, float cx, float cy, float s, float depth)
 {
 	float dx = gfx_dx(depth);
+	if (scene == SCENE_REVERSI) {
+		gfx_rrect(cx - 9 * s + dx, cy - 9 * s, 18 * s, 18 * s, 2 * s, depth, C2D_Color32(36, 132, 66, 255));
+		for (int k = 0; k < 4; k++)
+			gfx_ellipse(cx + (k % 2 ? 4.2f : -4.2f) * s + dx, cy + (k / 2 ? 4.2f : -4.2f) * s, 3.4f * s, 3.4f * s, depth,
+				(k == 0 || k == 3) ? C2D_Color32(240, 240, 235, 255) : C2D_Color32(30, 30, 35, 255));
+		return;
+	}
+	if (scene == SCENE_OCA) {
+		gfx_ellipse(cx + dx, cy, 9 * s, 9 * s, depth, C2D_Color32(150, 210, 240, 255));
+		gfx_ellipse(cx - 1 * s + dx, cy + 2.5f * s, 5.5f * s, 3.5f * s, depth, C2D_Color32(255, 255, 255, 255));
+		gfx_ellipse(cx + 3 * s + dx, cy - 1.5f * s, 1.5f * s, 3.2f * s, depth, C2D_Color32(255, 255, 255, 255));
+		gfx_ellipse(cx + 3.8f * s + dx, cy - 4.2f * s, 2 * s, 1.9f * s, depth, C2D_Color32(255, 255, 255, 255));
+		gfx_ellipse(cx + 6.3f * s + dx, cy - 3.9f * s, 1.6f * s, 0.8f * s, depth, C2D_Color32(240, 140, 30, 255));
+		return;
+	}
 	if (scene == SCENE_CONECTA4) {
 		gfx_rrect(cx - 9 * s + dx, cy - 7 * s, 18 * s, 14 * s, 2 * s, depth, C2D_Color32(30, 70, 170, 255));
 		for (int k = 0; k < 4; k++)
@@ -457,7 +487,7 @@ static void menu_draw_top(void)
 		float cx = 78 + (i - 1) * 26.0f;
 		float cy = 160 + fabsf((float)(i - 1)) * 8.0f + sinf(t * 2.0f + i * 0.7f) * 2.0f;
 		if (e->scene != SCENE_RUMMIKUB && e->scene != SCENE_CONECTA4 && e->scene != SCENE_DAMAS &&
-			e->scene != SCENE_DOMINO)
+			!has_board_icon(e->scene))
 			gfx_sprite_ex(SPR_CARD_SHADOW, cx + 4, cy + 5, 1.0f, 1.0f, a, DEPTH_CARDS, NULL);
 		if (e->scene == SCENE_CARDBACK)
 			gfx_card_back(cx, cy, 1.0f, 1.0f, a, DEPTH_CARDS + i * 0.4f, NULL);
@@ -467,7 +497,7 @@ static void menu_draw_top(void)
 			static const int hearts[3] = { 1 * 13 + 0, 1 * 13 + 8, 0 * 13 + 10 };
 			const int* f = e->scene == SCENE_POKER ? poker : e->scene == SCENE_BLACKJACK ? bj : hearts;
 			gfx_french(f[i], cx, cy, 1.0f, a, DEPTH_CARDS + i * 0.4f, false);
-		} else if (e->scene == SCENE_CONECTA4 || e->scene == SCENE_DAMAS || e->scene == SCENE_DOMINO) {
+		} else if (has_board_icon(e->scene)) {
 			if (i == 1)
 				draw_board_icon(e->scene, 78, 160, 4.0f, DEPTH_CARDS);
 		} else if (e->scene == SCENE_UNO) {
@@ -480,7 +510,7 @@ static void menu_draw_top(void)
 			gfx_textf(52 + i * 30, 130, DEPTH_CARDS + i * 0.2f, 0.85f, gfx_rgb(col[i], 255), C2D_AlignCenter, "%d",
 				7 + i);
 		} else
-			gfx_sprite_ex(SPR_CARD_FIRST + card_index(e->fan[i]), cx, cy, 1.0f, 1.0f, a, DEPTH_CARDS + i * 0.4f, NULL);
+			gfx_sprite_ex(gfx_card_sprite(e->fan[i]), cx, cy, 1.0f, 1.0f, a, DEPTH_CARDS + i * 0.4f, NULL);
 	}
 
 	/* Logotipo flotando por delante de la pantalla */
@@ -495,7 +525,7 @@ static void menu_draw_top(void)
 	else if (e->scene == SCENE_POKER || e->scene == SCENE_BLACKJACK || e->scene == SCENE_CORAZONES)
 		gfx_french(e->scene == SCENE_POKER ? 12 : e->scene == SCENE_BLACKJACK ? 3 * 13 + 12 : 1 * 13 + 12, 176, 126,
 			0.24f, 0.15f, DEPTH_UI, false);
-	else if (e->scene == SCENE_CONECTA4 || e->scene == SCENE_DAMAS || e->scene == SCENE_DOMINO)
+	else if (has_board_icon(e->scene))
 		draw_board_icon(e->scene, 176, 126, 1.0f, DEPTH_UI);
 	else if (e->scene == SCENE_RUMMIKUB)
 		gfx_board(BOARD_JOKER, 176, 128, 0.8f, 0.0f, DEPTH_UI, NULL);
@@ -579,7 +609,7 @@ static void menu_draw_bottom(void)
 		else if (e->scene == SCENE_POKER || e->scene == SCENE_BLACKJACK || e->scene == SCENE_CORAZONES)
 			gfx_french(e->scene == SCENE_POKER ? 12 : e->scene == SCENE_BLACKJACK ? 3 * 13 + 12 : 1 * 13 + 12, x + 13,
 				y + h / 2, 0.2f, 0.15f, 0, false);
-		else if (e->scene == SCENE_CONECTA4 || e->scene == SCENE_DAMAS || e->scene == SCENE_DOMINO)
+		else if (has_board_icon(e->scene))
 			draw_board_icon(e->scene, x + 13, y + h / 2, 0.8f, 0);
 		else if (e->scene == SCENE_RUMMIKUB)
 			gfx_board(BOARD_JOKER, x + 13, y + h / 2 + 2, 0.75f, 0.0f, 0, NULL);

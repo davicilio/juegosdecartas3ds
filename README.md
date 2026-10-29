@@ -106,6 +106,8 @@ pueden jugar; la lista se desplaza con la cruceta) y, en pequeño, **Configuraci
 | Conecta 4 (juego de mesa) | ✅ Disponible |
 | Damas (juego de mesa) | ✅ Disponible |
 | Dominó (juego de mesa) | ✅ Disponible |
+| Reversi (juego de mesa) | ✅ Disponible |
+| La oca (juego de mesa) | ✅ Disponible |
 | Uno (juego de mesa) | ✅ Disponible |
 | Rummikub (juego de mesa) | ✅ Disponible |
 | Mierda | 🕓 Próximamente |
@@ -118,7 +120,7 @@ pueden jugar; la lista se desplaza con la cruceta) y, en pequeño, **Configuraci
 | Subasta | 🕓 Próximamente |
 | Truc | 🕓 Próximamente |
 | Truco argentino | ✅ Disponible |
-| Butifarra | 🕓 Próximamente |
+| Butifarra (baraja de 48) | ✅ Disponible |
 | Pumba | ✅ Disponible |
 
 ### Siete y media
@@ -278,6 +280,26 @@ falsos, reyes, caballos, sotas, sietes falsos, seises, cincos y cuatros.
 - Si no quieres, el rival se lleva lo de antes. Con L te vas al mazo.
 
 ![Truco](docs/truco.png)
+
+### Butifarra
+Por parejas y con la baraja de 48 cartas (con ochos y nueves). Quien reparte elige el
+triunfo, canta **butifarra** (sin triunfo y todo vale el doble) o **delega** en su
+compañero. Los rivales pueden contrar (x2), la otra pareja recontrar (x4) y los rivales
+cantar Sant Vicenç (x8). Manda la manilla (el nueve), luego as, rey, caballo y sota. Hay
+que asistir y matar a los rivales. Manilla 5, as 4, rey 3, caballo 2, sota 1 y un punto
+por baza: 72 en total; la pareja que pasa de 36 se apunta lo que pasa. A 101.
+
+![Butifarra](docs/butifarra.png)
+
+### Reversi y la oca (juegos de mesa)
+- **Reversi**: pon ficha encerrando en línea las del rival, que se dan la vuelta. Se marcan
+  las casillas donde puedes poner. Ⓨ cambia la dificultad.
+- **La oca**: de 2 a 4 jugadores (Ⓧ). Tira el dado (Ⓐ o tocándolo) y llega justo a la 63.
+  De oca a oca, de puente a puente y de dado a dado se vuelve a tirar; la posada quita un
+  turno, la cárcel dos, del pozo no sales hasta que caiga otro, el laberinto te devuelve
+  a la 30 y la muerte, a la casilla 1.
+
+![La oca](docs/oca.png)
 
 ### As, 2, 3
 Para 2, 3 o 4 jugadores (Ⓧ cambia cuántos). Se reparten todas las cartas boca abajo:

@@ -26,6 +26,7 @@ enum {
 	SPR_CHIP_BLACK,
 	SPR_SUIT_FIRST, /* + Suit */
 	SPR_LOGO = SPR_SUIT_FIRST + NUM_SUITS,
+	SPR_CARD89_FIRST, /* + palo * 2 + (rango - 8): ochos y nueves */
 };
 
 /* Índices del atlas gfx/backs.t3s (el orden lo fija tools/gen_backs.py). */
@@ -112,6 +113,8 @@ void gfx_sprite_ex(int id, float cx, float cy, float sx, float sy, float angle, 
 
 /* Carta centrada en (cx, cy). flip: 0 = boca abajo, 1 = boca arriba; los
  * valores intermedios producen la animación de giro. */
+/* Sprite de la cara de una carta (también ochos y nueves) */
+int gfx_card_sprite(Card c);
 void gfx_card(Card c, float cx, float cy, float scale, float flip, float angle, float depth, float dim, bool shadow);
 
 /* Dorso de las cartas: el diseño del editor (se vuelve a componer en el

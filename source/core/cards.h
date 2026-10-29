@@ -6,7 +6,9 @@
 
 #include "core/rng.h"
 
-/* Baraja española de 40 cartas: 1-7, sota (10), caballo (11) y rey (12). */
+/* Baraja española de 40 cartas: 1-7, sota (10), caballo (11) y rey (12).
+ * Los ochos y nueves solo se usan en la baraja de 48 (butifarra): no tienen
+ * card_index y se dibujan aparte. */
 
 typedef enum {
 	SUIT_OROS,

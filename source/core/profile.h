@@ -39,17 +39,21 @@ typedef enum {
 	GAME_JULEPE,
 	GAME_TUTE_SUBASTADO,
 	GAME_TRUCO,
+	GAME_BUTIFARRA,
+	GAME_REVERSI,
+	GAME_OCA,
 	GAME_COUNT
 } GameId;
 
 /* Huecos de estadísticas en el fichero: sobran para añadir juegos sin
- * cambiar el formato. Las versiones 1 y 2 tenían 6. */
-#define PROFILE_GAME_SLOTS 32
+ * cambiar el formato. Las versiones 1 y 2 tenían 6, y la 3, 32. */
+#define PROFILE_GAME_SLOTS 64
 #define PROFILE_LEGACY_GAMES 6
+#define PROFILE_V3_SLOTS 32
 _Static_assert(GAME_COUNT <= PROFILE_GAME_SLOTS, "faltan huecos de estadísticas en el perfil");
 
 #define PROFILE_MAGIC   0x4D494931u /* "MII1" */
-#define PROFILE_VERSION 3
+#define PROFILE_VERSION 4
 
 typedef struct {
 	uint32_t magic;

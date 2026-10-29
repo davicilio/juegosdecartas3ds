@@ -26,6 +26,9 @@
 #include "games/poker.h"
 #include "games/treintayuna.h"
 #include "games/as23.h"
+#include "games/oca.h"
+#include "games/reversi.h"
+#include "games/butifarra.h"
 #include "games/julepe.h"
 #include "games/pumba.h"
 #include "games/truco.h"
@@ -1025,6 +1028,34 @@ static void test_mii_parts(void)
 			CHECK(mii_parts_hash(&a->mii) != mii_parts_hash(&cpu_avatar((CpuId)j)->mii));
 	}
 	CHECK(cpu_avatar(CPU_LOLA)->female && cpu_avatar(CPU_LOLA)->mii.gender == 1);
+}
+
+static void test_profile_v3(void)
+{
+	/* Un perfil de la versión 3 (32 juegos) conserva todo */
+	struct {
+		uint32_t magic;
+		uint16_t version;
+		uint8_t created, from_console, online_miis, reserved[3];
+		Avatar avatar;
+		uint32_t played[PROFILE_V3_SLOTS], won[PROFILE_V3_SLOTS];
+	} old;
+	memset(&old, 0, sizeof old);
+	old.magic = PROFILE_MAGIC;
+	old.version = 3;
+	old.created = 1;
+	avatar_from_mii(&old.avatar, &cpu_avatar(CPU_PEPE)->mii, "Tres");
+	old.played[GAME_TRUCO] = 9;
+	old.won[GAME_TRUCO] = 4;
+	const char* path = "test_perfil_v3.dat";
+	FILE* f = fopen(path, "wb");
+	fwrite(&old, 1, sizeof old, f);
+	fclose(f);
+	PlayerProfile p;
+	CHECK(profile_load(&p, path));
+	CHECK(p.version == PROFILE_VERSION && p.created == 1 && strcmp(p.avatar.name, "Tres") == 0);
+	CHECK(p.played[GAME_TRUCO] == 9 && p.won[GAME_TRUCO] == 4 && p.played[GAME_OCA] == 0);
+	remove(path);
 }
 
 static void test_profile_v2(void)
@@ -2280,6 +2311,180 @@ static void test_truco(void)
 		trucos);
 }
 
+static void test_butifarra(void)
+{
+	Butifarra g;
+	bu_init(&g, 9);
+	int pts = 0;
+	for (int p = 0; p < BU_PLAYERS; p++) {
+		CHECK(g.hand_count[p] == BU_HAND);
+		for (int i = 0; i < BU_HAND; i++)
+			pts += bu_card_points(g.hands[p][i]);
+	}
+	CHECK(pts == 60);
+	CHECK(bu_strength(card_make(SUIT_OROS, 9)) > bu_strength(card_make(SUIT_OROS, 1)));
+	CHECK(bu_strength(card_make(SUIT_OROS, RANK_SOTA)) > bu_strength(card_make(SUIT_OROS, 8)));
+	CHECK(bu_strength(card_make(SUIT_OROS, 8)) > bu_strength(card_make(SUIT_OROS, 7)));
+	/* Delegar, elegir y contradas */
+	int d = g.dealer;
+	CHECK(g.phase == BU_CHOOSE && g.current == d && bu_choose(&g, BU_DELEGATE));
+	CHECK(g.current == (d + 2) % 4 && !bu_choose(&g, BU_DELEGATE) && bu_choose(&g, BU_BUTIFARRA));
+	CHECK(g.butifarra && g.trump < 0 && g.phase == BU_DOUBLE && bu_team(g.current) != bu_team(d));
+	CHECK(bu_double(&g, true) && g.doubles == 1 && bu_team(g.current) == bu_team(d));
+	CHECK(bu_double(&g, false) && g.phase == BU_PLAYING && bu_multiplier(&g) == 4);
+	CHECK(g.current == (d + 1) % 4);
+	/* Asistir y matar a los rivales; con el compañero ganando, libre */
+	bu_init(&g, 10);
+	bu_choose(&g, SUIT_OROS);
+	while (g.phase == BU_DOUBLE)
+		bu_double(&g, false);
+	g.leader = g.current = 1;
+	g.hand_count[1] = 1;
+	g.hands[1][0] = card_make(SUIT_COPAS, 5);
+	CHECK(bu_play(&g, 0));
+	g.hand_count[2] = 3;
+	g.hands[2][0] = card_make(SUIT_COPAS, 4);
+	g.hands[2][1] = card_make(SUIT_COPAS, RANK_REY);
+	g.hands[2][2] = card_make(SUIT_OROS, 2);
+	CHECK(!bu_can_play(&g, 2, 0) && bu_can_play(&g, 2, 1) && !bu_can_play(&g, 2, 2));
+	CHECK(bu_play(&g, 1));
+	g.hand_count[3] = 2;
+	g.hands[3][0] = card_make(SUIT_ESPADAS, 4);
+	g.hands[3][1] = card_make(SUIT_OROS, 3);
+	CHECK(!bu_can_play(&g, 3, 0) && bu_can_play(&g, 3, 1)); /* fallar a los rivales */
+	CHECK(bu_play(&g, 1));
+	g.hand_count[0] = 2;
+	g.hands[0][0] = card_make(SUIT_ESPADAS, 6);
+	g.hands[0][1] = card_make(SUIT_OROS, 9);
+	CHECK(bu_can_play(&g, 0, 0) == false && bu_can_play(&g, 0, 1)); /* montar al fallo */
+
+	int wins[2] = { 0 }, hands = 0, buti = 0, contros = 0;
+	for (int game = 0; game < 200; game++) {
+		bu_init(&g, 4400 + game);
+		int guard = 0;
+		while (g.phase != BU_GAME_OVER && guard++ < 20000) {
+			int p = g.current;
+			switch (g.phase) {
+			case BU_CHOOSE:
+				CHECK(bu_choose(&g, bu_ai_choose(&g, p)));
+				break;
+			case BU_DOUBLE:
+				CHECK(bu_double(&g, bu_ai_double(&g, p)));
+				break;
+			case BU_PLAYING:
+				CHECK(bu_play(&g, bu_ai_play(&g, p)));
+				break;
+			case BU_TRICK_DONE:
+				CHECK(bu_collect(&g));
+				if (g.phase >= BU_HAND_OVER) {
+					CHECK(g.points[0] + g.points[1] == 72);
+					hands++;
+					buti += g.butifarra;
+					contros += g.doubles > 0;
+				}
+				break;
+			case BU_HAND_OVER:
+				bu_new_hand(&g);
+				break;
+			default:
+				break;
+			}
+		}
+		CHECK(g.phase == BU_GAME_OVER);
+		wins[bu_winner(&g)]++;
+	}
+	printf("  butifarra: ganan %d/%d, %d manos, %d butifarras, %d contradas\n", wins[0], wins[1], hands, buti, contros);
+}
+
+static void test_reversi(void)
+{
+	Reversi g;
+	rv_init(&g, 1);
+	CHECK(g.count[1] == 2 && g.count[2] == 2 && g.current == 1);
+	CHECK(rv_flips(&g, 1, 2, 3) == 1 && rv_flips(&g, 1, 2, 2) == 0 && rv_flips(&g, 1, 3, 3) == 0);
+	CHECK(rv_play(&g, 2, 3) && g.cell[3][3] == 1 && g.count[1] == 4 && g.count[2] == 1 && g.current == 2);
+	CHECK(!rv_play(&g, 0, 0));
+	int wins[4] = { 0 };
+	for (int game = 0; game < 60; game++) {
+		rv_init(&g, 700 + game);
+		int guard = 0;
+		while (!g.winner && guard++ < 200) {
+			int before = g.count[1] + g.count[2];
+			int m;
+			if (g.current == 1) {
+				g.level = 1; /* el negro juega flojo */
+				m = rv_ai_choose(&g);
+				g.level = 3;
+			} else {
+				m = rv_ai_choose(&g);
+			}
+			CHECK(m >= 0 && rv_play(&g, m / RV_SIZE, m % RV_SIZE));
+			CHECK(g.count[1] + g.count[2] == before + 1);
+		}
+		CHECK(g.winner >= 1 && g.winner <= 3);
+		wins[g.winner]++;
+	}
+	CHECK(wins[2] > wins[1]); /* la búsqueda más profunda gana más */
+	printf("  reversi: negras %d, blancas %d, empates %d\n", wins[1], wins[2], wins[3]);
+}
+
+static void test_oca(void)
+{
+	CHECK(oca_square(5) == OCA_GOOSE && oca_square(59) == OCA_GOOSE && oca_square(6) == OCA_BRIDGE);
+	CHECK(oca_square(31) == OCA_WELL && oca_square(58) == OCA_DEATH && oca_square(63) == OCA_GARDEN);
+	Oca g;
+	oca_init(&g, 3, 1);
+	/* De oca a oca y tiro porque me toca */
+	CHECK(oca_roll(&g, 4) == 4 && g.pos[0] == 9 && g.last_again && g.current == 0);
+	/* Puente */
+	g.pos[0] = 3;
+	oca_roll(&g, 3);
+	CHECK(g.pos[0] == 12 && g.current == 0);
+	/* Posada: pierde un turno */
+	g.pos[0] = 15;
+	oca_roll(&g, 4);
+	CHECK(g.pos[0] == 19 && g.skip[0] == 1 && g.current == 1);
+	oca_roll(&g, 1);
+	CHECK(g.current == 2);
+	oca_roll(&g, 1);
+	CHECK(g.current == 1 && g.skip[0] == 0);
+	/* Pozo: hasta que otro caiga */
+	g.pos[1] = 28;
+	oca_roll(&g, 3);
+	CHECK(g.in_well[1] && g.current == 2);
+	g.pos[2] = 30;
+	oca_roll(&g, 1);
+	CHECK(g.in_well[2] && !g.in_well[1] && g.last_freed == 1);
+	/* Muerte y rebote al final */
+	g.current = 0;
+	g.pos[0] = 55;
+	oca_roll(&g, 3);
+	CHECK(g.pos[0] == 1);
+	g.current = 0;
+	g.pos[0] = 60;
+	oca_roll(&g, 5); /* 65: rebota a 61 */
+	CHECK(g.pos[0] == 61 && g.winner < 0);
+	g.current = 0;
+	g.pos[0] = 61;
+	oca_roll(&g, 2);
+	CHECK(g.winner == 0);
+
+	int wins[OCA_MAX_PLAYERS] = { 0 };
+	long rolls = 0;
+	for (int game = 0; game < 1000; game++) {
+		oca_init(&g, 2 + game % 3, 800 + game);
+		int guard = 0;
+		while (g.winner < 0 && guard++ < 5000) {
+			CHECK(!g.in_well[g.current]);
+			oca_roll(&g, 0);
+			rolls++;
+		}
+		CHECK(g.winner >= 0);
+		wins[g.winner]++;
+	}
+	printf("  oca: %ld tiradas de media, ganan %d/%d/%d/%d\n", rolls / 1000, wins[0], wins[1], wins[2], wins[3]);
+}
+
 static void test_cucu(void)
 {
 	Cucu g;
@@ -2868,6 +3073,9 @@ int main(void)
 	test_rk_simulation();
 	test_mona();
 	test_as23();
+	test_reversi();
+	test_oca();
+	test_butifarra();
 	test_truco();
 	test_tute_subastado();
 	test_pumba();
@@ -2889,6 +3097,7 @@ int main(void)
 	test_pyr_rules();
 	test_pyr_simulation();
 	test_profile();
+	test_profile_v3();
 	test_mii_parts();
 	test_cardback();
 	test_profile_v1();

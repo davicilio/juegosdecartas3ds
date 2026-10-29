@@ -181,6 +181,11 @@ PIP_LAYOUTS = {
     5: [(0.3, 0.22), (0.7, 0.22), (0.5, 0.5), (0.3, 0.78), (0.7, 0.78)],
     6: [(0.3, 0.2), (0.7, 0.2), (0.3, 0.5), (0.7, 0.5), (0.3, 0.8), (0.7, 0.8)],
     7: [(0.28, 0.14), (0.72, 0.14), (0.5, 0.32), (0.28, 0.5), (0.72, 0.5), (0.28, 0.86), (0.72, 0.86)],
+    # Ochos y nueves: solo los usa la baraja de 48 cartas (butifarra)
+    8: [(0.28, 0.12), (0.72, 0.12), (0.28, 0.37), (0.72, 0.37), (0.28, 0.63), (0.72, 0.63), (0.28, 0.88),
+        (0.72, 0.88)],
+    9: [(0.24, 0.14), (0.5, 0.14), (0.76, 0.14), (0.24, 0.5), (0.5, 0.5), (0.76, 0.5), (0.24, 0.86), (0.5, 0.86),
+        (0.76, 0.86)],
 }
 
 
@@ -295,10 +300,10 @@ def make_card(suit, rank):
     img, d = card_base(w, h)
     draw_frame(d, suit, w, h)
     draw_index(d, rank, suit, w, h)
-    if rank <= 7:
+    if rank <= 9:
         ax0, ay0 = S(10), S(18)
         aw, ah = w - S(20), h - S(36)
-        r = 15 if rank == 1 else 8.5 if rank <= 3 else 7.5 if rank <= 5 else 6.5
+        r = 15 if rank == 1 else 8.5 if rank <= 3 else 7.5 if rank <= 5 else 6.5 if rank <= 7 else 5.6
         if suit in ("espadas", "bastos"):
             # los símbolos alargados se ven mejor algo más grandes
             r *= 1.25 if rank > 1 else 1.4
@@ -597,6 +602,10 @@ def main():
     for s in SUITS:
         extras.append(("suit_%s.png" % s, make_suit_icon(s)))
     extras.append(("logo.png", make_logo()))
+    # Ochos y nueves al final, para no mover los índices de las demás
+    for s in SUITS:
+        for r in (8, 9):
+            extras.append(("card_%s_%02d.png" % (s, r), make_card(s, r)))
     for fn, im in extras:
         im.save(os.path.join(GFX, fn))
         card_files.append(fn)

@@ -252,6 +252,11 @@ void gfx_sprite(int id, float cx, float cy, float scale, float depth)
 	gfx_sprite_ex(id, cx, cy, scale, scale, 0.0f, depth, NULL);
 }
 
+int gfx_card_sprite(Card c)
+{
+	return c.rank == 8 || c.rank == 9 ? SPR_CARD89_FIRST + c.suit * 2 + c.rank - 8 : SPR_CARD_FIRST + card_index(c);
+}
+
 void gfx_card(Card c, float cx, float cy, float scale, float flip, float angle, float depth, float dim, bool shadow)
 {
 	float width = fabsf(cosf(flip * (float)M_PI));
@@ -266,8 +271,9 @@ void gfx_card(Card c, float cx, float cy, float scale, float flip, float angle, 
 	C2D_ImageTint tint;
 	if (dim > 0.0f)
 		C2D_PlainImageTint(&tint, C2D_Color32(20, 20, 30, 255), dim);
+	int id = gfx_card_sprite(c);
 	if (face_up)
-		gfx_sprite_ex(SPR_CARD_FIRST + card_index(c), cx, cy, scale * width, scale, angle, depth, dim > 0.0f ? &tint : NULL);
+		gfx_sprite_ex(id, cx, cy, scale * width, scale, angle, depth, dim > 0.0f ? &tint : NULL);
 	else
 		gfx_card_back(cx, cy, scale * width, scale, angle, depth, dim > 0.0f ? &tint : NULL);
 }

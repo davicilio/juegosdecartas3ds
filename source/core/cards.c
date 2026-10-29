@@ -53,7 +53,7 @@ const char* rank_name(int rank)
 {
 	static const char* names[] = {
 		"?", "as", "dos", "tres", "cuatro", "cinco", "seis", "siete",
-		"?", "?", "sota", "caballo", "rey"
+		"ocho", "nueve", "sota", "caballo", "rey"
 	};
 	return (rank >= 1 && rank <= 12) ? names[rank] : "?";
 }
