@@ -110,15 +110,14 @@ pueden jugar; la lista se desplaza con la cruceta) y, en pequeño, **Configuraci
 | La oca (juego de mesa) | ✅ Disponible |
 | Uno (juego de mesa) | ✅ Disponible |
 | Rummikub (juego de mesa) | ✅ Disponible |
-| Mierda | 🕓 Próximamente |
-| Burro | 🕓 Próximamente |
+| Mierda | ✅ Disponible |
+| Burro | ✅ Disponible |
 | As, 2, 3 | ✅ Disponible |
-| Tute subastado | ✅ Disponible |
+| Tute subastado (subasta o subastao) | ✅ Disponible |
 | Julepe | ✅ Disponible |
-| Tresillo | 🕓 Próximamente |
-| Cuatrillo | 🕓 Próximamente |
-| Subasta | 🕓 Próximamente |
-| Truc | 🕓 Próximamente |
+| Tresillo | ✅ Disponible |
+| Cuatrillo | ✅ Disponible |
+| Truc | ✅ Disponible |
 | Truco argentino | ✅ Disponible |
 | Butifarra (baraja de 48) | ✅ Disponible |
 | Pumba | ✅ Disponible |
@@ -300,6 +299,36 @@ por baza: 72 en total; la pareja que pasa de 36 se apunta lo que pasa. A 101.
   a la 30 y la muerte, a la casilla 1.
 
 ![La oca](docs/oca.png)
+
+### Tresillo y cuatrillo
+- **Tresillo** (a tres): se puja por ser el *hombre* con **entrada** (eliges triunfo y cambias
+  cartas del monte), **vuelta** (el triunfo lo marca la primera carta del monte) o **solo**
+  (sin cambiar). Luego cambian los contrarios. Mandan los matadores: espadilla (as de
+  espadas), manilla (el 2 del triunfo si es negro, el 7 si es rojo), basto (as de bastos) y
+  punto (el as del triunfo rojo). Hay que asistir, pero un matador no está obligado a salir
+  ante un triunfo más bajo. Si haces más bazas que cada contrario es **sacada**; si empatas,
+  **puesta**; y si un contrario te gana, **codillo**. Se juegan 12 manos.
+- **Cuatrillo** (a cuatro, sin monte): el hombre elige triunfo y **llama un rey**; quien lo
+  tenga es su compañero (se descubre al echarlo). Con seis bazas se gana. También se puede
+  jugar **solo**.
+
+![Tresillo](docs/tresillo.png)
+
+### Truc
+El truc valenciano, mano a mano y a 12 piedras. Como el truco argentino, pero el envit es
+**envide**, **torne** y **falta**, y el truc sube a **retruc**, **quatre val** y **joc fora**,
+que se juega la partida entera. Se contesta con **vull** o **no vull**.
+
+### Mierda y burro
+- **Mierda**: tres cartas boca abajo, tres boca arriba encima y tres en la mano. Echa una o
+  varias iguales que valgan al menos lo de arriba (3, 4, 5, 6, 7, caballo, rey, as). El **2**
+  vale siempre y deja echar cualquier cosa; la **sota** quema el montón (y cuatro iguales
+  seguidas también), y vuelves a echar. Si no puedes, te llevas el montón (Ⓧ). Sin cartas en
+  la mano juegas las de la mesa y, al final, las tapadas a ciegas. El último es la mierda.
+- **Burro**: cada uno tiene cuatro cartas y todos pasan una a la derecha a la vez (Ⓐ). Quien
+  junta cuatro iguales pone la mano en la mesa y los demás, en cuanto se den cuenta (Ⓨ o el
+  botón rojo). El último se lleva una letra; quien completa B-U-R-R-O pierde. Poner la mano
+  sin cuatro iguales también cuesta una letra.
 
 ### As, 2, 3
 Para 2, 3 o 4 jugadores (Ⓧ cambia cuántos). Se reparten todas las cartas boca abajo:

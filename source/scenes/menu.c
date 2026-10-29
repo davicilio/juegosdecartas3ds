@@ -70,18 +70,20 @@ static const MenuEntry entries[] = {
 	  "Echa cartas boca abajo diciendo lo que son... aunque sea mentira. Si te pillan, te llevas el montón.",
 	  SCENE_MENTIROSO, SUIT_ESPADAS, { C(ESPADAS, 4), C(OROS, 4), C(COPAS, 4) }, { -1, -1, -1 } },
 	{ "Mierda",
-	  "Otro clásico de la baraja española que llegará en una próxima versión.",
-	  SCENE_COUNT, SUIT_BASTOS, { C(BASTOS, 7), C(COPAS, 1), C(ESPADAS, 6) }, { -1, -1, -1 } },
+	  "Tres cartas tapadas, tres destapadas y tres en la mano. Echa cartas iguales o más altas; el 2 "
+	  "vale siempre y la sota quema el montón. Si no puedes, te lo llevas. ¡El último es la mierda!",
+	  SCENE_MIERDA, SUIT_BASTOS, { C(BASTOS, 2), C(COPAS, RANK_SOTA), C(ESPADAS, 1) }, { CPU_PACO, CPU_LUCIA, CPU_PEPE } },
 	{ "Burro",
-	  "Juego de cartas para reírse en grupo. El que pierde va sumando letras hasta formar BURRO.",
-	  SCENE_COUNT, SUIT_OROS, { C(OROS, 6), C(COPAS, 6), C(BASTOS, 6) }, { -1, -1, -1 } },
+	  "Pasa cartas a tu derecha hasta juntar cuatro iguales y pon la mano en la mesa. El último en "
+	  "hacerlo se lleva una letra... ¡y quien completa BURRO pierde!",
+	  SCENE_BURRO, SUIT_OROS, { C(OROS, 6), C(COPAS, 6), C(BASTOS, 6) }, { CPU_LOLA, CPU_MANOLO, CPU_CARMEN } },
 	{ "As, 2, 3",
 	  "Se reparten todas las cartas boca abajo y se echan por turnos contando as, dos, tres... "
 	  "Si tu carta coincide con lo que dices, te llevas el montón. Gana quien se quede sin cartas.",
 	  SCENE_AS23, SUIT_COPAS, { C(OROS, 1), C(COPAS, 2), C(ESPADAS, 3) }, { CPU_MANOLO, CPU_LUCIA, CPU_RAMON } },
 	{ "Tute subastado",
-	  "Tute por parejas sin pinta: se puja por los puntos que hará tu pareja, de 70 en adelante. "
-	  "Quien gana la subasta elige el triunfo. Si llegáis, os lo apuntáis; si no, se resta. A 300.",
+	  "También llamado subasta o subastao. Por parejas: se puja por los puntos que hará tu pareja, "
+	  "de 70 en adelante, y quien gana la subasta elige el triunfo. Si llegáis, sumáis; si no, restáis.",
 	  SCENE_TUTE_SUBASTADO, SUIT_COPAS, { C(COPAS, 1), C(COPAS, 3), C(COPAS, RANK_REY) }, { CPU_MANOLO, CPU_CARMEN, CPU_RAMON } },
 	{ "Tute cabrón",
 	  "El tute de cada uno para sí: cuatro jugadores sin compañero. Gana la mano quien más puntos "
@@ -92,22 +94,21 @@ static const MenuEntry entries[] = {
 	  "quinto del plato. Si haces menos, te dan julepe y pagas lo que había en el plato.",
 	  SCENE_JULEPE, SUIT_BASTOS, { C(BASTOS, 1), C(BASTOS, 3), C(COPAS, 7) }, { CPU_RAMON, CPU_LOLA, CPU_PEPE } },
 	{ "Tresillo",
-	  "Clásico de bazas a tres jugadores, antepasado del julepe, con su famosa espadilla y su basto.",
-	  SCENE_COUNT, SUIT_ESPADAS, { C(ESPADAS, 1), C(BASTOS, 1), C(OROS, RANK_REY) }, { -1, -1, -1 } },
+	  "A tres. Puja entrada, vuelta o solo para ser el hombre y haz más bazas que cada contrario. "
+	  "Manda la espadilla, luego la manilla, el basto y el punto. ¡Cuidado con el codillo!",
+	  SCENE_TRESILLO, SUIT_ESPADAS, { C(ESPADAS, 1), C(BASTOS, 1), C(OROS, RANK_REY) }, { CPU_MANOLO, CPU_CARMEN, -1 } },
 	{ "Cuatrillo",
-	  "La versión del tresillo para cuatro jugadores.",
-	  SCENE_COUNT, SUIT_OROS, { C(ESPADAS, 1), C(BASTOS, 1), C(COPAS, RANK_SOTA) }, { -1, -1, -1 } },
+	  "El tresillo a cuatro, sin monte: el hombre elige triunfo y llama un rey; quien lo tenga es su "
+	  "compañero (o juega solo). Hacen falta seis bazas.",
+	  SCENE_CUATRILLO, SUIT_OROS, { C(ESPADAS, 1), C(BASTOS, 1), C(COPAS, RANK_SOTA) }, { CPU_RAMON, CPU_LUCIA, CPU_PACO } },
 	{ "Pocha",
 	  "Diez manos de una a diez cartas. Antes de jugar, di cuántas bazas vas a hacer: si aciertas, "
 	  "10 puntos más 5 por baza; si fallas, pierdes 5 por cada baza de diferencia.",
 	  SCENE_POCHA, SUIT_COPAS, { C(COPAS, 1), C(OROS, 3), C(BASTOS, RANK_REY) }, { CPU_CARMEN, CPU_RAMON, CPU_LOLA } },
-	{ "Subasta",
-	  "Juego de bazas por parejas en el que se puja por los puntos de la mano.",
-	  SCENE_COUNT, SUIT_OROS, { C(OROS, 1), C(OROS, 3), C(ESPADAS, RANK_REY) }, { -1, -1, -1 } },
 	{ "Truc",
-	  "El juego de faroles de Valencia, Cataluña y Baleares: envites, retrucos y señas entre "
-	  "compañeros.",
-	  SCENE_COUNT, SUIT_ESPADAS, { C(ESPADAS, 1), C(BASTOS, 1), C(ESPADAS, 7) }, { -1, -1, -1 } },
+	  "El de Valencia, mano a mano y a 12 piedras. Envide, torne y falta; truc, retruc, quatre "
+	  "val... ¡y joc fora, que se juega la partida entera! Tres cartas y tres bazas.",
+	  SCENE_TRUC, SUIT_ESPADAS, { C(ESPADAS, 1), C(BASTOS, 1), C(ESPADAS, 7) }, { CPU_PEPE, -1, -1 } },
 	{ "Truco argentino",
 	  "Mano a mano, a 15. Tres cartas y tres bazas. Canta el envido si tienes dos del mismo palo, "
 	  "o el truco, el retruco y el vale cuatro... aunque sea de farol. ¡O vete al mazo!",

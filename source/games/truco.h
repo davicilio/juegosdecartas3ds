@@ -26,9 +26,15 @@
  * quiere es el único que puede subir después. Si no se quiere, el que cantó
  * se lleva lo que valía antes. Irse al mazo da la mano al rival.
  *
- * La partida es a TR_GAME puntos. */
+ * La partida es a TR_GAME puntos.
+ *
+ * TRUC VALENCIANO (tr_init_variant con valenciano = true): las mismas cartas,
+ * bazas y envit, pero a TR_GAME_TRUC piedras, sin real envido (el segundo
+ * envite es "torne") y con un cuarto nivel del truc: tras el "quatre val"
+ * se puede cantar "joc fora", que se juega la partida entera. */
 
-#define TR_GAME 15
+#define TR_GAME      15
+#define TR_GAME_TRUC 12
 
 typedef enum {
 	TR_PLAY,     /* turn echa carta o canta */
@@ -86,12 +92,18 @@ typedef struct {
 	int last_actor;
 	int last_action;
 	int last_level; /* nivel del truco cantado (2..4) para la interfaz */
+	bool valenciano;
+	int target; /* puntos para ganar */
 	Rng rng;
 } Truco;
 
 int tr_power(Card c);
 int tr_envido(const Card* cards, int n);
 void tr_init(Truco* g, uint32_t seed);
+void tr_init_variant(Truco* g, bool valenciano, uint32_t seed);
+/* Nivel más alto del truco (4, o 5 con el joc fora) y lo que vale cada nivel */
+int tr_max_level(const Truco* g);
+int tr_level_value(const Truco* g, int level);
 void tr_new_game(Truco* g);
 void tr_new_hand(Truco* g);
 /* Quién tiene que hacer algo ahora */

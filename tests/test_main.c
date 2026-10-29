@@ -26,6 +26,9 @@
 #include "games/poker.h"
 #include "games/treintayuna.h"
 #include "games/as23.h"
+#include "games/tresillo.h"
+#include "games/mierda.h"
+#include "games/burro.h"
 #include "games/oca.h"
 #include "games/reversi.h"
 #include "games/butifarra.h"
@@ -2285,9 +2288,18 @@ static void test_truco(void)
 	/* Irse al mazo */
 	CHECK(tr_act(&g, 0, TR_ACT_MAZO) && g.hand_winner == 1 && g.score[1] == 3);
 
+	/* Truc valenciano: a 12, sin real envido y con joc fora */
+	tr_init_variant(&g, true, 6);
+	g.mano = g.turn = g.baza_leader = 0;
+	CHECK(g.target == TR_GAME_TRUC && !tr_can(&g, 0, TR_ACT_REAL) && tr_can(&g, 0, TR_ACT_ENVIDO));
+	CHECK(tr_act(&g, 0, TR_ACT_TRUCO) && tr_act(&g, 1, TR_ACT_TRUCO) && tr_act(&g, 0, TR_ACT_TRUCO));
+	CHECK(g.truco_call == 4 && tr_can(&g, 1, TR_ACT_TRUCO) && tr_act(&g, 1, TR_ACT_TRUCO) && g.truco_call == 5);
+	CHECK(!tr_can(&g, 0, TR_ACT_TRUCO) && tr_act(&g, 0, TR_ACT_QUIERO) && g.truco_level == 5);
+	CHECK(tr_act(&g, 0, TR_ACT_MAZO) && g.phase == TR_GAME_OVER && tr_winner(&g) == 1 && g.score[1] == TR_GAME_TRUC);
+
 	int wins[2] = { 0 }, hands = 0, envidos = 0, trucos = 0;
 	for (int game = 0; game < 400; game++) {
-		tr_init(&g, 5000 + game);
+		tr_init_variant(&g, game % 2 == 1, 5000 + game);
 		int guard = 0;
 		while (g.phase != TR_GAME_OVER && guard++ < 5000) {
 			if (g.phase == TR_HAND_OVER) {
@@ -2483,6 +2495,219 @@ static void test_oca(void)
 		wins[g.winner]++;
 	}
 	printf("  oca: %ld tiradas de media, ganan %d/%d/%d/%d\n", rolls / 1000, wins[0], wins[1], wins[2], wins[3]);
+}
+
+static void test_burro(void)
+{
+	Burro g;
+	bur_init(&g, 3);
+	CHECK(bur_holder(&g) < 0 && g.phase == BUR_PASSING);
+	/* Pasar: cada uno recibe la del anterior */
+	Card c3 = g.hands[3][2];
+	int choice[BUR_PLAYERS] = { 2, 0, 0, 2 };
+	CHECK(bur_pass(&g, choice) && card_equal(g.hands[0][2], c3));
+	/* Poner la mano sin cuatro iguales: letra para él */
+	CHECK(bur_slap(&g, 1) && g.round_loser == 1 && g.letters[1] == 1 && g.false_slap);
+	/* Con cuatro iguales, el último en poner la mano se lleva la letra */
+	bur_new_round(&g);
+	for (int i = 0; i < BUR_HAND; i++)
+		g.hands[2][i].rank = 5;
+	CHECK(bur_slap(&g, 2) && g.phase == BUR_SLAP && bur_slap(&g, 0) && !bur_slap(&g, 0) && bur_slap(&g, 3));
+	CHECK(g.phase == BUR_ROUND_OVER && g.round_loser == 1 && g.letters[1] == 2);
+
+	int losers[BUR_PLAYERS] = { 0 }, max_passes = 0;
+	long passes = 0, rounds = 0;
+	for (int game = 0; game < 200; game++) {
+		bur_init(&g, 900 + game);
+		while (g.phase != BUR_GAME_OVER) {
+			int guard = 0;
+			while (bur_holder(&g) < 0 && guard++ < 500) {
+				int ch[BUR_PLAYERS];
+				for (int p = 0; p < BUR_PLAYERS; p++)
+					ch[p] = bur_ai_pass(&g, p);
+				CHECK(bur_pass(&g, ch));
+			}
+			CHECK(bur_holder(&g) >= 0);
+			if (g.passes > max_passes)
+				max_passes = g.passes;
+			passes += g.passes;
+			rounds++;
+			/* Reaccionan en un orden cualquiera */
+			int first = bur_holder(&g);
+			bur_slap(&g, first);
+			int step = game % 2 ? 1 : 3; /* el orden de los demás cambia */
+			for (int k = 1; g.phase == BUR_SLAP && k < BUR_PLAYERS; k++)
+				bur_slap(&g, (first + k * step) % BUR_PLAYERS);
+			if (g.phase == BUR_ROUND_OVER)
+				bur_new_round(&g);
+		}
+		losers[bur_loser(&g)]++;
+	}
+	printf("  burro: %ld pases por ronda (máximo %d), pierden %d/%d/%d/%d\n", passes / rounds, max_passes, losers[0],
+		losers[1], losers[2], losers[3]);
+}
+
+static int mi_total(const Mierda* g)
+{
+	int n = g->deck_n + g->pile_n + g->burned;
+	for (int p = 0; p < MI_PLAYERS; p++) {
+		n += g->hand_n[p];
+		for (int i = 0; i < 3; i++)
+			n += g->up_has[p][i] + g->down_has[p][i];
+	}
+	return n;
+}
+
+static void test_mierda(void)
+{
+	Mierda g;
+	mi_init(&g, 2);
+	CHECK(mi_total(&g) == DECK_SIZE && g.deck_n == DECK_SIZE - 36);
+	/* Orden y especiales */
+	g.pile_n = 1;
+	g.pile[0] = card_make(SUIT_OROS, RANK_REY);
+	CHECK(!mi_card_ok(&g, card_make(SUIT_OROS, 7)) && mi_card_ok(&g, card_make(SUIT_COPAS, 1)));
+	CHECK(mi_card_ok(&g, card_make(SUIT_COPAS, 2)) && mi_card_ok(&g, card_make(SUIT_COPAS, RANK_SOTA)));
+	g.pile[0] = card_make(SUIT_OROS, 2);
+	CHECK(mi_card_ok(&g, card_make(SUIT_OROS, 3)));
+	/* Echar varias iguales y robar hasta tres */
+	mi_init(&g, 3);
+	g.pile_n = 0;
+	g.current = 0;
+	g.hand_n[0] = 3;
+	g.hand[0][0] = card_make(SUIT_OROS, 5);
+	g.hand[0][1] = card_make(SUIT_COPAS, 5);
+	g.hand[0][2] = card_make(SUIT_OROS, 7);
+	int deck = g.deck_n;
+	CHECK(mi_play(&g, 1) && g.pile_n == 2 && g.last_count == 2 && g.hand_n[0] == 3 && g.deck_n == deck - 2);
+	CHECK(g.current == 1);
+	/* La sota quema y repite turno */
+	g.hand_n[1] = 2;
+	g.hand[1][0] = card_make(SUIT_OROS, RANK_SOTA);
+	g.hand[1][1] = card_make(SUIT_OROS, 4);
+	g.deck_n = 0;
+	CHECK(mi_play(&g, 0) && g.last_burn && g.pile_n == 0 && g.current == 1);
+	/* Sin carta que valga, se lleva el montón */
+	g.pile[g.pile_n++] = card_make(SUIT_ESPADAS, 1);
+	CHECK(mi_must_take(&g, 1) && !mi_play(&g, 0) && mi_take(&g) && g.hand_n[1] == 2 && g.pile_n == 0);
+
+	int losers[MI_PLAYERS] = { 0 }, burns = 0;
+	for (int game = 0; game < 300; game++) {
+		mi_init(&g, 1500 + game);
+		int guard = 0;
+		while (g.phase != MI_GAME_OVER && guard++ < 3000) {
+			int p = g.current;
+			int i = mi_ai_choose(&g, p);
+			if (i < 0)
+				CHECK(mi_take(&g));
+			else
+				CHECK(mi_play(&g, i));
+			burns += g.last_burn;
+			CHECK(mi_total(&g) == DECK_SIZE);
+		}
+		CHECK(g.phase == MI_GAME_OVER && g.loser >= 0);
+		losers[g.loser]++;
+	}
+	printf("  mierda: %d quemas, pierden %d/%d/%d/%d\n", burns, losers[0], losers[1], losers[2], losers[3]);
+}
+
+static void test_tresillo(void)
+{
+	Tresillo g;
+	ts_init(&g, 3, 1);
+	CHECK(g.hand_n[0] == 9 && g.talon_n == 13);
+	/* Matadores con triunfo rojo (copas) y negro (bastos) */
+	g.trump = SUIT_COPAS;
+	CHECK(ts_power(&g, card_make(SUIT_ESPADAS, 1)) > ts_power(&g, card_make(SUIT_COPAS, 7)));
+	CHECK(ts_power(&g, card_make(SUIT_COPAS, 7)) > ts_power(&g, card_make(SUIT_BASTOS, 1)));
+	CHECK(ts_power(&g, card_make(SUIT_BASTOS, 1)) > ts_power(&g, card_make(SUIT_COPAS, 1)));
+	CHECK(ts_is_matador(&g, card_make(SUIT_COPAS, 1)) && !ts_is_matador(&g, card_make(SUIT_COPAS, RANK_REY)));
+	CHECK(ts_power(&g, card_make(SUIT_COPAS, 2)) > ts_power(&g, card_make(SUIT_COPAS, 3)));
+	CHECK(ts_power(&g, card_make(SUIT_OROS, 1)) > ts_power(&g, card_make(SUIT_OROS, 2)));
+	CHECK(ts_power(&g, card_make(SUIT_OROS, 2)) > ts_power(&g, card_make(SUIT_OROS, 7)));
+	g.trump = SUIT_BASTOS;
+	CHECK(ts_power(&g, card_make(SUIT_BASTOS, 2)) == 99 && ts_power(&g, card_make(SUIT_BASTOS, 1)) == 98);
+	CHECK(ts_power(&g, card_make(SUIT_BASTOS, 7)) > ts_power(&g, card_make(SUIT_BASTOS, 3)));
+	CHECK(ts_power(&g, card_make(SUIT_ESPADAS, 7)) > ts_power(&g, card_make(SUIT_ESPADAS, 2)));
+	CHECK(ts_is_trump(&g, card_make(SUIT_ESPADAS, 1)));
+	/* Subasta: hay que subir; la vuelta pinta con la primera del monte */
+	ts_init(&g, 3, 2);
+	int m = g.mano;
+	CHECK(ts_bid(&g, TS_ENTRADA) && !ts_can_bid(&g, TS_ENTRADA) && ts_bid(&g, TS_VUELTA));
+	CHECK(ts_bid(&g, TS_PASS) && g.current == m && ts_bid(&g, TS_PASS));
+	CHECK(g.hombre == (m + 1) % 3 && g.bid == TS_VUELTA && g.phase == TS_DISCARD && g.current == g.hombre);
+	CHECK(g.trump == g.talon[g.talon_n - 1].suit);
+	/* Los matadores no salen ante triunfo más bajo */
+	ts_init(&g, 3, 3);
+	g.trump = SUIT_OROS;
+	g.hombre = 0;
+	g.phase = TS_PLAYING;
+	g.leader = g.current = 0;
+	g.hand_n[0] = 1;
+	g.hands[0][0] = card_make(SUIT_OROS, 4);
+	CHECK(ts_play(&g, 0));
+	g.hand_n[1] = 2;
+	g.hands[1][0] = card_make(SUIT_ESPADAS, 1);
+	g.hands[1][1] = card_make(SUIT_COPAS, 5);
+	CHECK(ts_can_play(&g, 1, 1)); /* la espadilla no está obligada */
+	g.hands[1][1] = card_make(SUIT_OROS, RANK_REY);
+	g.hands[1][0] = card_make(SUIT_COPAS, 3);
+	CHECK(!ts_can_play(&g, 1, 0) && ts_can_play(&g, 1, 1));
+
+	for (int players = 3; players <= 4; players++) {
+		int wins[TS_MAX_PLAYERS] = { 0 }, results[4] = { 0 };
+		for (int game = 0; game < 200; game++) {
+			ts_init(&g, players, 2600 + game);
+			int guard = 0;
+			while (g.phase != TS_GAME_OVER && guard++ < 20000) {
+				int p = g.current;
+				switch (g.phase) {
+				case TS_BIDDING:
+					CHECK(ts_bid(&g, ts_ai_bid(&g, p)));
+					break;
+				case TS_TRUMP: {
+					int t, k;
+					ts_ai_choose(&g, p, &t, &k);
+					CHECK(ts_choose(&g, t, k));
+					break;
+				}
+				case TS_DISCARD: {
+					bool sel[TS_MAX_HAND];
+					ts_ai_discard(&g, p, sel);
+					CHECK(ts_discard(&g, sel));
+					break;
+				}
+				case TS_PLAYING:
+					CHECK(ts_play(&g, ts_ai_play(&g, p)));
+					break;
+				case TS_TRICK_DONE:
+					CHECK(ts_collect(&g));
+					if (g.phase >= TS_HAND_OVER) {
+						int t = 0, sum = 0;
+						for (int q = 0; q < players; q++) {
+							t += g.tricks[q];
+							sum += g.hand_n[q];
+						}
+						CHECK(t == ts_hand_size(&g) && sum == 0);
+						results[g.result]++;
+					}
+					break;
+				case TS_HAND_OVER:
+					if (g.result == TS_NADIE)
+						results[TS_NADIE]++;
+					ts_new_hand(&g);
+					break;
+				default:
+					break;
+				}
+			}
+			CHECK(g.phase == TS_GAME_OVER);
+			wins[ts_winner(&g)]++;
+		}
+		printf("  %s: ganan %d/%d/%d/%d; sacadas %d, puestas %d, codillos %d, sin jugar %d\n",
+			players == 3 ? "tresillo" : "cuatrillo", wins[0], wins[1], wins[2], wins[3], results[0], results[1],
+			results[2], results[3]);
+	}
 }
 
 static void test_cucu(void)
@@ -3073,6 +3298,9 @@ int main(void)
 	test_rk_simulation();
 	test_mona();
 	test_as23();
+	test_tresillo();
+	test_mierda();
+	test_burro();
 	test_reversi();
 	test_oca();
 	test_butifarra();

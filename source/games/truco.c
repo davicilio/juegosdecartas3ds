@@ -47,7 +47,14 @@ int tr_envido(const Card* cards, int n)
 
 void tr_init(Truco* g, uint32_t seed)
 {
+	tr_init_variant(g, false, seed);
+}
+
+void tr_init_variant(Truco* g, bool valenciano, uint32_t seed)
+{
 	memset(g, 0, sizeof *g);
+	g->valenciano = valenciano;
+	g->target = valenciano ? TR_GAME_TRUC : TR_GAME;
 	rng_seed(&g->rng, seed);
 	g->mano = rng_range(&g->rng, 2);
 	tr_new_game(g);
@@ -104,8 +111,18 @@ int tr_actor(const Truco* g)
 int tr_falta(const Truco* g)
 {
 	int top = g->score[0] > g->score[1] ? g->score[0] : g->score[1];
-	int v = TR_GAME - top;
+	int v = g->target - top;
 	return v < 1 ? 1 : v;
+}
+
+int tr_max_level(const Truco* g)
+{
+	return g->valenciano ? 5 : 4;
+}
+
+int tr_level_value(const Truco* g, int level)
+{
+	return level >= 5 ? g->target : level; /* el joc fora gana la partida */
 }
 
 int tr_next_truco(const Truco* g)
@@ -132,12 +149,13 @@ bool tr_can(const Truco* g, int player, TrAction a)
 		if (player != g->turn)
 			return false;
 		switch (a) {
-		case TR_ACT_ENVIDO:
 		case TR_ACT_REAL:
+			return !g->valenciano && envido_open(g, player);
+		case TR_ACT_ENVIDO:
 		case TR_ACT_FALTA:
 			return envido_open(g, player);
 		case TR_ACT_TRUCO:
-			return g->truco_level < 4 && (g->truco_owner < 0 || g->truco_owner == player);
+			return g->truco_level < tr_max_level(g) && (g->truco_owner < 0 || g->truco_owner == player);
 		case TR_ACT_MAZO:
 			return true;
 		default:
@@ -151,18 +169,18 @@ bool tr_can(const Truco* g, int player, TrAction a)
 	case TR_ACT_NOQUIERO:
 		return true;
 	case TR_ACT_TRUCO:
-		return g->pending == TR_ACT_TRUCO && g->truco_call < 4;
+		return g->pending == TR_ACT_TRUCO && g->truco_call < tr_max_level(g);
 	case TR_ACT_ENVIDO:
 	case TR_ACT_REAL:
 	case TR_ACT_FALTA:
 		if (g->pending == TR_ACT_TRUCO) /* el envido está primero */
-			return g->truco_call == 2 && envido_open(g, player);
+			return g->truco_call == 2 && envido_open(g, player) && !(a == TR_ACT_REAL && g->valenciano);
 		if (g->pending != TR_ACT_ENVIDO || chain_has(g, TR_ACT_FALTA))
 			return false;
 		if (a == TR_ACT_ENVIDO)
 			return g->envido_count == 1 && g->envido_chain[0] == TR_ACT_ENVIDO;
 		if (a == TR_ACT_REAL)
-			return !chain_has(g, TR_ACT_REAL);
+			return !g->valenciano && !chain_has(g, TR_ACT_REAL);
 		return true;
 	default:
 		return false;
@@ -171,7 +189,7 @@ bool tr_can(const Truco* g, int player, TrAction a)
 
 static void finish(Truco* g)
 {
-	if (g->score[0] >= TR_GAME || g->score[1] >= TR_GAME)
+	if (g->score[0] >= g->target || g->score[1] >= g->target)
 		g->phase = TR_GAME_OVER;
 }
 
@@ -280,12 +298,12 @@ bool tr_act(Truco* g, int player, TrAction a)
 			resume(g);
 		} else {
 			g->folded = true;
-			end_hand(g, g->caller, g->truco_level);
+			end_hand(g, g->caller, tr_level_value(g, g->truco_level));
 		}
 		return true;
 	case TR_ACT_MAZO:
 		g->folded = true;
-		end_hand(g, 1 - player, g->truco_level);
+		end_hand(g, 1 - player, tr_level_value(g, g->truco_level));
 		return true;
 	default:
 		return false;
@@ -338,7 +356,7 @@ bool tr_play(Truco* g, int player, int idx)
 	g->baza_winner[b] = w;
 	int hw = decided(g, b);
 	if (hw >= 0) {
-		end_hand(g, hw, g->truco_level);
+		end_hand(g, hw, tr_level_value(g, g->truco_level));
 		return true;
 	}
 	g->baza++;
@@ -350,9 +368,9 @@ bool tr_play(Truco* g, int player, int idx)
 
 int tr_winner(const Truco* g)
 {
-	if (g->score[0] >= TR_GAME && g->score[0] >= g->score[1])
+	if (g->score[0] >= g->target && g->score[0] >= g->score[1])
 		return 0;
-	if (g->score[1] >= TR_GAME)
+	if (g->score[1] >= g->target)
 		return 1;
 	return -1;
 }
@@ -459,9 +477,9 @@ TrAction tr_ai(const Truco* g, int p, int* card)
 		}
 		/* Truco */
 		if (tr_can(g, p, TR_ACT_ENVIDO) && env >= 28)
-			return env >= 31 ? TR_ACT_REAL : TR_ACT_ENVIDO;
+			return env >= 31 && tr_can(g, p, TR_ACT_REAL) ? TR_ACT_REAL : TR_ACT_ENVIDO;
 		int s = truco_strength(g, p);
-		if (s >= 60 + g->truco_call * 5 && tr_can(g, p, TR_ACT_TRUCO) && roll < 60)
+		if (s >= 60 + g->truco_call * 5 && tr_can(g, p, TR_ACT_TRUCO) && roll < 60 && (g->truco_call < 4 || s >= 90))
 			return TR_ACT_TRUCO;
 		if (s >= 25 + g->truco_call * 5 || roll < 12)
 			return TR_ACT_QUIERO;
@@ -470,7 +488,7 @@ TrAction tr_ai(const Truco* g, int p, int* card)
 	/* Le toca jugar */
 	if (tr_can(g, p, TR_ACT_ENVIDO)) {
 		if (env >= 31 && roll < 60)
-			return roll < 25 ? TR_ACT_FALTA : TR_ACT_REAL;
+			return roll < 25 || !tr_can(g, p, TR_ACT_REAL) ? TR_ACT_FALTA : TR_ACT_REAL;
 		if (env >= 27 && roll < 80)
 			return TR_ACT_ENVIDO;
 		if (env <= 22 && roll < 8)
@@ -478,7 +496,8 @@ TrAction tr_ai(const Truco* g, int p, int* card)
 	}
 	if (tr_can(g, p, TR_ACT_TRUCO)) {
 		int s = truco_strength(g, p);
-		if ((s >= 50 + g->truco_level * 8 && roll < 70) || roll < 5)
+		bool joc_fora = g->truco_level + 1 >= 5;
+		if (((s >= 50 + g->truco_level * 8 && roll < 70) || (roll < 5 && g->truco_level < 3)) && (!joc_fora || s >= 90))
 			return TR_ACT_TRUCO;
 	}
 	*card = pick_card(g, p);
