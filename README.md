@@ -291,6 +291,14 @@ por baza: 72 en total; la pareja que pasa de 36 se apunta lo que pasa. A 101.
 
 ![Butifarra](docs/butifarra.png)
 
+### Música del menú
+El menú principal puede tener música de fondo, pero la pones tú: copia un fichero
+`musica.wav` en la carpeta `/3ds/JuegosDeCartas/` de la tarjeta SD. Suena en bucle solo en el
+menú (al entrar en un juego se para) y como mucho los primeros 3 minutos y 56 segundos. Tiene
+que ser un WAV PCM de 16 bits, mono o estéreo, de 8000 a 48000 Hz; con Audacity, por ejemplo:
+*Archivo → Exportar → Exportar como WAV* con "PCM de 16 bits con signo". Si no está, el menú
+funciona igual, sin música.
+
 ### Bingo (juego de mesa)
 Bingo de 90 bolas con los cartones de siempre: 3 filas y 9 columnas, 15 números (5 por
 fila), cada columna con su decena (del 1 al 9, del 10 al 19... y del 80 al 90). Elige de 1 a
