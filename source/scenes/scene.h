@@ -35,6 +35,7 @@ typedef enum {
 	SCENE_MIERDA,
 	SCENE_TRESILLO,
 	SCENE_CUATRILLO,
+	SCENE_BINGO,
 	SCENE_MONA,
 	SCENE_CUCU,
 	SCENE_TREINTAYUNA,
@@ -89,6 +90,7 @@ extern const Scene scene_burro;
 extern const Scene scene_mierda;
 extern const Scene scene_tresillo;
 extern const Scene scene_cuatrillo;
+extern const Scene scene_bingo;
 extern const Scene scene_mona;
 extern const Scene scene_cucu;
 extern const Scene scene_treintayuna;

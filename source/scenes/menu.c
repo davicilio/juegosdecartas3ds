@@ -160,6 +160,10 @@ static const MenuEntry entries[] = {
 	  "se queda sin fichas (o la pareja con menos puntos si se cierra). A 100 puntos.",
 	  SCENE_DOMINO, SUIT_OROS, { C(OROS, 1), C(OROS, 1), C(OROS, 1) }, { CPU_LOLA, CPU_PACO, CPU_MANOLO },
 	  KIND_BOARD },
+	{ "Bingo",
+	  "Bingo de 90 bolas con cartones de los de siempre: 15 números en 3 filas. Juega de 1 a 4 "
+	  "cartones, canta línea y bingo antes que nadie y llévate el bote.",
+	  SCENE_BINGO, SUIT_OROS, { C(OROS, 1), C(OROS, 1), C(OROS, 1) }, { CPU_CARMEN, CPU_RAMON, CPU_LOLA }, KIND_BOARD },
 	{ "Reversi",
 	  "Pon ficha encerrando en línea las del rival entre la nueva y otra tuya: se dan la vuelta. "
 	  "Si no puedes, pasas. Gana quien acaba con más fichas. Tres niveles de dificultad.",
@@ -426,7 +430,7 @@ static SceneId menu_update(const Input* in, float dt)
 static bool has_board_icon(SceneId scene)
 {
 	return scene == SCENE_CONECTA4 || scene == SCENE_DAMAS || scene == SCENE_DOMINO || scene == SCENE_REVERSI ||
-	       scene == SCENE_OCA;
+	       scene == SCENE_OCA || scene == SCENE_BINGO;
 }
 
 static void draw_board_icon(SceneId scene, float cx, float cy, float s, float depth)
@@ -437,6 +441,15 @@ static void draw_board_icon(SceneId scene, float cx, float cy, float s, float de
 		for (int k = 0; k < 4; k++)
 			gfx_ellipse(cx + (k % 2 ? 4.2f : -4.2f) * s + dx, cy + (k / 2 ? 4.2f : -4.2f) * s, 3.4f * s, 3.4f * s, depth,
 				(k == 0 || k == 3) ? C2D_Color32(240, 240, 235, 255) : C2D_Color32(30, 30, 35, 255));
+		return;
+	}
+	if (scene == SCENE_BINGO) {
+		gfx_ellipse(cx + dx, cy, 9 * s, 9 * s, depth, C2D_Color32(216, 58, 58, 255));
+		gfx_ellipse(cx + dx, cy, 5.6f * s, 5.6f * s, depth, C2D_Color32(255, 255, 255, 255));
+		if (s >= 2.0f)
+			gfx_text("15", cx + dx, cy - 3.2f * s, depth, 0.25f * s, C2D_Color32(30, 30, 40, 255), C2D_AlignCenter);
+		else
+			gfx_ellipse(cx - 3 * s + dx, cy - 3.5f * s, 1.6f * s, 1.1f * s, depth, C2D_Color32(255, 255, 255, 160));
 		return;
 	}
 	if (scene == SCENE_OCA) {

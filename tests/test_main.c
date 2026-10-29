@@ -26,6 +26,7 @@
 #include "games/poker.h"
 #include "games/treintayuna.h"
 #include "games/as23.h"
+#include "games/bingo.h"
 #include "games/tresillo.h"
 #include "games/mierda.h"
 #include "games/burro.h"
@@ -2710,6 +2711,72 @@ static void test_tresillo(void)
 	}
 }
 
+static void test_bingo(void)
+{
+	Rng rng;
+	rng_seed(&rng, 5);
+	int col_count[BI_COLS][4] = { { 0 } };
+	for (int i = 0; i < 20000; i++) {
+		BiCard c;
+		bi_make_card(&rng, &c);
+		CHECK(bi_card_valid(&c));
+		for (int k = 0; k < BI_COLS; k++) {
+			int n = 0;
+			for (int r = 0; r < BI_ROWS; r++)
+				n += c.num[r][k] != 0;
+			col_count[k][n]++;
+		}
+	}
+	/* Hay columnas de uno, dos y tres números, y el 90 va en la última */
+	CHECK(col_count[0][1] > 0 && col_count[0][2] > 0 && col_count[8][3] > 0);
+	BiCard bad;
+	memset(&bad, 0, sizeof bad);
+	CHECK(!bi_card_valid(&bad));
+
+	Bingo g;
+	bi_init(&g, 9);
+	CHECK(!bi_start(&g, 0) && !bi_start(&g, 5) && bi_start(&g, 2));
+	CHECK(g.chips[0] == BI_START - 2 * BI_PRICE && g.card_n[0] == 2);
+	int total = g.pot;
+	for (int p = 0; p < BI_PLAYERS; p++)
+		total += g.chips[p];
+	CHECK(total == BI_PLAYERS * BI_START);
+	/* No se puede cantar sin tener */
+	CHECK(!bi_claim_line(&g, 0) && !bi_claim_bingo(&g, 0));
+	/* Marcar solo lo que ha salido */
+	int b = bi_draw(&g);
+	CHECK(b >= 1 && b <= 90 && g.drawn[b] && bi_last(&g) == b);
+
+	int lines = 0, line_at = 0, bingo_at = 0, games = 0;
+	for (int game = 0; game < 500; game++) {
+		bi_init(&g, 3000 + game);
+		CHECK(bi_start(&g, 1 + game % 4));
+		int pot = g.pot;
+		while (g.phase == BI_PLAYING) {
+			CHECK(bi_draw(&g) > 0);
+			for (int p = 0; p < BI_PLAYERS; p++) {
+				if (bi_has_line(&g, p)) {
+					CHECK(bi_claim_line(&g, p));
+					line_at += g.drawn_n;
+					lines++;
+				}
+				if (g.phase == BI_PLAYING && bi_has_bingo(&g, p)) {
+					CHECK(bi_claim_bingo(&g, p));
+					bingo_at += g.drawn_n;
+				}
+			}
+		}
+		CHECK(g.line_winner >= 0 && g.bingo_winner >= 0);
+		CHECK(g.line_prize + g.bingo_prize == pot);
+		int chips = 0;
+		for (int p = 0; p < BI_PLAYERS; p++)
+			chips += g.chips[p];
+		CHECK(chips == BI_PLAYERS * BI_START);
+		games++;
+	}
+	printf("  bingo: línea a la bola %d, bingo a la bola %d de media\n", line_at / lines, bingo_at / games);
+}
+
 static void test_cucu(void)
 {
 	Cucu g;
@@ -3298,6 +3365,7 @@ int main(void)
 	test_rk_simulation();
 	test_mona();
 	test_as23();
+	test_bingo();
 	test_tresillo();
 	test_mierda();
 	test_burro();

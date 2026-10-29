@@ -47,6 +47,7 @@ typedef enum {
 	GAME_TRUC,
 	GAME_TRESILLO,
 	GAME_CUATRILLO,
+	GAME_BINGO,
 	GAME_COUNT
 } GameId;
 

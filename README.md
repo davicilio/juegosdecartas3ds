@@ -106,6 +106,7 @@ pueden jugar; la lista se desplaza con la cruceta) y, en pequeño, **Configuraci
 | Conecta 4 (juego de mesa) | ✅ Disponible |
 | Damas (juego de mesa) | ✅ Disponible |
 | Dominó (juego de mesa) | ✅ Disponible |
+| Bingo (juego de mesa) | ✅ Disponible |
 | Reversi (juego de mesa) | ✅ Disponible |
 | La oca (juego de mesa) | ✅ Disponible |
 | Uno (juego de mesa) | ✅ Disponible |
@@ -289,6 +290,16 @@ que asistir y matar a los rivales. Manilla 5, as 4, rey 3, caballo 2, sota 1 y u
 por baza: 72 en total; la pareja que pasa de 36 se apunta lo que pasa. A 101.
 
 ![Butifarra](docs/butifarra.png)
+
+### Bingo (juego de mesa)
+Bingo de 90 bolas con los cartones de siempre: 3 filas y 9 columnas, 15 números (5 por
+fila), cada columna con su decena (del 1 al 9, del 10 al 19... y del 80 al 90). Elige de 1 a
+4 cartones (5 fichas cada uno) y juega contra tres rivales. Las bolas salen del bombo y se
+marcan solas (con SELECT las marcas tú tocándolas); la cruceta cambia la velocidad y L/R
+el par de cartones que ves. Canta **línea** (Ⓧ) y **bingo** (Ⓨ) antes que nadie: la línea
+se lleva el 30 % del bote y el bingo, el resto.
+
+![Bingo](docs/bingo.png)
 
 ### Reversi y la oca (juegos de mesa)
 - **Reversi**: pon ficha encerrando en línea las del rival, que se dan la vuelta. Se marcan
