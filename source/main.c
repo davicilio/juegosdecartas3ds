@@ -49,6 +49,8 @@ static const Scene* scene_for(SceneId id)
 		return &scene_damas;
 	case SCENE_DOMINO:
 		return &scene_domino;
+	case SCENE_AS23:
+		return &scene_as23;
 	case SCENE_MONA:
 		return &scene_mona;
 	case SCENE_CUCU:

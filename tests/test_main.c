@@ -25,6 +25,7 @@
 #include "games/blackjack.h"
 #include "games/poker.h"
 #include "games/treintayuna.h"
+#include "games/as23.h"
 #include "games/mona.h"
 #include "games/mentiroso.h"
 #include "games/culo.h"
@@ -1894,6 +1895,59 @@ static void test_mona(void)
 	printf("  la mona: pierden %d/%d/%d/%d\n", losers[0], losers[1], losers[2], losers[3]);
 }
 
+static void test_as23(void)
+{
+	As23 g;
+	as23_init(&g, 3, 1);
+	/* Se cuenta as, dos... y si coincide se lleva el montón */
+	CHECK(as23_called(&g) == 1);
+	g.current = 0;
+	g.stack_count[0] = 2;
+	g.stack[0][0] = card_make(SUIT_OROS, 5);
+	g.stack[0][1] = card_make(SUIT_OROS, 4);
+	CHECK(as23_play(&g) && !g.last_match && as23_called(&g) == 2);
+	g.current = 1;
+	g.stack[1][g.stack_count[1] - 1] = card_make(SUIT_COPAS, 2);
+	int before = g.stack_count[1];
+	CHECK(as23_play(&g) && g.last_match && g.last_taken == 2);
+	CHECK(g.stack_count[1] == before - 1 + 2 && g.pile_count == 0 && as23_called(&g) == 1);
+	/* La carta de abajo del mazo es la primera que se echó */
+	CHECK(card_equal(g.stack[1][1], card_make(SUIT_OROS, 4)));
+	/* Echar la última carta sin coincidir gana */
+	g.current = 0;
+	g.stack[0][0] = card_make(SUIT_OROS, 7);
+	CHECK(as23_play(&g) && as23_over(&g) && g.winner == 0);
+	CHECK(!as23_play(&g));
+
+	for (int players = 2; players <= 4; players++) {
+		int wins[AS23_MAX_PLAYERS] = { 0 }, capped = 0;
+		long plays = 0;
+		for (int game = 0; game < 500; game++) {
+			as23_init(&g, players, 7000 + game);
+			int total = 0;
+			for (int p = 0; p < players; p++)
+				total += g.stack_count[p];
+			CHECK(total == DECK_SIZE);
+			while (!as23_over(&g)) {
+				CHECK(as23_play(&g));
+				total = g.pile_count;
+				for (int p = 0; p < players; p++)
+					total += g.stack_count[p];
+				CHECK(total == DECK_SIZE);
+			}
+			CHECK(g.winner >= 0 && g.winner < players);
+			if (g.plays >= AS23_MAX_PLAYS)
+				capped++;
+			else
+				CHECK(g.stack_count[g.winner] == 0);
+			wins[g.winner]++;
+			plays += g.plays;
+		}
+		printf("  as, 2, 3 con %d: %ld cartas de media, %d alargadas, ganan %d/%d/%d/%d\n", players, plays / 500, capped,
+			wins[0], wins[1], wins[2], wins[3]);
+	}
+}
+
 static void test_cucu(void)
 {
 	Cucu g;
@@ -2481,6 +2535,7 @@ int main(void)
 	test_rk_rules();
 	test_rk_simulation();
 	test_mona();
+	test_as23();
 	test_cucu();
 	test_treintayuna();
 	test_mentiroso();

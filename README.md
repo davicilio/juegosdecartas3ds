@@ -110,7 +110,7 @@ pueden jugar; la lista se desplaza con la cruceta) y, en pequeño, **Configuraci
 | Rummikub (juego de mesa) | ✅ Disponible |
 | Mierda | 🕓 Próximamente |
 | Burro | 🕓 Próximamente |
-| As, 2, 3 | 🕓 Próximamente |
+| As, 2, 3 | ✅ Disponible |
 | Tute subastado | 🕓 Próximamente |
 | Julepe | 🕓 Próximamente |
 | Tresillo | 🕓 Próximamente |
@@ -242,6 +242,15 @@ puntos suma y la partida, quien gana tres manos.
 
 En el **tute** se juega por parejas, como en el guiñote; en el **tute cabrón**,
 cada uno para sí (y hay que matar siempre, aunque la baza la vaya ganando otro).
+
+### As, 2, 3
+Para 2, 3 o 4 jugadores (Ⓧ cambia cuántos). Se reparten todas las cartas boca abajo:
+nadie sabe qué tiene. Por turnos, cada uno echa al montón la carta de arriba de su mazo
+(toca tu mazo o pulsa Ⓐ) mientras se cuenta: as, dos, tres... siete, sota, caballo, rey
+y vuelta a empezar. Si la carta coincide con lo que dices, te llevas todo el montón y se
+vuelve a contar desde el as. Gana el primero que se quede sin cartas.
+
+![As, 2, 3](docs/as23.png)
 
 ### La mona
 Se quita la sota de oros y se reparten las demás cartas. Cada uno echa sus parejas

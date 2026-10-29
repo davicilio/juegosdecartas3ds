@@ -76,8 +76,9 @@ static const MenuEntry entries[] = {
 	  "Juego de cartas para reírse en grupo. El que pierde va sumando letras hasta formar BURRO.",
 	  SCENE_COUNT, SUIT_OROS, { C(OROS, 6), C(COPAS, 6), C(BASTOS, 6) }, { -1, -1, -1 } },
 	{ "As, 2, 3",
-	  "Otro juego de la baraja española que llegará en una próxima versión.",
-	  SCENE_COUNT, SUIT_COPAS, { C(OROS, 1), C(COPAS, 2), C(ESPADAS, 3) }, { -1, -1, -1 } },
+	  "Se reparten todas las cartas boca abajo y se echan por turnos contando as, dos, tres... "
+	  "Si tu carta coincide con lo que dices, te llevas el montón. Gana quien se quede sin cartas.",
+	  SCENE_AS23, SUIT_COPAS, { C(OROS, 1), C(COPAS, 2), C(ESPADAS, 3) }, { CPU_MANOLO, CPU_LUCIA, CPU_RAMON } },
 	{ "Tute subastado",
 	  "Tute por parejas en el que se puja por los puntos que se van a hacer. Quien gana la subasta "
 	  "elige el triunfo.",

@@ -34,6 +34,7 @@ typedef enum {
 	GAME_CONECTA4,
 	GAME_DAMAS,
 	GAME_DOMINO,
+	GAME_AS23,
 	GAME_COUNT
 } GameId;
 

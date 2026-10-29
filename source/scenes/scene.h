@@ -22,6 +22,7 @@ typedef enum {
 	SCENE_CONECTA4,
 	SCENE_DAMAS,
 	SCENE_DOMINO,
+	SCENE_AS23,
 	SCENE_MONA,
 	SCENE_CUCU,
 	SCENE_TREINTAYUNA,
@@ -63,6 +64,7 @@ extern const Scene scene_pocha;
 extern const Scene scene_conecta4;
 extern const Scene scene_damas;
 extern const Scene scene_domino;
+extern const Scene scene_as23;
 extern const Scene scene_mona;
 extern const Scene scene_cucu;
 extern const Scene scene_treintayuna;

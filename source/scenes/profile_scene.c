@@ -12,6 +12,10 @@
 static Mood s_mood;
 static Button s_btn_pick, s_btn_rivals, s_btn_done;
 static bool s_welcome;
+/* Las estadísticas no caben de una vez: se pasan de página con L/R */
+#define STATS_PER_PAGE 12
+#define STATS_PAGES    ((GAME_COUNT + STATS_PER_PAGE - 1) / STATS_PER_PAGE)
+static int s_stats_page;
 
 static void profile_enter(void)
 {
@@ -33,6 +37,10 @@ static SceneId finish(void)
 
 static SceneId profile_update(const Input* in, float dt)
 {
+	if (in->down & (KEY_R | KEY_DRIGHT))
+		s_stats_page = (s_stats_page + 1) % STATS_PAGES;
+	if (in->down & (KEY_L | KEY_DLEFT))
+		s_stats_page = (s_stats_page + STATS_PAGES - 1) % STATS_PAGES;
 	mood_update(&s_mood, dt);
 
 	if (button_update(&s_btn_pick, in)) {
@@ -70,8 +78,9 @@ static void profile_draw_top(void)
 		return;
 	}
 	/* Una línea por juego: nombre a la izquierda y resultado a la derecha */
-	for (int g = 0; g < GAME_COUNT; g++) {
-		float y = 40 + g * 14;
+	int first = s_stats_page * STATS_PER_PAGE;
+	for (int g = first; g < GAME_COUNT && g < first + STATS_PER_PAGE; g++) {
+		float y = 40 + (g - first) * 14;
 		gfx_text(game_name((GameId)g), 218, y, DEPTH_UI, 0.45f, COLOR_CREAM, C2D_AlignLeft);
 		if (p->played[g] == 0)
 			gfx_text("-", 380, y, DEPTH_UI, 0.45f, C2D_Color32(190, 170, 160, 255), C2D_AlignRight);
@@ -79,6 +88,8 @@ static void profile_draw_top(void)
 			gfx_textf(380, y, DEPTH_UI, 0.45f, COLOR_GOLD, C2D_AlignRight, "%u/%u", (unsigned)p->won[g],
 				(unsigned)p->played[g]);
 	}
+	gfx_textf(299, 208, DEPTH_UI, 0.4f, C2D_Color32(200, 180, 170, 255), C2D_AlignCenter, "L/R: página %d de %d",
+		s_stats_page + 1, STATS_PAGES);
 }
 
 static void profile_draw_bottom(void)
