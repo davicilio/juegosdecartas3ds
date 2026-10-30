@@ -1,7 +1,8 @@
 # Baraja Española para Nintendo 3DS
 
-**48 juegos** de cartas y de mesa para Nintendo 3DS, en español: siete y media, mus, chinchón,
-tute, brisca, póker, blackjack, parchís, bingo, mahjong y muchos más. Juegas contra personajes
+**49 juegos** de cartas y de mesa para Nintendo 3DS, en español: siete y media, mus, chinchón,
+tute, brisca, póker, blackjack, parchís, bingo, mahjong, un juego de comprar calles con tableros
+personalizables y muchos más. Juegas contra personajes
 basados en los Miis de tu consola, con fichas comunes para todos los juegos de apuestas (que se
 compran con las monedas de juego que ganas andando), 3D estereoscópico y pantalla táctil.
 
@@ -55,7 +56,8 @@ También funciona en el emulador [Azahar](https://azahar-emu.org/).
 - **Baraja francesa:** póker Texas Hold'em, Omaha, póker de descarte, videopóker, blackjack,
   corazones y carta blanca.
 - **De mesa:** parchís, la oca, bingo, dominó, damas, reversi, conecta 4, tres en raya, hundir
-  la flota, toma 6, mahjong solitario, Uno y Rummikub.
+  la flota, toma 6, mahjong solitario, Uno, Rummikub y Negocio redondo (compraventa de calles con
+  tableros que puedes crear tú).
 
 ## Más información
 

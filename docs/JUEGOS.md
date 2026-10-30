@@ -239,6 +239,28 @@ sin voz.
 
 ![Bingo](bingo.png)
 
+## Negocio redondo (juego de mesa)
+Juego de compraventa de calles para 2 a 4 jugadores en un tablero de 28 casillas. Se empieza con
+1500 y se tiran dos dados (con dobles se vuelve a tirar, como mucho dos veces). Al pasar por la
+**Salida** se cobran 200.
+
+- **Calle libre**: la puedes comprar por su precio. **Calle de otro**: pagas el alquiler, un
+  décimo del precio; el doble si el dueño tiene todas las de ese color.
+- **Plantas**: con todas las calles de un color puedes levantar hasta tres plantas en cada una
+  (cada planta cuesta la mitad de la calle). El alquiler pasa a ser x3, x6 y x10. Se hace desde
+  **Mis calles** (Ⓨ) antes de tirar.
+- **Suerte**: una tarjeta (cumpleaños, multa, la pedrea, un atasco...). **Hacienda**: pagas el
+  10 % de tu dinero. **Obras**: un turno sin tirar. **Plaza**: descanso.
+- Si no puedes pagar, se venden tus plantas y tus calles al banco por la mitad; si ni así llega,
+  quiebras. Gana el último que quede o, tras 30 vueltas, quien tenga más patrimonio.
+
+**Tableros propios**: en la pantalla de inicio eliges el tablero con ◀ ▶. **Nuevo tablero**
+copia el que tengas elegido y **Editar** abre el editor (si es el de serie, edita una copia). En
+el editor vas casilla a casilla con la cruceta y cambias su **nombre** (con el teclado de la
+consola), su **tipo** (calle, suerte, Hacienda, obras o plaza), su **color** y su **precio**
+(L/R), y el nombre del tablero. Caben 6 tableros, que se guardan en
+`/3ds/JuegosDeCartas/tableros.dat`.
+
 ## Reversi y la oca (juegos de mesa)
 - **Reversi**: pon ficha encerrando en línea las del rival, que se dan la vuelta. Se marcan
   las casillas donde puedes poner. Ⓨ cambia la dificultad.

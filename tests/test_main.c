@@ -30,6 +30,7 @@
 #include "games/mahjong.h"
 #include "games/toma6.h"
 #include "games/freecell.h"
+#include "games/negocio.h"
 #include "games/parchis.h"
 #include "games/flota.h"
 #include "games/tresenraya.h"
@@ -3160,6 +3161,128 @@ static void test_mahjong(void)
 	printf("  mahjong: %d de 100 resueltas cogiendo la primera pareja\n", solved);
 }
 
+static void test_negocio(void)
+{
+	NgBoard b, c;
+	ng_board_default(&b);
+	c = b;
+	ng_board_sanitize(&c);
+	CHECK(memcmp(&b, &c, sizeof b) == 0); /* el de serie ya es válido */
+	CHECK(b.sq[0].type == NG_START);
+	/* Saneado de un tablero estropeado */
+	memset(&c, 0xFF, sizeof c);
+	ng_board_sanitize(&c);
+	CHECK(c.sq[0].type == NG_START && c.title[0]);
+	for (int i = 0; i < NG_SQUARES; i++) {
+		CHECK(c.sq[i].type < NG_TYPES && c.sq[i].group < NG_GROUPS);
+		if (c.sq[i].type == NG_STREET)
+			CHECK(c.sq[i].price >= NG_PRICE_MIN && c.sq[i].price <= NG_PRICE_MAX && c.sq[i].price % 10 == 0);
+		else
+			CHECK(c.sq[i].price == 0);
+		CHECK(strlen(c.sq[i].name) < NG_NAME_MAX);
+	}
+	/* Un nombre UTF-8 cortado a medias no deja un carácter roto */
+	memset(&c, 0, sizeof c);
+	ng_board_default(&c);
+	memset(c.sq[1].name, 'a', NG_NAME_MAX);
+	c.sq[1].name[NG_NAME_MAX - 2] = (char)0xC3; /* "ñ" sin su segundo byte al final */
+	ng_board_sanitize(&c);
+	CHECK(strlen(c.sq[1].name) == NG_NAME_MAX - 2);
+	/* Alquileres */
+	CHECK(ng_base_rent(200, 0, false) == 20 && ng_base_rent(200, 0, true) == 40);
+	CHECK(ng_base_rent(200, 1, true) == 60 && ng_base_rent(200, 3, true) == 200);
+	/* Guardar y leer tableros */
+	NgBoard list[3], back[NG_MAX_BOARDS];
+	for (int i = 0; i < 3; i++) {
+		ng_board_default(&list[i]);
+		snprintf(list[i].title, sizeof list[i].title, "Barrio %d", i);
+		snprintf(list[i].sq[5].name, sizeof list[i].sq[5].name, "Calle de la Peña");
+		list[i].sq[5].price = (uint16_t)(100 + i * 10);
+	}
+	const char* path = "test_tableros.dat";
+	CHECK(ng_boards_save(list, 3, path));
+	CHECK(ng_boards_load(back, NG_MAX_BOARDS, path) == 3);
+	CHECK(strcmp(back[2].title, "Barrio 2") == 0 && back[1].sq[5].price == 110);
+	CHECK(strcmp(back[0].sq[5].name, "Calle de la Peña") == 0);
+	CHECK(ng_boards_load(back, 2, path) == 2);
+	remove(path);
+	CHECK(ng_boards_load(back, NG_MAX_BOARDS, path) == 0);
+
+	/* Comprar, cobrar alquiler y pasar por la salida */
+	Negocio g;
+	ng_init(&g, &b, 2, 1);
+	ng_roll(&g, 1, 3); /* 0 -> 4: Calle Larios (100), libre */
+	CHECK(g.phase == NG_BUY && g.pos[0] == 4);
+	ng_buy(&g, true);
+	CHECK(g.owner[4] == 0 && g.money[0] == NG_START_MONEY - 100 && g.current == 1);
+	ng_roll(&g, 1, 3); /* el rival cae en ella y paga 10 */
+	CHECK(g.ev == NG_EV_RENT && g.ev_amount == 10 && g.money[1] == NG_START_MONEY - 10);
+	CHECK(g.money[0] == NG_START_MONEY - 100 + 10);
+	CHECK(g.phase == NG_ROLL && g.current == 0);
+	/* Con dobles se repite */
+	ng_roll(&g, 1, 1); /* 4 -> 6: Hacienda (10 %) */
+	CHECK(g.ev == NG_EV_TAX && g.ev_amount == 140 && g.current == 0);
+	ng_roll(&g, 6, 6); /* 6 -> 18: Calle Corrida, segundos dobles */
+	CHECK(g.phase == NG_BUY);
+	ng_buy(&g, false);
+	CHECK(g.current == 0 && g.owner[18] == -1);
+	ng_roll(&g, 6, 6); /* terceros dobles: 18 -> 30 = 2 (Suerte) y pasa por la salida */
+	CHECK(g.ev_salary); /* ha pasado por la salida */
+	CHECK(g.doubles == 0 || g.phase == NG_BUY); /* tras los terceros dobles ya no repite */
+
+	/* Plantas: hacen falta todas las calles del color */
+	ng_init(&g, &b, 2, 2);
+	g.owner[1] = 0;
+	CHECK(!ng_full_group(&g, 1) && !ng_can_build(&g, 0, 1));
+	g.owner[3] = 0;
+	CHECK(ng_full_group(&g, 1) && ng_rent(&g, 1) == 12);
+	CHECK(ng_build(&g, 0, 1) && g.level[1] == 1 && g.money[0] == NG_START_MONEY - 30);
+	CHECK(ng_rent(&g, 1) == 18);
+	CHECK(!ng_build(&g, 1, 3)); /* no es suya */
+	g.level[1] = NG_MAX_LEVEL;
+	CHECK(!ng_can_build(&g, 0, 1));
+	CHECK(ng_worth(&g, 0) == g.money[0] + 60 + 60 + 3 * 30);
+
+	/* Bancarrota: se venden plantas y calles y, si no llega, se quiebra */
+	ng_init(&g, &b, 3, 3);
+	g.owner[27] = 1;
+	g.owner[24] = 1;
+	g.owner[25] = 1;
+	g.level[27] = 3;
+	g.money[0] = 50;
+	g.owner[1] = 0;
+	g.pos[0] = 25;
+	ng_roll(&g, 1, 1); /* cae en La Concha con 3 plantas: 320 de alquiler */
+	CHECK(g.ev == NG_EV_BANKRUPT && g.out[0] && g.owner[1] == -1);
+	CHECK(g.money[1] == NG_START_MONEY + 50 + 30); /* el dinero y la calle vendida por la mitad */
+	CHECK(g.phase == NG_OVER); /* si quiebras tú, se acaba */
+
+	/* Partidas enteras entre la IA: terminan y nadie queda con dinero negativo */
+	int over = 0;
+	for (int seed = 0; seed < 300; seed++) {
+		ng_init(&g, &b, 2 + seed % 3, (uint32_t)seed * 7919u);
+		int steps = 0;
+		while (g.phase != NG_OVER && steps < 20000) {
+			if (g.phase == NG_BUY)
+				ng_buy(&g, ng_ai_buy(&g));
+			else {
+				int sq;
+				while ((sq = ng_ai_build(&g, g.current)) >= 0)
+					CHECK(ng_build(&g, g.current, sq));
+				ng_roll(&g, 0, 0);
+			}
+			for (int p = 0; p < g.players; p++)
+				CHECK(g.money[p] >= 0);
+			steps++;
+		}
+		over += g.phase == NG_OVER;
+		CHECK(g.winner >= 0 && !g.out[g.winner]);
+	}
+	CHECK(over == 300);
+	for (int k = 0; k < ng_cards(); k++)
+		CHECK(ng_card_text(k)[0] != '\0');
+}
+
 static void test_chip_stacks(void)
 {
 	/* Póker: te sientas con las fichas que traes del monedero */
@@ -3904,6 +4027,7 @@ int main(void)
 	test_videopoker();
 	test_poker_variants();
 	test_chip_stacks();
+	test_negocio();
 	test_mahjong();
 	test_toma6();
 	test_freecell();

@@ -74,6 +74,10 @@ static const Scene* scene_for(SceneId id)
 		return &scene_videopoker;
 	case SCENE_MAHJONG:
 		return &scene_mahjong;
+	case SCENE_NEGOCIO:
+		return &scene_negocio;
+	case SCENE_TABLEROS:
+		return &scene_tableros;
 	case SCENE_TOMA6:
 		return &scene_toma6;
 	case SCENE_FREECELL:
@@ -129,7 +133,7 @@ static const Scene* scene_for(SceneId id)
 static bool is_game(SceneId id)
 {
 	return id != SCENE_MENU && id != SCENE_PROFILE && id != SCENE_RIVALS && id != SCENE_CARDBACK &&
-		id != SCENE_FICHAS && id < SCENE_COUNT;
+		id != SCENE_FICHAS && id != SCENE_TABLEROS && id < SCENE_COUNT;
 }
 
 /* Juegos de cartas (los de tablero, fichas o bolas no llevan música) */
@@ -145,6 +149,7 @@ static bool is_card_game(SceneId id)
 	case SCENE_TRESENRAYA:
 	case SCENE_FLOTA:
 	case SCENE_MAHJONG:
+	case SCENE_NEGOCIO:
 	case SCENE_BINGO:
 	case SCENE_RUMMIKUB:
 		return false;

@@ -208,6 +208,11 @@ static const MenuEntry entries[] = {
 	  "De oca a oca y tiro porque me toca. Tira el dado y llega justo a la 63 esquivando la posada, "
 	  "el pozo, el laberinto, la cárcel... ¡y la muerte! De 2 a 4 jugadores.",
 	  SCENE_OCA, SUIT_OROS, { C(OROS, 1), C(OROS, 1), C(OROS, 1) }, { CPU_PACO, CPU_LOLA, CPU_PEPE }, KIND_BOARD },
+	{ "Negocio redondo",
+	  "Compra calles, cobra alquileres y levanta plantas hasta arruinar a los demás. Cambia los "
+	  "nombres, colores y precios de las calles y crea tus propios tableros. De 2 a 4 jugadores.",
+	  SCENE_NEGOCIO, SUIT_OROS, { C(OROS, 1), C(OROS, 1), C(OROS, 1) }, { CPU_CARMEN, CPU_MANOLO, CPU_LUCIA },
+	  KIND_BOARD },
 	{ "Uno",
 	  "Echa cartas del mismo color o número. Salta, cambio de sentido, roba dos y comodines... "
 	  "¡y no te olvides de decir \"¡Uno!\" cuando te quede una carta!",
@@ -516,7 +521,7 @@ static bool has_board_icon(SceneId scene)
 {
 	return scene == SCENE_CONECTA4 || scene == SCENE_DAMAS || scene == SCENE_DOMINO || scene == SCENE_REVERSI ||
 	       scene == SCENE_OCA || scene == SCENE_BINGO || scene == SCENE_TRESENRAYA || scene == SCENE_FLOTA ||
-	       scene == SCENE_PARCHIS || scene == SCENE_TOMA6 || scene == SCENE_MAHJONG;
+	       scene == SCENE_PARCHIS || scene == SCENE_TOMA6 || scene == SCENE_MAHJONG || scene == SCENE_NEGOCIO;
 }
 
 static void draw_board_icon(SceneId scene, float cx, float cy, float s, float depth)
@@ -572,6 +577,14 @@ static void draw_board_icon(SceneId scene, float cx, float cy, float s, float de
 			gfx_text("15", cx, cy - 3.2f * s, depth, 0.25f * s, C2D_Color32(30, 30, 40, 255), C2D_AlignCenter);
 		else
 			gfx_ellipse(cx - 3 * s, cy - 3.5f * s, 1.6f * s, 1.1f * s, depth, C2D_Color32(255, 255, 255, 160));
+		return;
+	}
+	if (scene == SCENE_NEGOCIO) {
+		/* Una casita con su tejado */
+		gfx_rrect(cx - 9 * s, cy - 9 * s, 18 * s, 18 * s, 2 * s, depth, C2D_Color32(30, 105, 60, 255));
+		gfx_triangle(cx - 7 * s, cy - 1 * s, cx + 7 * s, cy - 1 * s, cx, cy - 7.5f * s, depth, C2D_Color32(210, 45, 50, 255));
+		gfx_rect(cx - 5 * s, cy - 1 * s, 10 * s, 8 * s, depth, C2D_Color32(250, 244, 228, 255));
+		gfx_rect(cx - 1.5f * s, cy + 2.5f * s, 3 * s, 4.5f * s, depth, C2D_Color32(140, 90, 50, 255));
 		return;
 	}
 	if (scene == SCENE_OCA) {
