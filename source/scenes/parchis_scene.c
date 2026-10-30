@@ -290,21 +290,20 @@ static u32 rgb(int p, u8 a)
 
 static void cell_rect(float c, float r, u32 col, float d)
 {
-	gfx_rect(BX0 + c * U + 0.5f + gfx_dx(d), BY0 + r * U + 0.5f, U - 1, U - 1, d, col);
+	gfx_rect(BX0 + c * U + 0.5f, BY0 + r * U + 0.5f, U - 1, U - 1, d, col);
 }
 
 static void pa_draw_top(void)
 {
 	gfx_background(BG_TABLE_TOP);
 	float d = DEPTH_TABLE;
-	float dx = gfx_dx(d);
-	gfx_rect(BX0 - 3 + dx, BY0 - 3, 19 * U + 6, 19 * U + 6, d, C2D_Color32(110, 70, 30, 255));
-	gfx_rect(BX0 + dx, BY0, 19 * U, 19 * U, d, C2D_Color32(245, 238, 220, 255));
+	gfx_rect(BX0 - 3, BY0 - 3, 19 * U + 6, 19 * U + 6, d, C2D_Color32(110, 70, 30, 255));
+	gfx_rect(BX0, BY0, 19 * U, 19 * U, d, C2D_Color32(245, 238, 220, 255));
 	/* Casas en las esquinas */
 	for (int p = 0; p < PA_PLAYERS; p++) {
 		float c0 = HOME_X[p] > 9 ? 11 : 0, r0 = HOME_Y[p] > 9 ? 11 : 0;
-		gfx_rect(BX0 + c0 * U + dx + 2, BY0 + r0 * U + 2, 8 * U - 4, 8 * U - 4, d, rgb(p, 255));
-		gfx_ellipse(BX0 + (HOME_X[p] + 0.5f) * U + dx, BY0 + (HOME_Y[p] + 0.5f) * U, 2.6f * U, 2.6f * U, d,
+		gfx_rect(BX0 + c0 * U + 2, BY0 + r0 * U + 2, 8 * U - 4, 8 * U - 4, d, rgb(p, 255));
+		gfx_ellipse(BX0 + (HOME_X[p] + 0.5f) * U, BY0 + (HOME_Y[p] + 0.5f) * U, 2.6f * U, 2.6f * U, d,
 			C2D_Color32(255, 255, 255, 120));
 	}
 	/* Circuito */
@@ -317,7 +316,7 @@ static void pa_draw_top(void)
 				col = rgb(p, 200);
 		cell_rect(c, r, col, d);
 		if (pa_safe(sq))
-			gfx_ellipse(BX0 + (c + 0.5f) * U + dx, BY0 + (r + 0.5f) * U, U * 0.28f, U * 0.28f, d,
+			gfx_ellipse(BX0 + (c + 0.5f) * U, BY0 + (r + 0.5f) * U, U * 0.28f, U * 0.28f, d,
 				C2D_Color32(150, 150, 160, 160));
 	}
 	/* Pasillos */
@@ -328,11 +327,11 @@ static void pa_draw_top(void)
 			cell_rect(sx[p] + dxs[p] * k, sy[p] + dys[p] * k, rgb(p, 150), d);
 		}
 	/* Meta: cuatro triángulos */
-	float cx = BX0 + 9.5f * U + dx, cy = BY0 + 9.5f * U, h = 1.5f * U;
-	C2D_DrawTriangle(cx - h, cy + h, rgb(0, 255), cx + h, cy + h, rgb(0, 255), cx, cy, rgb(0, 255), 0.5f);
-	C2D_DrawTriangle(cx + h, cy - h, rgb(1, 255), cx + h, cy + h, rgb(1, 255), cx, cy, rgb(1, 255), 0.5f);
-	C2D_DrawTriangle(cx - h, cy - h, rgb(2, 255), cx + h, cy - h, rgb(2, 255), cx, cy, rgb(2, 255), 0.5f);
-	C2D_DrawTriangle(cx - h, cy - h, rgb(3, 255), cx - h, cy + h, rgb(3, 255), cx, cy, rgb(3, 255), 0.5f);
+	float cx = BX0 + 9.5f * U, cy = BY0 + 9.5f * U, h = 1.5f * U;
+	gfx_triangle(cx - h, cy + h, cx + h, cy + h, cx, cy, d, rgb(0, 255));
+	gfx_triangle(cx + h, cy - h, cx + h, cy + h, cx, cy, d, rgb(1, 255));
+	gfx_triangle(cx - h, cy - h, cx + h, cy - h, cx, cy, d, rgb(2, 255));
+	gfx_triangle(cx - h, cy - h, cx - h, cy + h, cx, cy, d, rgb(3, 255));
 	/* Fichas */
 	float pulse = 0.5f + 0.5f * sinf(gfx_time() * 7.0f);
 	for (int p = 0; p < PA_PLAYERS; p++)
@@ -341,10 +340,10 @@ static void pa_draw_top(void)
 			piece_xy(p, i, &x, &y);
 			float dd = DEPTH_CARDS;
 			if (p == 0 && i == s_sel && s_game.current == 0 && s_game.phase == PA_MOVE && pa_can_move(&s_game, i))
-				gfx_ellipse(x + gfx_dx(dd), y, 6.5f + pulse, 6.5f + pulse, dd, C2D_Color32(255, 255, 255, 230));
-			gfx_ellipse(x + gfx_dx(dd) + 0.8f, y + 1.2f, 4.8f, 4.8f, dd, C2D_Color32(0, 0, 0, 100));
-			gfx_ellipse(x + gfx_dx(dd), y, 4.8f, 4.8f, dd, C2D_Color32(40, 30, 30, 255));
-			gfx_ellipse(x + gfx_dx(dd), y, 3.8f, 3.8f, dd, rgb(p, 255));
+				gfx_ellipse(x, y, 6.5f + pulse, 6.5f + pulse, dd, C2D_Color32(255, 255, 255, 230));
+			gfx_ellipse(x + 0.8f, y + 1.2f, 4.8f, 4.8f, dd, C2D_Color32(0, 0, 0, 100));
+			gfx_ellipse(x, y, 4.8f, 4.8f, dd, C2D_Color32(40, 30, 30, 255));
+			gfx_ellipse(x, y, 3.8f, 3.8f, dd, rgb(p, 255));
 		}
 	/* Jugadores */
 	for (int p = 0; p < PA_PLAYERS; p++) {

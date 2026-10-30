@@ -332,7 +332,7 @@ static void poker_draw_top(void)
 		if (i < G->board_count)
 			gfx_french(fr_id(G->board[i]), x, 120, 0.62f, 0.0f, DEPTH_CARDS, true);
 		else
-			gfx_rrect(x - 20 + gfx_dx(DEPTH_TABLE), 120 - 30, 40, 60, 5, DEPTH_TABLE, C2D_Color32(0, 0, 0, 50));
+			gfx_rrect(x - 20, 120 - 30, 40, 60, 5, DEPTH_TABLE, C2D_Color32(0, 0, 0, 50));
 	}
 	gfx_textf(200, 156, DEPTH_UI, 0.55f, COLOR_GOLD, C2D_AlignCenter, "Bote: %d", pk_pot(G));
 	char me[40];

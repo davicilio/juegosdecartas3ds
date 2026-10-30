@@ -377,12 +377,22 @@ static u32 ball_color(int n)
 
 static void draw_ball_at(float x, float y, float r, int n, float depth)
 {
-	gfx_ellipse(x + 1.5f + gfx_dx(depth), y + 2, r, r, depth, C2D_Color32(0, 0, 0, 80));
-	gfx_ellipse(x + gfx_dx(depth), y, r, r, depth, gfx_rgb(ball_color(n), 255));
-	gfx_ellipse(x + gfx_dx(depth), y, r * 0.62f, r * 0.62f, depth, C2D_Color32(255, 255, 255, 255));
-	gfx_ellipse(x - r * 0.45f + gfx_dx(depth), y - r * 0.5f, r * 0.22f, r * 0.15f, depth, C2D_Color32(255, 255, 255, 160));
-	gfx_textf(x, y - r * 0.42f, depth, r / 22.0f > 0.45f ? r / 22.0f : 0.45f, C2D_Color32(30, 30, 40, 255),
-		C2D_AlignCenter, "%d", n);
+	gfx_ellipse(x + 1.5f, y + 2, r, r, depth, C2D_Color32(0, 0, 0, 80));
+	gfx_ellipse(x, y, r, r, depth, gfx_rgb(ball_color(n), 255));
+	gfx_ellipse(x, y, r * 0.7f, r * 0.7f, depth, C2D_Color32(255, 255, 255, 255));
+	gfx_ellipse(x - r * 0.5f, y - r * 0.55f, r * 0.2f, r * 0.13f, depth, C2D_Color32(255, 255, 255, 160));
+	/* El número, derecho y centrado en el círculo blanco: el tamaño se ajusta
+	 * a su ancho y la altura se centra con la de las cifras (unos 15 px por
+	 * encima de la mitad de la línea con escala 1) */
+	char num[4];
+	snprintf(num, sizeof num, "%d", n);
+	float scale = r / 24.0f;
+	float w = gfx_text_width(num, scale);
+	if (w > r * 1.25f)
+		scale *= r * 1.25f / w;
+	if (scale < 0.45f)
+		scale = 0.45f;
+	gfx_textf_plain(x, y - 15.5f * scale, depth, scale, C2D_Color32(30, 30, 40, 255), C2D_AlignCenter, "%s", num);
 }
 
 static void bi_draw_top(void)
@@ -391,17 +401,17 @@ static void bi_draw_top(void)
 	float t = gfx_time();
 	/* El bombo */
 	float bx = 82, by = 92, br = 60;
-	gfx_ellipse(bx + gfx_dx(DEPTH_CARDS), by, br + 4, br + 4, DEPTH_CARDS, C2D_Color32(150, 110, 40, 255));
-	gfx_ellipse(bx + gfx_dx(DEPTH_CARDS), by, br, br, DEPTH_CARDS, C2D_Color32(220, 235, 245, 120));
+	gfx_ellipse(bx, by, br + 4, br + 4, DEPTH_CARDS, C2D_Color32(150, 110, 40, 255));
+	gfx_ellipse(bx, by, br, br, DEPTH_CARDS, C2D_Color32(220, 235, 245, 120));
 	int left = BI_BALLS - s_game.drawn_n;
 	int shown = left > 18 ? 18 : left;
 	for (int i = 0; i < shown; i++) {
 		float a = t * (s_game.phase == BI_PLAYING ? 2.2f : 0.3f) + i * 2.399f;
 		float rr = 18 + (i * 37 % 30);
 		float x = bx + cosf(a) * rr, y = by + sinf(a * 1.3f) * rr * 0.8f + 10;
-		gfx_ellipse(x + gfx_dx(DEPTH_CARDS + 0.2f), y, 7, 7, DEPTH_CARDS + 0.2f, gfx_rgb(ball_color(i * 5 + 1), 255));
+		gfx_ellipse(x, y, 7, 7, DEPTH_CARDS + 0.2f, gfx_rgb(ball_color(i * 5 + 1), 255));
 	}
-	gfx_rect(bx - 6 + gfx_dx(DEPTH_CARDS), by + br, 12, 20, DEPTH_CARDS, C2D_Color32(150, 110, 40, 255));
+	gfx_rect(bx - 6, by + br, 12, 20, DEPTH_CARDS, C2D_Color32(150, 110, 40, 255));
 	/* La última bola sale del bombo */
 	int last = bi_last(&s_game);
 	if (last) {
@@ -411,7 +421,7 @@ static void bi_draw_top(void)
 	}
 	/* Las cinco anteriores */
 	for (int i = 1; i <= 5 && s_game.drawn_n - 1 - i >= 0; i++)
-		draw_ball_at(18 + (i - 1) * 26, 214, 11, s_game.order[s_game.drawn_n - 1 - i], DEPTH_UI);
+		draw_ball_at(18 + (i - 1) * 28, 212, 13, s_game.order[s_game.drawn_n - 1 - i], DEPTH_UI);
 	/* Panel de las 90 bolas */
 	float px = 184, py = 8;
 	gfx_panel(px - 4, py - 4, 10 * 21 + 8, 9 * 15 + 8, DEPTH_UI, C2D_Color32(10, 40, 20, 220), C2D_Color32(150, 110, 40, 255));
@@ -420,7 +430,7 @@ static void bi_draw_top(void)
 		float x = px + c * 21, y = py + r * 15;
 		bool on = s_game.drawn[n];
 		if (on)
-			gfx_rect(x + gfx_dx(DEPTH_UI), y, 20, 14, DEPTH_UI,
+			gfx_rect(x, y, 20, 14, DEPTH_UI,
 				n == last ? C2D_Color32(250, 200, 50, 255) : gfx_rgb(ball_color(n), 255));
 		gfx_textf(x + 10, y, DEPTH_UI, 0.45f, on ? COLOR_WHITE : C2D_Color32(90, 130, 100, 255), C2D_AlignCenter, "%d", n);
 	}

@@ -379,7 +379,7 @@ static void uno_scene_draw_top(void)
 		gfx_board(BOARD_UNO_BACK, DECK_X - i * 0.6f, PILE_Y - i * 0.8f, 0.85f, 0.0f, DEPTH_CARDS + i * 0.05f, NULL);
 	gfx_textf(DECK_X, PILE_Y + 46, DEPTH_UI, 0.4f, COLOR_CREAM, C2D_AlignCenter, "%d", s_game.deck_count);
 	float pulse = 0.6f + 0.4f * sinf(gfx_time() * 4.0f);
-	gfx_rrect(PILE_X - 34 + gfx_dx(DEPTH_CARDS), PILE_Y - 48, 68, 96, 9, DEPTH_CARDS,
+	gfx_rrect(PILE_X - 34, PILE_Y - 48, 68, 96, 9, DEPTH_CARDS,
 		gfx_rgb(COLOR_RGB[s_game.color], (u8)(200 * pulse)));
 	if (s_game.discard_count > 1)
 		gfx_board(sprite_of(s_game.discard[s_game.discard_count - 2]), PILE_X - 3, PILE_Y + 2, 0.85f, -0.12f,

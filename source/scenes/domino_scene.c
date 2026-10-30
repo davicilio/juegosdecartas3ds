@@ -27,16 +27,15 @@ static Button s_btn_left, s_btn_right, s_btn_pass, s_btn_menu;
  * izquierda; vertical: a arriba. */
 static void draw_tile(DoTile t, float cx, float cy, float w, bool vertical, float depth, bool dim)
 {
-	float dx = gfx_dx(depth);
 	float tw = vertical ? w : w * 2, th = vertical ? w * 2 : w;
-	gfx_rrect(cx - tw / 2 + dx + 1, cy - th / 2 + 2, tw, th, w * 0.18f, depth, C2D_Color32(0, 0, 0, 80));
-	gfx_rrect(cx - tw / 2 + dx, cy - th / 2, tw, th, w * 0.18f, depth,
+	gfx_rrect(cx - tw / 2 + 1, cy - th / 2 + 2, tw, th, w * 0.18f, depth, C2D_Color32(0, 0, 0, 80));
+	gfx_rrect(cx - tw / 2, cy - th / 2, tw, th, w * 0.18f, depth,
 		dim ? C2D_Color32(170, 165, 150, 255) : C2D_Color32(250, 247, 235, 255));
 	u32 ink = C2D_Color32(30, 30, 35, 255);
 	if (vertical)
-		gfx_rect(cx - w * 0.38f + dx, cy - 0.5f, w * 0.76f, 1.2f, depth, C2D_Color32(120, 110, 100, 255));
+		gfx_rect(cx - w * 0.38f, cy - 0.5f, w * 0.76f, 1.2f, depth, C2D_Color32(120, 110, 100, 255));
 	else
-		gfx_rect(cx - 0.5f + dx, cy - w * 0.38f, 1.2f, w * 0.76f, depth, C2D_Color32(120, 110, 100, 255));
+		gfx_rect(cx - 0.5f, cy - w * 0.38f, 1.2f, w * 0.76f, depth, C2D_Color32(120, 110, 100, 255));
 	/* Puntos: rejilla de 3x3 en cada mitad */
 	static const int8_t PIPS[7][6][2] = {
 		{ { 9, 9 } },
@@ -53,7 +52,7 @@ static void draw_tile(DoTile t, float cx, float cy, float w, bool vertical, floa
 		float hx = vertical ? cx : cx + (half ? w / 2 : -w / 2);
 		float hy = vertical ? cy + (half ? w / 2 : -w / 2) : cy;
 		for (int k = 0; k < vals[half]; k++)
-			gfx_ellipse(hx + PIPS[vals[half]][k][0] * step + dx, hy + PIPS[vals[half]][k][1] * step, pr, pr, depth, ink);
+			gfx_ellipse(hx + PIPS[vals[half]][k][0] * step, hy + PIPS[vals[half]][k][1] * step, pr, pr, depth, ink);
 	}
 }
 

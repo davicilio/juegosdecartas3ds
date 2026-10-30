@@ -521,87 +521,86 @@ static bool has_board_icon(SceneId scene)
 
 static void draw_board_icon(SceneId scene, float cx, float cy, float s, float depth)
 {
-	float dx = gfx_dx(depth);
 	if (scene == SCENE_REVERSI) {
-		gfx_rrect(cx - 9 * s + dx, cy - 9 * s, 18 * s, 18 * s, 2 * s, depth, C2D_Color32(36, 132, 66, 255));
+		gfx_rrect(cx - 9 * s, cy - 9 * s, 18 * s, 18 * s, 2 * s, depth, C2D_Color32(36, 132, 66, 255));
 		for (int k = 0; k < 4; k++)
-			gfx_ellipse(cx + (k % 2 ? 4.2f : -4.2f) * s + dx, cy + (k / 2 ? 4.2f : -4.2f) * s, 3.4f * s, 3.4f * s, depth,
+			gfx_ellipse(cx + (k % 2 ? 4.2f : -4.2f) * s, cy + (k / 2 ? 4.2f : -4.2f) * s, 3.4f * s, 3.4f * s, depth,
 				(k == 0 || k == 3) ? C2D_Color32(240, 240, 235, 255) : C2D_Color32(30, 30, 35, 255));
 		return;
 	}
 	if (scene == SCENE_TRESENRAYA) {
-		gfx_rrect(cx - 9 * s + dx, cy - 9 * s, 18 * s, 18 * s, 2 * s, depth, C2D_Color32(245, 240, 225, 255));
+		gfx_rrect(cx - 9 * s, cy - 9 * s, 18 * s, 18 * s, 2 * s, depth, C2D_Color32(245, 240, 225, 255));
 		u32 red = C2D_Color32(220, 50, 50, 255);
 		gfx_line(cx - 6 * s, cy - 6 * s, cx + 6 * s, cy + 6 * s, 2.2f * s, depth, red);
 		gfx_line(cx + 6 * s, cy - 6 * s, cx - 6 * s, cy + 6 * s, 2.2f * s, depth, red);
 		return;
 	}
 	if (scene == SCENE_FLOTA) {
-		gfx_rrect(cx - 9 * s + dx, cy - 9 * s, 18 * s, 18 * s, 2 * s, depth, C2D_Color32(30, 90, 160, 255));
-		gfx_rrect(cx - 6 * s + dx, cy - 1 * s, 12 * s, 4 * s, 2 * s, depth, C2D_Color32(160, 165, 175, 255));
-		gfx_rect(cx - 1 * s + dx, cy - 4 * s, 3 * s, 3 * s, depth, C2D_Color32(160, 165, 175, 255));
-		gfx_ellipse(cx + 5 * s + dx, cy - 5 * s, 2 * s, 2 * s, depth, C2D_Color32(240, 120, 30, 255));
+		gfx_rrect(cx - 9 * s, cy - 9 * s, 18 * s, 18 * s, 2 * s, depth, C2D_Color32(30, 90, 160, 255));
+		gfx_rrect(cx - 6 * s, cy - 1 * s, 12 * s, 4 * s, 2 * s, depth, C2D_Color32(160, 165, 175, 255));
+		gfx_rect(cx - 1 * s, cy - 4 * s, 3 * s, 3 * s, depth, C2D_Color32(160, 165, 175, 255));
+		gfx_ellipse(cx + 5 * s, cy - 5 * s, 2 * s, 2 * s, depth, C2D_Color32(240, 120, 30, 255));
 		return;
 	}
 	if (scene == SCENE_MAHJONG) {
-		gfx_rrect(cx - 6 * s + dx, cy - 7 * s, 13 * s, 16 * s, 2 * s, depth, C2D_Color32(150, 110, 60, 255));
-		gfx_rrect(cx - 7 * s + dx, cy - 9 * s, 13 * s, 16 * s, 2 * s, depth, C2D_Color32(250, 245, 230, 255));
-		gfx_rrect(cx - 4.5f * s + dx, cy - 6 * s, 8 * s, 10 * s, 1.5f * s, depth, C2D_Color32(200, 40, 40, 255));
+		gfx_rrect(cx - 6 * s, cy - 7 * s, 13 * s, 16 * s, 2 * s, depth, C2D_Color32(150, 110, 60, 255));
+		gfx_rrect(cx - 7 * s, cy - 9 * s, 13 * s, 16 * s, 2 * s, depth, C2D_Color32(250, 245, 230, 255));
+		gfx_rrect(cx - 4.5f * s, cy - 6 * s, 8 * s, 10 * s, 1.5f * s, depth, C2D_Color32(200, 40, 40, 255));
 		return;
 	}
 	if (scene == SCENE_TOMA6) {
 		for (int k = 0; k < 2; k++) {
 			float x = cx + (k ? 3 : -3) * s, y = cy + (k ? 2 : -2) * s;
-			gfx_rrect(x - 5 * s + dx, y - 7 * s, 10 * s, 14 * s, 1.5f * s, depth, C2D_Color32(60, 40, 60, 255));
-			gfx_rrect(x - 4.4f * s + dx, y - 6.4f * s, 8.8f * s, 12.8f * s, 1.2f * s, depth,
+			gfx_rrect(x - 5 * s, y - 7 * s, 10 * s, 14 * s, 1.5f * s, depth, C2D_Color32(60, 40, 60, 255));
+			gfx_rrect(x - 4.4f * s, y - 6.4f * s, 8.8f * s, 12.8f * s, 1.2f * s, depth,
 				k ? C2D_Color32(245, 205, 70, 255) : C2D_Color32(250, 248, 240, 255));
-			gfx_ellipse(x + dx, y - 4 * s, 1.4f * s, 1.2f * s, depth, C2D_Color32(110, 40, 120, 255));
+			gfx_ellipse(x, y - 4 * s, 1.4f * s, 1.2f * s, depth, C2D_Color32(110, 40, 120, 255));
 		}
 		return;
 	}
 	if (scene == SCENE_PARCHIS) {
 		static const u32 cols[4] = { 0xE8C428, 0x2864D2, 0xD23232, 0x32A046 };
-		gfx_rect(cx - 9 * s + dx, cy - 9 * s, 18 * s, 18 * s, depth, C2D_Color32(245, 238, 220, 255));
+		gfx_rect(cx - 9 * s, cy - 9 * s, 18 * s, 18 * s, depth, C2D_Color32(245, 238, 220, 255));
 		for (int k = 0; k < 4; k++)
-			gfx_rect(cx + (k % 2 ? 2 : -9) * s + dx, cy + (k / 2 ? 2 : -9) * s, 7 * s, 7 * s, depth, gfx_rgb(cols[k], 255));
+			gfx_rect(cx + (k % 2 ? 2 : -9) * s, cy + (k / 2 ? 2 : -9) * s, 7 * s, 7 * s, depth, gfx_rgb(cols[k], 255));
 		return;
 	}
 	if (scene == SCENE_BINGO) {
-		gfx_ellipse(cx + dx, cy, 9 * s, 9 * s, depth, C2D_Color32(216, 58, 58, 255));
-		gfx_ellipse(cx + dx, cy, 5.6f * s, 5.6f * s, depth, C2D_Color32(255, 255, 255, 255));
+		gfx_ellipse(cx, cy, 9 * s, 9 * s, depth, C2D_Color32(216, 58, 58, 255));
+		gfx_ellipse(cx, cy, 5.6f * s, 5.6f * s, depth, C2D_Color32(255, 255, 255, 255));
 		if (s >= 2.0f)
-			gfx_text("15", cx + dx, cy - 3.2f * s, depth, 0.25f * s, C2D_Color32(30, 30, 40, 255), C2D_AlignCenter);
+			gfx_text("15", cx, cy - 3.2f * s, depth, 0.25f * s, C2D_Color32(30, 30, 40, 255), C2D_AlignCenter);
 		else
-			gfx_ellipse(cx - 3 * s + dx, cy - 3.5f * s, 1.6f * s, 1.1f * s, depth, C2D_Color32(255, 255, 255, 160));
+			gfx_ellipse(cx - 3 * s, cy - 3.5f * s, 1.6f * s, 1.1f * s, depth, C2D_Color32(255, 255, 255, 160));
 		return;
 	}
 	if (scene == SCENE_OCA) {
-		gfx_ellipse(cx + dx, cy, 9 * s, 9 * s, depth, C2D_Color32(150, 210, 240, 255));
-		gfx_ellipse(cx - 1 * s + dx, cy + 2.5f * s, 5.5f * s, 3.5f * s, depth, C2D_Color32(255, 255, 255, 255));
-		gfx_ellipse(cx + 3 * s + dx, cy - 1.5f * s, 1.5f * s, 3.2f * s, depth, C2D_Color32(255, 255, 255, 255));
-		gfx_ellipse(cx + 3.8f * s + dx, cy - 4.2f * s, 2 * s, 1.9f * s, depth, C2D_Color32(255, 255, 255, 255));
-		gfx_ellipse(cx + 6.3f * s + dx, cy - 3.9f * s, 1.6f * s, 0.8f * s, depth, C2D_Color32(240, 140, 30, 255));
+		gfx_ellipse(cx, cy, 9 * s, 9 * s, depth, C2D_Color32(150, 210, 240, 255));
+		gfx_ellipse(cx - 1 * s, cy + 2.5f * s, 5.5f * s, 3.5f * s, depth, C2D_Color32(255, 255, 255, 255));
+		gfx_ellipse(cx + 3 * s, cy - 1.5f * s, 1.5f * s, 3.2f * s, depth, C2D_Color32(255, 255, 255, 255));
+		gfx_ellipse(cx + 3.8f * s, cy - 4.2f * s, 2 * s, 1.9f * s, depth, C2D_Color32(255, 255, 255, 255));
+		gfx_ellipse(cx + 6.3f * s, cy - 3.9f * s, 1.6f * s, 0.8f * s, depth, C2D_Color32(240, 140, 30, 255));
 		return;
 	}
 	if (scene == SCENE_CONECTA4) {
-		gfx_rrect(cx - 9 * s + dx, cy - 7 * s, 18 * s, 14 * s, 2 * s, depth, C2D_Color32(30, 70, 170, 255));
+		gfx_rrect(cx - 9 * s, cy - 7 * s, 18 * s, 14 * s, 2 * s, depth, C2D_Color32(30, 70, 170, 255));
 		for (int k = 0; k < 4; k++)
-			gfx_ellipse(cx + (k % 2 ? 4.5f : -4.5f) * s + dx, cy + (k / 2 ? 3.2f : -3.2f) * s, 2.6f * s, 2.6f * s, depth,
+			gfx_ellipse(cx + (k % 2 ? 4.5f : -4.5f) * s, cy + (k / 2 ? 3.2f : -3.2f) * s, 2.6f * s, 2.6f * s, depth,
 				k == 3 ? C2D_Color32(245, 200, 30, 255) : C2D_Color32(220, 40, 45, 255));
 	} else if (scene == SCENE_DAMAS) {
 		for (int r = 0; r < 2; r++)
 			for (int c = 0; c < 2; c++)
-				gfx_rect(cx + (c - 1) * 8 * s + dx, cy + (r - 1) * 8 * s, 8 * s, 8 * s, depth,
+				gfx_rect(cx + (c - 1) * 8 * s, cy + (r - 1) * 8 * s, 8 * s, 8 * s, depth,
 					(r + c) % 2 ? C2D_Color32(120, 80, 45, 255) : C2D_Color32(235, 215, 175, 255));
-		gfx_ellipse(cx - 4 * s + dx, cy + 4 * s, 3.2f * s, 3.2f * s, depth, C2D_Color32(240, 232, 215, 255));
-		gfx_ellipse(cx + 4 * s + dx, cy - 4 * s, 3.2f * s, 3.2f * s, depth, C2D_Color32(45, 35, 35, 255));
+		gfx_ellipse(cx - 4 * s, cy + 4 * s, 3.2f * s, 3.2f * s, depth, C2D_Color32(240, 232, 215, 255));
+		gfx_ellipse(cx + 4 * s, cy - 4 * s, 3.2f * s, 3.2f * s, depth, C2D_Color32(45, 35, 35, 255));
 	} else {
-		gfx_rrect(cx - 5 * s + dx, cy - 9 * s, 10 * s, 18 * s, 2 * s, depth, C2D_Color32(250, 247, 235, 255));
-		gfx_rect(cx - 4 * s + dx, cy - 0.3f * s, 8 * s, 0.6f * s + 0.5f, depth, C2D_Color32(120, 110, 100, 255));
+		gfx_rrect(cx - 5 * s, cy - 9 * s, 10 * s, 18 * s, 2 * s, depth, C2D_Color32(250, 247, 235, 255));
+		gfx_rect(cx - 4 * s, cy - 0.3f * s, 8 * s, 0.6f * s + 0.5f, depth, C2D_Color32(120, 110, 100, 255));
 		for (int k = 0; k < 2; k++)
-			gfx_ellipse(cx + (k ? 2 : -2) * s + dx, cy - 4.5f * s + k * 0 + (k ? 2 : -2) * s * 0.5f, 1.2f * s, 1.2f * s,
+			gfx_ellipse(cx + (k ? 2 : -2) * s, cy - 4.5f * s + k * 0 + (k ? 2 : -2) * s * 0.5f, 1.2f * s, 1.2f * s,
 				depth, C2D_Color32(30, 30, 35, 255));
-		gfx_ellipse(cx + dx, cy + 4.5f * s, 1.2f * s, 1.2f * s, depth, C2D_Color32(30, 30, 35, 255));
+		gfx_ellipse(cx, cy + 4.5f * s, 1.2f * s, 1.2f * s, depth, C2D_Color32(30, 30, 35, 255));
 	}
 }
 

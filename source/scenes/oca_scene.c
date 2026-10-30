@@ -328,22 +328,21 @@ static u32 square_color(OcaSquare s)
 static void draw_goose(float cx, float cy, float depth)
 {
 	u32 white = C2D_Color32(255, 255, 255, 255), orange = C2D_Color32(240, 140, 30, 255);
-	float dx = gfx_dx(depth);
-	gfx_ellipse(cx + dx, cy + 3, 7, 4.5f, depth, white);
-	gfx_ellipse(cx + 5 + dx, cy - 3, 2, 4, depth, white);
-	gfx_ellipse(cx + 6 + dx, cy - 6, 2.6f, 2.4f, depth, white);
-	gfx_ellipse(cx + 9 + dx, cy - 5.5f, 2, 1, depth, orange);
+	gfx_ellipse(cx, cy + 3, 7, 4.5f, depth, white);
+	gfx_ellipse(cx + 5, cy - 3, 2, 4, depth, white);
+	gfx_ellipse(cx + 6, cy - 6, 2.6f, 2.4f, depth, white);
+	gfx_ellipse(cx + 9, cy - 5.5f, 2, 1, depth, orange);
 }
 
 static void oca_draw_top(void)
 {
 	gfx_background(BG_TABLE_TOP);
-	gfx_rrect(X0 - 4 + gfx_dx(DEPTH_TABLE), Y0 - 4, COLS * CELL_W + 8, ROWS * CELL_H + 8, 6, DEPTH_TABLE,
+	gfx_rrect(X0 - 4, Y0 - 4, COLS * CELL_W + 8, ROWS * CELL_H + 8, 6, DEPTH_TABLE,
 		C2D_Color32(110, 70, 30, 255));
 	for (int n = 1; n <= OCA_GOAL; n++) {
 		OcaSquare sq = oca_square(n);
 		float x = X0 + s_cell_col[n] * CELL_W, y = Y0 + s_cell_row[n] * CELL_H;
-		gfx_rect(x + 1 + gfx_dx(DEPTH_TABLE), y + 1, CELL_W - 2, CELL_H - 2, DEPTH_TABLE, square_color(sq));
+		gfx_rect(x + 1, y + 1, CELL_W - 2, CELL_H - 2, DEPTH_TABLE, square_color(sq));
 		u32 ink = sq == OCA_DEATH ? COLOR_CREAM : C2D_Color32(90, 50, 30, 255);
 		gfx_textf(x + 3, y + 1, DEPTH_TABLE, 0.42f, ink, C2D_AlignLeft, "%d", n);
 		if (sq == OCA_GOOSE)
@@ -354,9 +353,9 @@ static void oca_draw_top(void)
 	for (int p = 0; p < s_players; p++) {
 		float x = s_disp_x[p], y = s_disp_y[p];
 		float lift = (s_anim == ANIM_WALK || s_anim == ANIM_JUMP) && p == s_mover ? 3.0f : 0.0f;
-		gfx_ellipse(x + gfx_dx(DEPTH_CARDS) + 1, y + 2, 7, 7, DEPTH_CARDS, C2D_Color32(0, 0, 0, 90));
-		gfx_ellipse(x + gfx_dx(DEPTH_CARDS + lift), y - lift, 7, 7, DEPTH_CARDS + lift, gfx_rgb(TOKEN[p], 255));
-		gfx_ellipse(x - 2 + gfx_dx(DEPTH_CARDS + lift), y - 2 - lift, 2.5f, 2, DEPTH_CARDS + lift,
+		gfx_ellipse(x + 1, y + 2, 7, 7, DEPTH_CARDS, C2D_Color32(0, 0, 0, 90));
+		gfx_ellipse(x, y - lift, 7, 7, DEPTH_CARDS + lift, gfx_rgb(TOKEN[p], 255));
+		gfx_ellipse(x - 2, y - 2 - lift, 2.5f, 2, DEPTH_CARDS + lift,
 			C2D_Color32(255, 255, 255, 120));
 	}
 	if (s_game.winner >= 0 && s_anim == ANIM_NONE && banner_draw(s_end_time, 200, 120, 320, 60)) {

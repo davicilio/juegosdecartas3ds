@@ -369,7 +369,7 @@ static bool layout_table(float scale, bool draw)
 			bool hl = s == s_game.last_changed && s_highlight > 0.0f;
 			bool mine_new = s_game.current == 0 && s >= s_game.saved_table_count;
 			if (hl || mine_new)
-				gfx_rrect(x - 3 + gfx_dx(DEPTH_CARDS), y - 3, w + 6, th + 6, 4, DEPTH_CARDS,
+				gfx_rrect(x - 3, y - 3, w + 6, th + 6, 4, DEPTH_CARDS,
 					hl ? C2D_Color32(255, 215, 90, 200) : C2D_Color32(120, 200, 255, 140));
 			for (int i = 0; i < set->n; i++)
 				draw_tile(set->tiles[i], x + tw / 2 + i * (tw + 2.0f), y + th / 2, scale, DEPTH_CARDS + 0.2f, false);

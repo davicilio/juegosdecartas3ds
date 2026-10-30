@@ -127,20 +127,20 @@ static SceneId rv_update(const Input* in, float dt)
 static void draw_disc(float cx, float cy, float rad, int who, float width, float depth)
 {
 	u32 col = who == 1 ? C2D_Color32(30, 30, 35, 255) : C2D_Color32(240, 240, 235, 255);
-	gfx_ellipse(cx + 1 + gfx_dx(depth), cy + 1.5f, rad * width, rad, depth, C2D_Color32(0, 0, 0, 90));
-	gfx_ellipse(cx + gfx_dx(depth), cy, rad * width, rad, depth, col);
-	gfx_ellipse(cx - rad * 0.25f * width + gfx_dx(depth), cy - rad * 0.3f, rad * 0.35f * width, rad * 0.25f, depth,
+	gfx_ellipse(cx + 1, cy + 1.5f, rad * width, rad, depth, C2D_Color32(0, 0, 0, 90));
+	gfx_ellipse(cx, cy, rad * width, rad, depth, col);
+	gfx_ellipse(cx - rad * 0.25f * width, cy - rad * 0.3f, rad * 0.35f * width, rad * 0.25f, depth,
 		C2D_Color32(255, 255, 255, who == 1 ? 50 : 120));
 }
 
 static void draw_board(float x0, float y0, float cell, float depth, bool hints)
 {
 	float w = RV_SIZE * cell;
-	gfx_rrect(x0 - 5 + gfx_dx(depth), y0 - 5, w + 10, w + 10, 6, depth, C2D_Color32(90, 55, 25, 255));
+	gfx_rrect(x0 - 5, y0 - 5, w + 10, w + 10, 6, depth, C2D_Color32(90, 55, 25, 255));
 	for (int r = 0; r < RV_SIZE; r++)
 		for (int c = 0; c < RV_SIZE; c++) {
 			float x = x0 + c * cell, y = y0 + r * cell;
-			gfx_rect(x + 0.5f + gfx_dx(depth), y + 0.5f, cell - 1, cell - 1, depth,
+			gfx_rect(x + 0.5f, y + 0.5f, cell - 1, cell - 1, depth,
 				(r + c) % 2 ? C2D_Color32(30, 120, 60, 255) : C2D_Color32(36, 132, 66, 255));
 			int who = s_game.cell[r][c];
 			float cx = x + cell / 2, cy = y + cell / 2;
@@ -154,7 +154,7 @@ static void draw_board(float x0, float y0, float cell, float depth, bool hints)
 				}
 				draw_disc(cx, cy, cell * 0.4f, shown, fmaxf(width, 0.08f), depth + 0.2f);
 				if (r == s_game.last_row && c == s_game.last_col)
-					gfx_ellipse(cx + gfx_dx(depth + 0.3f), cy, cell * 0.08f, cell * 0.08f, depth + 0.3f,
+					gfx_ellipse(cx, cy, cell * 0.08f, cell * 0.08f, depth + 0.3f,
 						C2D_Color32(220, 60, 50, 255));
 			} else if (hints && !s_game.winner && s_game.current == 1 && rv_flips(&s_game, 1, r, c)) {
 				gfx_ellipse(cx, cy, cell * 0.13f, cell * 0.13f, depth, C2D_Color32(20, 20, 25, 140));

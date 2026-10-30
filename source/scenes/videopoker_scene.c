@@ -137,7 +137,7 @@ static void vp_draw_top(void)
 	for (int b = 1; b <= VP_MAX_BET; b++) {
 		float cx = x0 + 168 + (b - 1) * 38;
 		if (b == s_game.bet)
-			gfx_rect(cx - 18 + gfx_dx(DEPTH_UI), y0 - 2, 36, 186, DEPTH_UI, C2D_Color32(200, 40, 40, 160));
+			gfx_rect(cx - 18, y0 - 2, 36, 186, DEPTH_UI, C2D_Color32(200, 40, 40, 160));
 		gfx_textf(cx, y0, DEPTH_UI, 0.45f, COLOR_GOLD, C2D_AlignCenter, "%d", b);
 	}
 	for (int h = 0; h < VP_NOTHING; h++) {

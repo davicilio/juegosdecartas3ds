@@ -365,7 +365,7 @@ static SceneId sol_scene_update(const Input* in, float dt)
 
 static void empty_slot(float x, float y, float scale, float depth, int suit)
 {
-	gfx_rrect(x - CARD_W * scale / 2.0f + gfx_dx(depth), y - CARD_H * scale / 2.0f, CARD_W * scale, CARD_H * scale,
+	gfx_rrect(x - CARD_W * scale / 2.0f, y - CARD_H * scale / 2.0f, CARD_W * scale, CARD_H * scale,
 		5, depth, C2D_Color32(0, 0, 0, 60));
 	if (suit >= 0) {
 		C2D_ImageTint tint;

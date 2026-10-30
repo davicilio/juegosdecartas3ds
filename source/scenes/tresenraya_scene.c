@@ -121,11 +121,11 @@ static void draw_mark(int who, float cx, float cy, float size, float depth, floa
 
 static void draw_board(float x0, float y0, float cell, float depth, bool cursor)
 {
-	gfx_rrect(x0 - 6 + gfx_dx(depth), y0 - 6, cell * 3 + 12, cell * 3 + 12, 10, depth, C2D_Color32(245, 240, 225, 255));
+	gfx_rrect(x0 - 6, y0 - 6, cell * 3 + 12, cell * 3 + 12, 10, depth, C2D_Color32(245, 240, 225, 255));
 	u32 ink = C2D_Color32(60, 50, 50, 255);
 	for (int k = 1; k < 3; k++) {
-		gfx_rect(x0 + k * cell - 1.5f + gfx_dx(depth), y0 + 4, 3, cell * 3 - 8, depth, ink);
-		gfx_rect(x0 + 4 + gfx_dx(depth), y0 + k * cell - 1.5f, cell * 3 - 8, 3, depth, ink);
+		gfx_rect(x0 + k * cell - 1.5f, y0 + 4, 3, cell * 3 - 8, depth, ink);
+		gfx_rect(x0 + 4, y0 + k * cell - 1.5f, cell * 3 - 8, 3, depth, ink);
 	}
 	for (int i = 0; i < 9; i++) {
 		float cx = x0 + (i % 3) * cell + cell / 2, cy = y0 + (i / 3) * cell + cell / 2;
@@ -134,7 +134,7 @@ static void draw_board(float x0, float y0, float cell, float depth, bool cursor)
 			for (int k = 0; k < 3; k++)
 				win |= s_game.line[k] == i;
 		if (win)
-			gfx_rrect(cx - cell / 2 + 4 + gfx_dx(depth), cy - cell / 2 + 4, cell - 8, cell - 8, 6, depth,
+			gfx_rrect(cx - cell / 2 + 4, cy - cell / 2 + 4, cell - 8, cell - 8, 6, depth,
 				C2D_Color32(255, 220, 90, (u8)(150 + 100 * sinf(gfx_time() * 6.0f))));
 		float scale = 1.0f;
 		draw_mark(s_game.cell[i], cx, cy, cell, depth + 0.3f, scale);

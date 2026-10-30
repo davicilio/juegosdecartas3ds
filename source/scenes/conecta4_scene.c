@@ -123,7 +123,7 @@ static SceneId c4_update(const Input* in, float dt)
 static void draw_board(float x0, float y0, float cell, float depth, bool top)
 {
 	float w = C4_COLS * cell, h = C4_ROWS * cell;
-	gfx_rrect(x0 - 6 + gfx_dx(depth), y0 - 6, w + 12, h + 12, 10, depth, C2D_Color32(30, 70, 170, 255));
+	gfx_rrect(x0 - 6, y0 - 6, w + 12, h + 12, 10, depth, C2D_Color32(30, 70, 170, 255));
 	for (int r = 0; r < C4_ROWS; r++)
 		for (int c = 0; c < C4_COLS; c++) {
 			float cx = x0 + c * cell + cell / 2, cy = y0 + (C4_ROWS - 1 - r) * cell + cell / 2;
@@ -134,11 +134,11 @@ static void draw_board(float x0, float y0, float cell, float depth, bool top)
 				float t = s_fall;
 				cy = y0 - cell + (cy - (y0 - cell)) * t * t;
 			}
-			gfx_ellipse(x0 + c * cell + cell / 2 + gfx_dx(depth), y0 + (C4_ROWS - 1 - r) * cell + cell / 2, rad, rad,
+			gfx_ellipse(x0 + c * cell + cell / 2, y0 + (C4_ROWS - 1 - r) * cell + cell / 2, rad, rad,
 				depth, C2D_Color32(10, 25, 60, 255));
 			if (who) {
-				gfx_ellipse(cx + gfx_dx(depth + 0.3f), cy, rad, rad, depth + 0.3f, disc_color(who, 255));
-				gfx_ellipse(cx - rad * 0.25f + gfx_dx(depth + 0.3f), cy - rad * 0.25f, rad * 0.35f, rad * 0.3f, depth + 0.3f,
+				gfx_ellipse(cx, cy, rad, rad, depth + 0.3f, disc_color(who, 255));
+				gfx_ellipse(cx - rad * 0.25f, cy - rad * 0.25f, rad * 0.35f, rad * 0.3f, depth + 0.3f,
 					C2D_Color32(255, 255, 255, 70));
 			}
 		}
@@ -148,7 +148,7 @@ static void draw_board(float x0, float y0, float cell, float depth, bool top)
 		for (int k = 0; k < 4; k++) {
 			float cx = x0 + s_game.line[k][1] * cell + cell / 2;
 			float cy = y0 + (C4_ROWS - 1 - s_game.line[k][0]) * cell + cell / 2;
-			gfx_ellipse(cx + gfx_dx(depth + 0.5f), cy, cell * 0.16f, cell * 0.16f, depth + 0.5f,
+			gfx_ellipse(cx, cy, cell * 0.16f, cell * 0.16f, depth + 0.5f,
 				C2D_Color32(255, 255, 255, (u8)(150 + 100 * pulse)));
 		}
 	}
@@ -161,10 +161,10 @@ static void c4_draw_top(void)
 	float x0 = (TOP_W - C4_COLS * TOP_CELL) / 2.0f, y0 = 34.0f;
 	draw_board(x0, y0, TOP_CELL, DEPTH_CARDS, true);
 	mii_draw(&profile_get()->avatar, 40, 70, 20, DEPTH_UI, mood_expr(&s_my_mood), false);
-	gfx_ellipse(40 + gfx_dx(DEPTH_UI), 104, 9, 9, DEPTH_UI, disc_color(1, 255));
+	gfx_ellipse(40, 104, 9, 9, DEPTH_UI, disc_color(1, 255));
 	gfx_textf(40, 116, DEPTH_UI, 0.45f, COLOR_CREAM, C2D_AlignCenter, "Tú: %d", s_wins[1]);
 	mii_draw(cpu_avatar(CPU_PEPE), 360, 70, 20, DEPTH_UI, mood_expr(&s_cpu_mood), false);
-	gfx_ellipse(360 + gfx_dx(DEPTH_UI), 104, 9, 9, DEPTH_UI, disc_color(2, 255));
+	gfx_ellipse(360, 104, 9, 9, DEPTH_UI, disc_color(2, 255));
 	gfx_textf(360, 116, DEPTH_UI, 0.45f, COLOR_CREAM, C2D_AlignCenter, "%s: %d", cpu_name(CPU_PEPE), s_wins[2]);
 	if (s_game.winner && banner_draw(s_end_time, 200, 120, 300, 56)) {
 		const char* t = s_game.winner == 1 ? "¡Cuatro en línea! Ganas" : s_game.winner == 2 ? "Gana la CPU" : "Empate";

@@ -50,18 +50,17 @@ static u32 card_color(int c)
 static void draw_card(int c, float x, float y, float sc, float depth, bool dim)
 {
 	float w = CARD_TW * sc, h = CARD_TH * sc;
-	float dx = gfx_dx(depth);
-	gfx_rrect(x - w / 2 + 1.5f + dx, y - h / 2 + 2, w, h, 4 * sc, depth, C2D_Color32(0, 0, 0, 90));
-	gfx_rrect(x - w / 2 + dx, y - h / 2, w, h, 4 * sc, depth, C2D_Color32(60, 40, 60, 255));
-	gfx_rrect(x - w / 2 + 1 + dx, y - h / 2 + 1, w - 2, h - 2, 3 * sc, depth, card_color(c));
+	gfx_rrect(x - w / 2 + 1.5f, y - h / 2 + 2, w, h, 4 * sc, depth, C2D_Color32(0, 0, 0, 90));
+	gfx_rrect(x - w / 2, y - h / 2, w, h, 4 * sc, depth, C2D_Color32(60, 40, 60, 255));
+	gfx_rrect(x - w / 2 + 1, y - h / 2 + 1, w - 2, h - 2, 3 * sc, depth, card_color(c));
 	int n = tm_heads(c);
 	for (int i = 0; i < n; i++) {
-		float hx = x + (i - (n - 1) / 2.0f) * 4.2f * sc + dx, hy = y - h / 2 + 6 * sc;
+		float hx = x + (i - (n - 1) / 2.0f) * 4.2f * sc, hy = y - h / 2 + 6 * sc;
 		gfx_ellipse(hx, hy, 1.9f * sc, 1.7f * sc, depth, C2D_Color32(110, 40, 120, 255));
 	}
 	gfx_textf_plain(x, y - 6 * sc, depth, 0.62f * sc, C2D_Color32(60, 30, 60, 255), C2D_AlignCenter, "%d", c);
 	if (dim)
-		gfx_rrect(x - w / 2 + dx, y - h / 2, w, h, 4 * sc, depth, C2D_Color32(20, 20, 30, 110));
+		gfx_rrect(x - w / 2, y - h / 2, w, h, 4 * sc, depth, C2D_Color32(20, 20, 30, 110));
 }
 
 static void start_round(void)
@@ -216,12 +215,12 @@ static void tm_draw_top(void)
 	/* Las cuatro filas */
 	for (int r = 0; r < TM_ROWS; r++) {
 		float y = ROW_Y0 + r * ROW_DY + CARD_TH / 2;
-		gfx_rrect(ROW_X0 - 22 + gfx_dx(DEPTH_TABLE), y - CARD_TH / 2 - 2, 6 * (CARD_TW + 3) + 26, CARD_TH + 4, 6,
+		gfx_rrect(ROW_X0 - 22, y - CARD_TH / 2 - 2, 6 * (CARD_TW + 3) + 26, CARD_TH + 4, 6,
 			DEPTH_TABLE, C2D_Color32(10, 50, 25, 140));
 		gfx_textf(ROW_X0 - 12, y - 8, DEPTH_UI, 0.45f, COLOR_CREAM, C2D_AlignCenter, "%d", r + 1);
 		/* El hueco de la sexta, en rojo */
 		float x6 = ROW_X0 + 5 * (CARD_TW + 3) + CARD_TW / 2;
-		gfx_rrect(x6 - CARD_TW / 2 + gfx_dx(DEPTH_TABLE), y - CARD_TH / 2, CARD_TW, CARD_TH, 4, DEPTH_TABLE,
+		gfx_rrect(x6 - CARD_TW / 2, y - CARD_TH / 2, CARD_TW, CARD_TH, 4, DEPTH_TABLE,
 			C2D_Color32(200, 50, 50, 90));
 		for (int i = 0; i < s_game.row_n[r]; i++)
 			draw_card(s_game.row[r][i], ROW_X0 + i * (CARD_TW + 3) + CARD_TW / 2, y, 1.0f, DEPTH_CARDS, false);
@@ -237,7 +236,7 @@ static void tm_draw_top(void)
 		if (s_game.played[p] && s_game.phase != TM_CHOOSE)
 			draw_card(s_game.played[p], PX[p] + (p < 2 ? 42 : -42), PY[p], 0.85f, DEPTH_CARDS + 0.5f, false);
 		else if (s_game.played[p])
-			gfx_rrect(PX[p] + (p < 2 ? 30 : -54) + gfx_dx(DEPTH_CARDS), PY[p] - 18, 24, 34, 4, DEPTH_CARDS,
+			gfx_rrect(PX[p] + (p < 2 ? 30 : -54), PY[p] - 18, 24, 34, 4, DEPTH_CARDS,
 				C2D_Color32(110, 40, 120, 255));
 	}
 	table_draw_bubbles(&s_table);

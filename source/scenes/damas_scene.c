@@ -170,52 +170,50 @@ static void draw_piece(int piece, float cx, float cy, float cell, float depth)
 		return;
 	bool white = da_owner(piece) == 1;
 	float r = cell * 0.4f;
-	float dx = gfx_dx(depth);
-	gfx_ellipse(cx + dx + 1, cy + 2, r, r, depth, C2D_Color32(0, 0, 0, 90));
-	gfx_ellipse(cx + dx, cy, r, r, depth, white ? C2D_Color32(240, 232, 215, 255) : C2D_Color32(45, 35, 35, 255));
-	gfx_ellipse(cx + dx, cy, r * 0.7f, r * 0.7f, depth, white ? C2D_Color32(220, 208, 185, 255) : C2D_Color32(70, 55, 55, 255));
+	gfx_ellipse(cx + 1, cy + 2, r, r, depth, C2D_Color32(0, 0, 0, 90));
+	gfx_ellipse(cx, cy, r, r, depth, white ? C2D_Color32(240, 232, 215, 255) : C2D_Color32(45, 35, 35, 255));
+	gfx_ellipse(cx, cy, r * 0.7f, r * 0.7f, depth, white ? C2D_Color32(220, 208, 185, 255) : C2D_Color32(70, 55, 55, 255));
 	if (piece == DA_WHITE_KING || piece == DA_BLACK_KING) {
 		/* Corona */
 		u32 gold = C2D_Color32(240, 190, 40, 255);
-		gfx_triangle(cx + dx - r * 0.5f, cy + r * 0.25f, cx + dx - r * 0.3f, cy - r * 0.35f, cx + dx - r * 0.1f,
+		gfx_triangle(cx - r * 0.5f, cy + r * 0.25f, cx - r * 0.3f, cy - r * 0.35f, cx - r * 0.1f,
 			cy + r * 0.25f, depth, gold);
-		gfx_triangle(cx + dx - r * 0.2f, cy + r * 0.25f, cx + dx, cy - r * 0.45f, cx + dx + r * 0.2f, cy + r * 0.25f,
+		gfx_triangle(cx - r * 0.2f, cy + r * 0.25f, cx, cy - r * 0.45f, cx + r * 0.2f, cy + r * 0.25f,
 			depth, gold);
-		gfx_triangle(cx + dx + r * 0.1f, cy + r * 0.25f, cx + dx + r * 0.3f, cy - r * 0.35f, cx + dx + r * 0.5f,
+		gfx_triangle(cx + r * 0.1f, cy + r * 0.25f, cx + r * 0.3f, cy - r * 0.35f, cx + r * 0.5f,
 			cy + r * 0.25f, depth, gold);
 	}
 }
 
 static void draw_board(float x0, float y0, float cell, float depth, bool interactive)
 {
-	float dx = gfx_dx(depth);
-	gfx_rrect(x0 - 4 + dx, y0 - 4, cell * 8 + 8, cell * 8 + 8, 4, depth, C2D_Color32(90, 55, 25, 255));
+	gfx_rrect(x0 - 4, y0 - 4, cell * 8 + 8, cell * 8 + 8, 4, depth, C2D_Color32(90, 55, 25, 255));
 	for (int r = 0; r < 8; r++)
 		for (int c = 0; c < 8; c++) {
 			bool dark = (r + c) % 2 == 1;
-			gfx_rect(x0 + c * cell + dx, y0 + r * cell, cell, cell, depth,
+			gfx_rect(x0 + c * cell, y0 + r * cell, cell, cell, depth,
 				dark ? C2D_Color32(120, 80, 45, 255) : C2D_Color32(235, 215, 175, 255));
 		}
 	/* Última jugada y jugadas posibles */
 	if (s_game.has_last) {
 		const DaMove* m = &s_game.last;
-		gfx_rect(x0 + m->fc * cell + dx, y0 + m->fr * cell, cell, cell, depth, C2D_Color32(255, 230, 120, 70));
+		gfx_rect(x0 + m->fc * cell, y0 + m->fr * cell, cell, cell, depth, C2D_Color32(255, 230, 120, 70));
 		int tr = m->path[m->n_path - 1][0], tc = m->path[m->n_path - 1][1];
-		gfx_rect(x0 + tc * cell + dx, y0 + tr * cell, cell, cell, depth, C2D_Color32(255, 230, 120, 90));
+		gfx_rect(x0 + tc * cell, y0 + tr * cell, cell, cell, depth, C2D_Color32(255, 230, 120, 90));
 	}
 	if (interactive && s_game.current == 1 && !s_game.winner) {
 		for (int i = 0; i < s_move_count; i++) {
 			const DaMove* m = &s_moves[i];
 			if (s_sel_r < 0) {
-				gfx_rect(x0 + m->fc * cell + dx, y0 + m->fr * cell, cell, cell, depth, C2D_Color32(120, 220, 120, 70));
+				gfx_rect(x0 + m->fc * cell, y0 + m->fr * cell, cell, cell, depth, C2D_Color32(120, 220, 120, 70));
 			} else if (m->fr == s_sel_r && m->fc == s_sel_c) {
 				int tr = m->path[m->n_path - 1][0], tc = m->path[m->n_path - 1][1];
-				gfx_ellipse(x0 + tc * cell + cell / 2 + dx, y0 + tr * cell + cell / 2, cell * 0.18f, cell * 0.18f, depth,
+				gfx_ellipse(x0 + tc * cell + cell / 2, y0 + tr * cell + cell / 2, cell * 0.18f, cell * 0.18f, depth,
 					C2D_Color32(120, 230, 120, 220));
 			}
 		}
 		if (s_sel_r >= 0)
-			gfx_rect(x0 + s_sel_c * cell + dx, y0 + s_sel_r * cell, cell, cell, depth, C2D_Color32(120, 230, 120, 120));
+			gfx_rect(x0 + s_sel_c * cell, y0 + s_sel_r * cell, cell, cell, depth, C2D_Color32(120, 230, 120, 120));
 	}
 	for (int r = 0; r < 8; r++)
 		for (int c = 0; c < 8; c++)

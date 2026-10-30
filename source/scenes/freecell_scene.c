@@ -178,7 +178,7 @@ static void draw_top_row(float x0, float y, float slot, float sc, float depth, b
 {
 	for (int k = 0; k < 8; k++) {
 		float x = x0 + k * slot + slot / 2;
-		gfx_rrect(x - CARD_W * sc / 2 + gfx_dx(depth), y - CARD_H * sc / 2, CARD_W * sc, CARD_H * sc, 4, depth,
+		gfx_rrect(x - CARD_W * sc / 2, y - CARD_H * sc / 2, CARD_W * sc, CARD_H * sc, 4, depth,
 			k < 4 ? C2D_Color32(20, 70, 35, 255) : C2D_Color32(30, 80, 45, 255));
 		FcCard c = { 0, 0 };
 		if (k < 4)
@@ -201,7 +201,7 @@ static void draw_columns(float x0, float y0, float slot, float sc, float bottom,
 		float x = x0 + c * slot + slot / 2;
 		float gap = spacing(n, max_gap, bottom - y0 - CARD_H * sc / 2);
 		if (n == 0)
-			gfx_rrect(x - CARD_W * sc / 2 + gfx_dx(depth), y0 - CARD_H * sc / 2, CARD_W * sc, CARD_H * sc, 4, depth,
+			gfx_rrect(x - CARD_W * sc / 2, y0 - CARD_H * sc / 2, CARD_W * sc, CARD_H * sc, 4, depth,
 				C2D_Color32(20, 70, 35, 255));
 		int run = cursor && s_sel == c ? fc_run(&s_game.b, c) : 0;
 		for (int i = 0; i < n; i++) {

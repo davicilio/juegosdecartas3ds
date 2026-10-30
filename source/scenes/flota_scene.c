@@ -158,11 +158,10 @@ static SceneId hf_update(const Input* in, float dt)
 static void draw_sea(float x0, float y0, float cell, float depth, int owner, bool show_ships)
 {
 	float w = HF_SIZE * cell;
-	float dx = gfx_dx(depth);
-	gfx_rect(x0 + dx, y0, w, w, depth, C2D_Color32(30, 90, 160, 255));
+	gfx_rect(x0, y0, w, w, depth, C2D_Color32(30, 90, 160, 255));
 	for (int k = 0; k <= HF_SIZE; k++) {
-		gfx_rect(x0 + k * cell + dx, y0, 1, w, depth, C2D_Color32(90, 150, 210, 160));
-		gfx_rect(x0 + dx, y0 + k * cell, w, 1, depth, C2D_Color32(90, 150, 210, 160));
+		gfx_rect(x0 + k * cell, y0, 1, w, depth, C2D_Color32(90, 150, 210, 160));
+		gfx_rect(x0, y0 + k * cell, w, 1, depth, C2D_Color32(90, 150, 210, 160));
 	}
 	for (int k = 0; k < HF_SIZE; k++) {
 		char l[2] = { COL_NAME[k], 0 };
@@ -176,13 +175,13 @@ static void draw_sea(float x0, float y0, float cell, float depth, int owner, boo
 			continue;
 		float bx = x0 + sh->col * cell + 2, by = y0 + sh->row * cell + 2;
 		float bw = (sh->horizontal ? sh->len : 1) * cell - 4, bh = (sh->horizontal ? 1 : sh->len) * cell - 4;
-		gfx_rrect(bx + dx, by, bw, bh, cell * 0.4f, depth, C2D_Color32(150, 155, 165, 255));
+		gfx_rrect(bx, by, bw, bh, cell * 0.4f, depth, C2D_Color32(150, 155, 165, 255));
 	}
 	/* Disparos */
 	for (int r = 0; r < HF_SIZE; r++)
 		for (int c = 0; c < HF_SIZE; c++) {
 			uint8_t v = s_game.shot[owner][r][c];
-			float cx = x0 + c * cell + cell / 2 + dx, cy = y0 + r * cell + cell / 2;
+			float cx = x0 + c * cell + cell / 2, cy = y0 + r * cell + cell / 2;
 			if (v == HF_WATER)
 				gfx_ellipse(cx, cy, cell * 0.16f, cell * 0.16f, depth, C2D_Color32(230, 240, 250, 220));
 			else if (v == HF_HIT || v == HF_SUNK) {
@@ -193,7 +192,7 @@ static void draw_sea(float x0, float y0, float cell, float depth, int owner, boo
 		}
 	/* El último disparo hace una onda */
 	if (s_game.last_shooter == 1 - owner && s_splash < 0.8f) {
-		float cx = x0 + s_game.last_col * cell + cell / 2 + dx, cy = y0 + s_game.last_row * cell + cell / 2;
+		float cx = x0 + s_game.last_col * cell + cell / 2, cy = y0 + s_game.last_row * cell + cell / 2;
 		float r = cell * (0.3f + s_splash);
 		u8 a = (u8)(200 * (1.0f - s_splash / 0.8f));
 		gfx_ellipse(cx, cy, r, r, depth, C2D_Color32(255, 255, 255, a / 3));

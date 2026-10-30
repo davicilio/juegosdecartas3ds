@@ -335,6 +335,9 @@ static void draw_board(const View* v, float depth, bool interactive)
 		else if (hint)
 			face = C2D_Color32((u8)(200 + 55 * pulse), 255, (u8)(200 + 55 * pulse), 255);
 		C2D_DrawRectSolid(x + 1, y + 1, 0.5f, v->tw - 2, v->th - 2, face);
+		/* Los rectángulos de arriba son de citro2d directamente; lo que sigue
+		 * usa gfx_*, que ya aplican el desplazamiento de la profundidad */
+		x -= dx;
 		draw_face(s_game.face[t], x + v->tw / 2, y + v->th / 2, v->tw - 4, v->th - 4, s, d);
 		if (interactive && t == s_cursor) {
 			u32 c = C2D_Color32(255, 200, 40, (u8)(160 + 95 * pulse));
