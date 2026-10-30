@@ -26,6 +26,7 @@
 #include "games/poker.h"
 #include "games/treintayuna.h"
 #include "games/as23.h"
+#include "games/mahjong.h"
 #include "games/toma6.h"
 #include "games/freecell.h"
 #include "games/parchis.h"
@@ -3071,6 +3072,55 @@ static void test_toma6(void)
 		wins[3]);
 }
 
+static void test_mahjong(void)
+{
+	CHECK(mj_match(MJ_FLOWERS, MJ_FLOWERS + 3) && !mj_match(MJ_FLOWERS, MJ_SEASONS) && mj_match(5, 5) && !mj_match(5, 6));
+	/* Posiciones distintas y piso de abajo con 87 */
+	int floor0 = 0;
+	for (int t = 0; t < MJ_TILES; t++) {
+		floor0 += MJ_LAYOUT[t].z == 0;
+		for (int u = t + 1; u < MJ_TILES; u++)
+			CHECK(!(MJ_LAYOUT[t].x == MJ_LAYOUT[u].x && MJ_LAYOUT[t].y == MJ_LAYOUT[u].y && MJ_LAYOUT[t].z == MJ_LAYOUT[u].z));
+	}
+	CHECK(floor0 == 87);
+	Mahjong g;
+	int solved = 0;
+	for (int game = 0; game < 100; game++) {
+		mj_init(&g, 50 + game);
+		/* Cuatro de cada cara normal */
+		int count[MJ_KINDS] = { 0 };
+		for (int t = 0; t < MJ_TILES; t++)
+			count[g.face[t]]++;
+		for (int k = 0; k < MJ_FLOWERS; k++)
+			CHECK(count[k] == 4);
+		for (int k = MJ_FLOWERS; k < MJ_KINDS; k++)
+			CHECK(count[k] == 1);
+		/* Al principio solo están libres las de los extremos y la de arriba */
+		int free_n = 0;
+		for (int t = 0; t < MJ_TILES; t++)
+			free_n += mj_free(&g, t);
+		CHECK(free_n == 35); /* 14 abajo, 12 + 8 en los pisos 1 y 2 y la de arriba */
+		/* Jugando a lo loco (la primera pareja que salga) y barajando cuando no
+		 * hay movimiento, casi siempre se acaba */
+		int guard = 0;
+		while (g.left > 0 && guard++ < 200) {
+			int a, b;
+			if (mj_hint(&g, &a, &b))
+				CHECK(mj_remove(&g, a, b));
+			else if (!mj_shuffle(&g))
+				break; /* fichas apiladas sin salida: no hay barajado que valga */
+		}
+		solved += g.left == 0;
+	}
+	CHECK(solved >= 80);
+	/* Deshacer */
+	mj_init(&g, 7);
+	int a, b;
+	CHECK(mj_hint(&g, &a, &b) && mj_remove(&g, a, b) && g.left == 142 && !mj_remove(&g, a, b));
+	CHECK(mj_undo(&g) && g.left == 144 && g.present[a] && g.present[b]);
+	printf("  mahjong: %d de 100 resueltas cogiendo la primera pareja\n", solved);
+}
+
 static void test_cucu(void)
 {
 	Cucu g;
@@ -3659,6 +3709,7 @@ int main(void)
 	test_rk_simulation();
 	test_mona();
 	test_as23();
+	test_mahjong();
 	test_toma6();
 	test_freecell();
 	test_parchis();

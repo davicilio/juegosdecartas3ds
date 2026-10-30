@@ -41,6 +41,7 @@ typedef enum {
 	SCENE_PARCHIS,
 	SCENE_FREECELL,
 	SCENE_TOMA6,
+	SCENE_MAHJONG,
 	SCENE_MONA,
 	SCENE_CUCU,
 	SCENE_TREINTAYUNA,
@@ -101,6 +102,7 @@ extern const Scene scene_flota;
 extern const Scene scene_parchis;
 extern const Scene scene_freecell;
 extern const Scene scene_toma6;
+extern const Scene scene_mahjong;
 extern const Scene scene_mona;
 extern const Scene scene_cucu;
 extern const Scene scene_treintayuna;

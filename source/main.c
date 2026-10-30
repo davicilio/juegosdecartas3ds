@@ -65,6 +65,8 @@ static const Scene* scene_for(SceneId id)
 		return &scene_flota;
 	case SCENE_PARCHIS:
 		return &scene_parchis;
+	case SCENE_MAHJONG:
+		return &scene_mahjong;
 	case SCENE_TOMA6:
 		return &scene_toma6;
 	case SCENE_FREECELL:

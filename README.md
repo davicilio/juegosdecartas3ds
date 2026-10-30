@@ -110,6 +110,7 @@ pueden jugar; la lista se desplaza con la cruceta) y, en pequeño, **Configuraci
 | Bingo (juego de mesa) | ✅ Disponible |
 | Parchís (juego de mesa) | ✅ Disponible |
 | Toma 6 (juego de mesa) | ✅ Disponible |
+| Mahjong solitario (juego de mesa) | ✅ Disponible |
 | Hundir la flota (juego de mesa) | ✅ Disponible |
 | Tres en raya (juego de mesa) | ✅ Disponible |
 | Reversi (juego de mesa) | ✅ Disponible |
@@ -320,6 +321,16 @@ fila se la lleva, y si tu carta es más baja que todas, eliges qué fila te llev
 llega a 66 cabezas, gana quien menos tiene.
 
 ![Toma 6](docs/toma6.png)
+
+### Mahjong (juego de mesa)
+El solitario de fichas chinas con la tortuga de 144 fichas en cinco pisos: círculos, bambúes y
+caracteres del 1 al 9, los vientos (N, E, S, O), los dragones (rojo, verde y blanco), cuatro
+flores y cuatro estaciones (cualquier flor empareja con otra flor, y lo mismo las estaciones).
+Toca dos fichas iguales que estén libres (sin nada encima y con el lado izquierdo o el derecho
+despejado) para quitarlas. Ⓧ da una pista, Ⓨ deshace, L baraja lo que queda y R empieza otra.
+El reparto siempre tiene solución.
+
+![Mahjong](docs/mahjong.png)
 
 ### Hundir la flota y tres en raya (juegos de mesa)
 - **Hundir la flota**: tu flota (portaaviones, acorazado, dos cruceros y destructor) se coloca

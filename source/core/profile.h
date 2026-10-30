@@ -53,6 +53,7 @@ typedef enum {
 	GAME_PARCHIS,
 	GAME_FREECELL,
 	GAME_TOMA6,
+	GAME_MAHJONG,
 	GAME_COUNT
 } GameId;
 
