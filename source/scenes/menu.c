@@ -398,14 +398,15 @@ static void set_page(int page)
 	audio_play(SFX_SELECT);
 }
 
-/* Música del menú: la pone el jugador en la SD (no va dentro del juego) */
-#define MENU_MUSIC         "sdmc:/3ds/JuegosDeCartas/musica.wav"
-#define MENU_MUSIC_SECONDS (3 * 60 + 56)
+/* Música del menú, en bucle: el pasodoble "Suspiros de España" que va dentro
+ * del juego, o la que ponga el jugador en la SD, que tiene preferencia */
+#define MENU_MUSIC_SD    "sdmc:/3ds/JuegosDeCartas/musica.wav"
+#define MENU_MUSIC_ROMFS "romfs:/musica.wav"
 
 static void menu_enter(void)
 {
-	if (!audio_music_playing())
-		audio_music_start(MENU_MUSIC, MENU_MUSIC_SECONDS);
+	if (!audio_music_playing() && !audio_music_start(MENU_MUSIC_SD, 0))
+		audio_music_start(MENU_MUSIC_ROMFS, 0);
 	float w, h;
 	s_scroll = scroll_for(s_selected);
 	screen_rect(s_selected, &s_cursor_x, &s_cursor_y, &w, &h);
@@ -460,7 +461,6 @@ static int move(int i, int dx, int dy)
 
 static SceneId menu_update(const Input* in, float dt)
 {
-	audio_music_update();
 	if (s_shake > 0.0f)
 		s_shake -= dt;
 	mood_update(&s_mood, dt);

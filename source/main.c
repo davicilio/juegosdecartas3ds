@@ -132,6 +132,30 @@ static bool is_game(SceneId id)
 		id != SCENE_FICHAS && id < SCENE_COUNT;
 }
 
+/* Juegos de cartas (los de tablero, fichas o bolas no llevan música) */
+static bool is_card_game(SceneId id)
+{
+	switch (id) {
+	case SCENE_CONECTA4:
+	case SCENE_DAMAS:
+	case SCENE_DOMINO:
+	case SCENE_REVERSI:
+	case SCENE_OCA:
+	case SCENE_PARCHIS:
+	case SCENE_TRESENRAYA:
+	case SCENE_FLOTA:
+	case SCENE_MAHJONG:
+	case SCENE_BINGO:
+	case SCENE_RUMMIKUB:
+		return false;
+	default:
+		return is_game(id);
+	}
+}
+
+/* Música de los juegos de cartas, en bucle: la pone el jugador en la SD */
+#define GAME_MUSIC "sdmc:/3ds/JuegosDeCartas/juegos.wav"
+
 /* Pausa: la partida se queda quieta debajo hasta que se reanuda o se sale */
 static Button s_btn_resume, s_btn_quit;
 
@@ -192,6 +216,7 @@ int main(void)
 
 	while (aptMainLoop()) {
 		input_read(&in);
+		audio_music_update();
 		const Scene* scene = scene_for(current);
 
 		if (fading_out) {
@@ -201,6 +226,13 @@ int main(void)
 				fading_out = false;
 				if (pending == SCENE_QUIT)
 					break;
+				/* La música del menú la pone el menú; la de los juegos, aquí */
+				if (is_card_game(pending)) {
+					if (!is_card_game(current))
+						audio_music_start(GAME_MUSIC, 0);
+				} else if (is_game(current)) {
+					audio_music_stop();
+				}
 				current = pending;
 				scene = scene_for(current);
 				scene->enter();

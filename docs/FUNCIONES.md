@@ -80,12 +80,19 @@ El juego compone el dorso en una textura con las capas que genera
 `tools/gen_backs.py`.
 
 ## Música del menú
-El menú principal puede tener música de fondo, pero la pones tú: copia un fichero
-`musica.wav` en la carpeta `/3ds/JuegosDeCartas/` de la tarjeta SD. Suena en bucle solo en el
-menú (al entrar en un juego se para) y como mucho los primeros 3 minutos y 56 segundos. Tiene
-que ser un WAV PCM de 16 bits, mono o estéreo, de 8000 a 48000 Hz; con Audacity, por ejemplo:
-*Archivo → Exportar → Exportar como WAV* con "PCM de 16 bits con signo". Si no está, el menú
-funciona igual, sin música.
+En el menú suena en bucle el pasodoble **Suspiros de España** (Antonio Álvarez Alonso, 1902);
+al entrar en un juego se para y vuelve al salir.
+
+Puedes poner otra: copia un fichero `musica.wav` en la carpeta `/3ds/JuegosDeCartas/` de la
+tarjeta SD y sonará esa en su lugar. Tiene que ser un WAV PCM de 16 bits, mono o estéreo, de
+8000 a 48000 Hz; con Audacity, por ejemplo: *Archivo → Exportar → Exportar como WAV* con "PCM
+de 16 bits con signo".
+
+### Música de los juegos de cartas
+Los juegos de cartas pueden tener su propia música en bucle: copia un fichero `juegos.wav`
+(con el mismo formato) en `/3ds/JuegosDeCartas/`. Suena en todos los juegos de cartas (no en
+los de tablero, fichas o bolas), sigue sonando durante la pausa y se para al volver al menú. No
+va dentro del juego: la pones tú.
 
 ## Controles
 
