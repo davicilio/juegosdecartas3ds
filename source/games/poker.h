@@ -19,13 +19,23 @@
  * (all-in) se hacen botes secundarios.
  *
  * Jugadas, de menor a mayor: carta alta, pareja, doble pareja, trío,
- * escalera, color, full, póker y escalera de color. */
+ * escalera, color, full, póker y escalera de color.
+ *
+ * OMAHA: igual, pero con cuatro cartas propias, y la jugada se hace con
+ * exactamente dos de ellas y tres de la mesa.
+ *
+ * DESCARTE (el póker clásico de cinco cartas): cinco cartas propias y nada en
+ * la mesa. Tras una ronda de apuestas, cada uno cambia hasta tres cartas
+ * (cuatro si se queda un as) y hay otra ronda antes de enseñar. */
 
 #define PK_PLAYERS  4
 #define PK_START    1000
 #define PK_SMALL    10
 #define PK_BIG      20
 #define PK_BOARD    5
+#define PK_MAX_HOLE 5
+
+typedef enum { PK_HOLDEM, PK_OMAHA, PK_DRAW, PK_VARIANTS } PkVariant;
 
 /* Carta: valor 2..14 (14 = as) y palo 0..3 (picas, corazones, diamantes, tréboles) */
 typedef struct {
@@ -38,6 +48,7 @@ typedef enum {
 	PK_FLOP,
 	PK_TURN,
 	PK_RIVER,
+	PK_DISCARD,   /* póker de descarte: cada uno cambia cartas */
 	PK_SHOWDOWN,  /* se enseñan las cartas y se reparte el bote */
 	PK_HAND_OVER, /* todos menos uno se han retirado */
 	PK_GAME_OVER
@@ -53,7 +64,11 @@ typedef enum {
 typedef struct {
 	PkCard deck[52];
 	int deck_count;
-	PkCard hole[PK_PLAYERS][2];
+	PkCard hole[PK_PLAYERS][PK_MAX_HOLE];
+	int variant;               /* PkVariant */
+	int hole_n;                /* cartas propias: 2, 4 o 5 */
+	bool drew[PK_PLAYERS];     /* descarte: ya ha cambiado */
+	int discards[PK_PLAYERS];  /* descarte: cuántas cambió */
 	PkCard board[PK_BOARD];
 	int board_count;
 	int chips[PK_PLAYERS];
@@ -89,6 +104,13 @@ int pk_category(uint32_t score);
 const char* pk_category_name(int category);
 
 void pk_init(Poker* g, uint32_t seed);
+void pk_init_variant(Poker* g, PkVariant variant, uint32_t seed);
+/* Mejor jugada del jugador con lo que hay ahora en la mesa */
+uint32_t pk_player_score(const Poker* g, int player);
+/* Descarte: el jugador actual cambia las cartas marcadas */
+bool pk_can_discard(const Poker* g, const bool* sel);
+bool pk_discard(Poker* g, const bool* sel);
+void pk_ai_discard(const Poker* g, int player, bool* sel);
 void pk_new_hand(Poker* g);
 int pk_pot(const Poker* g);
 int pk_to_call(const Poker* g, int player);

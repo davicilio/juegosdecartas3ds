@@ -137,6 +137,18 @@ static const MenuEntry entries[] = {
 	  "retírate... ¡o vete con todo! Gana quien se quede con todas las fichas.",
 	  SCENE_POKER, SUIT_OROS, { C(OROS, 1), C(OROS, 1), C(OROS, 1) }, { CPU_RAMON, CPU_LUCIA, CPU_MANOLO },
 	  KIND_FRENCH },
+	{ "Omaha",
+	  "El primo del Texas Hold'em: cuatro cartas propias y cinco en la mesa, pero la jugada se hace "
+	  "con exactamente dos tuyas y tres de la mesa. ¡Aquí las manos son mucho más fuertes!",
+	  SCENE_OMAHA, SUIT_OROS, { C(OROS, 1), C(OROS, 1), C(OROS, 1) }, { CPU_CARMEN, CPU_PEPE, CPU_PACO }, KIND_FRENCH },
+	{ "Póker de descarte",
+	  "El póker clásico de cinco cartas: una ronda de apuestas, cambias hasta tres cartas (cuatro si "
+	  "te quedas un as) y otra ronda antes de enseñar.",
+	  SCENE_DRAWPOKER, SUIT_OROS, { C(OROS, 1), C(OROS, 1), C(OROS, 1) }, { CPU_LOLA, CPU_MANOLO, CPU_RAMON }, KIND_FRENCH },
+	{ "Videopóker",
+	  "La máquina \"Jacks or Better\": apuesta de 1 a 5 créditos, guarda las cartas que quieras y "
+	  "cambia las demás. Paga desde una pareja de jotas hasta la escalera real.",
+	  SCENE_VIDEOPOKER, SUIT_OROS, { C(OROS, 1), C(OROS, 1), C(OROS, 1) }, { -1, -1, -1 }, KIND_FRENCH },
 	{ "Blackjack",
 	  "Contra la banca: acércate a 21 sin pasarte. Pide, plántate, dobla o separa las parejas. "
 	  "El blackjack paga 3 a 2. Abajo te dice qué haría la estrategia básica.",
@@ -459,7 +471,8 @@ static SceneId menu_update(const Input* in, float dt)
 
 static bool is_french(SceneId scene)
 {
-	return scene == SCENE_POKER || scene == SCENE_BLACKJACK || scene == SCENE_CORAZONES || scene == SCENE_FREECELL;
+	return scene == SCENE_POKER || scene == SCENE_BLACKJACK || scene == SCENE_CORAZONES || scene == SCENE_FREECELL ||
+	       scene == SCENE_OMAHA || scene == SCENE_DRAWPOKER || scene == SCENE_VIDEOPOKER;
 }
 
 /* Icono de los juegos de mesa sin cartas (s = escala, 1 = unos 16 px) */
@@ -580,11 +593,22 @@ static void menu_draw_top(void)
 		if (e->scene == SCENE_CARDBACK)
 			gfx_card_back(cx, cy, 1.0f, 1.0f, a, DEPTH_CARDS + i * 0.4f, NULL);
 		else if (is_french(e->scene)) {
+			const int* f0 = NULL;
 			static const int poker[3] = { 0 * 13 + 12, 1 * 13 + 12, 2 * 13 + 11 };
 			static const int bj[3] = { 3 * 13 + 12, 0 * 13 + 9, 2 * 13 + 6 };
 			static const int hearts[3] = { 1 * 13 + 0, 1 * 13 + 8, 0 * 13 + 10 };
 			static const int freecell[3] = { 0 * 13 + 11, 1 * 13 + 10, 3 * 13 + 9 };
-			const int* f = e->scene == SCENE_POKER       ? poker
+			static const int omaha[3] = { 0 * 13 + 12, 1 * 13 + 12, 2 * 13 + 12 };
+			static const int draw[3] = { 3 * 13 + 8, 3 * 13 + 9, 3 * 13 + 10 };
+			static const int royal[3] = { 1 * 13 + 10, 1 * 13 + 11, 1 * 13 + 12 };
+			if (e->scene == SCENE_OMAHA)
+				f0 = omaha;
+			else if (e->scene == SCENE_DRAWPOKER)
+				f0 = draw;
+			else if (e->scene == SCENE_VIDEOPOKER)
+				f0 = royal;
+			const int* f = f0                            ? f0
+			               : e->scene == SCENE_POKER     ? poker
 			               : e->scene == SCENE_BLACKJACK ? bj
 			               : e->scene == SCENE_FREECELL  ? freecell
 			                                             : hearts;

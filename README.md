@@ -101,6 +101,9 @@ pueden jugar; la lista se desplaza con la cruceta) y, en pequeño, **Configuraci
 | Culo | ✅ Disponible |
 | Pocha | ✅ Disponible |
 | Póker Texas Hold'em (baraja francesa) | ✅ Disponible |
+| Omaha (baraja francesa) | ✅ Disponible |
+| Póker de descarte (baraja francesa) | ✅ Disponible |
+| Videopóker (baraja francesa) | ✅ Disponible |
 | Carta blanca (baraja francesa) | ✅ Disponible |
 | Blackjack (baraja francesa) | ✅ Disponible |
 | Corazones (baraja francesa) | ✅ Disponible |
@@ -337,6 +340,17 @@ El reparto siempre tiene solución.
   sola; Ⓧ la recoloca. Dispara tocando el mar enemigo (o cruceta y Ⓐ): agua, tocado o hundido.
   Si tocas, repites. La CPU va a por tus barcos con cabeza.
 - **Tres en raya**: tú las X. En difícil la CPU no pierde nunca.
+
+### Otros póker (baraja francesa)
+- **Omaha**: como el Texas Hold'em, pero con cuatro cartas propias; la jugada se hace con
+  exactamente dos tuyas y tres de la mesa.
+- **Póker de descarte**: cinco cartas, una ronda de apuestas, cambias hasta tres (cuatro si te
+  quedas un as) tocando las que quieres cambiar, y otra ronda antes de enseñar.
+- **Videopóker** ("Jacks or Better"): apuesta de 1 a 5 créditos (Ⓧ cambia la apuesta, Ⓨ
+  apuesta 5), guarda las cartas que quieras tocándolas y cambia el resto. Ⓨ, con la mano
+  servida, te da un consejo de qué guardar. Paga desde una pareja de jotas.
+
+![Videopóker](docs/videopoker.png)
 
 ### Carta blanca (baraja francesa)
 El solitario FreeCell: 8 columnas boca arriba, 4 casillas libres y 4 montones del as al rey.

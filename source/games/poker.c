@@ -142,6 +142,13 @@ const char* pk_category_name(int category)
 
 void pk_init(Poker* g, uint32_t seed)
 {
+	pk_init_variant(g, PK_HOLDEM, seed);
+}
+
+void pk_init_variant(Poker* g, PkVariant variant, uint32_t seed)
+{
+	g->variant = variant;
+	g->hole_n = variant == PK_OMAHA ? 4 : variant == PK_DRAW ? 5 : 2;
 	rng_seed(&g->rng, seed);
 	for (int p = 0; p < PK_PLAYERS; p++) {
 		g->chips[p] = PK_START;
@@ -239,12 +246,14 @@ void pk_new_hand(Poker* g)
 		g->score[p] = 0;
 		g->last_action[p] = -1;
 		g->last_amount[p] = 0;
+		g->drew[p] = false;
+		g->discards[p] = 0;
 	}
 	g->board_count = 0;
 	g->to_call = 0;
 	g->min_raise = PK_BIG;
 	g->dealer = next_seat(g, g->dealer);
-	for (int k = 0; k < 2; k++)
+	for (int k = 0; k < g->hole_n; k++)
 		for (int p = 0; p < PK_PLAYERS; p++)
 			if (!g->out[p])
 				g->hole[p][k] = draw(g);
@@ -308,12 +317,8 @@ static void check_game_over(Poker* g)
 static void showdown(Poker* g)
 {
 	for (int p = 0; p < PK_PLAYERS; p++)
-		if (pk_active(g, p)) {
-			PkCard seven[7] = { g->hole[p][0], g->hole[p][1] };
-			for (int i = 0; i < g->board_count; i++)
-				seven[2 + i] = g->board[i];
-			g->score[p] = pk_evaluate(seven, 2 + g->board_count);
-		}
+		if (pk_active(g, p))
+			g->score[p] = pk_player_score(g, p);
 	int prev = 0;
 	while (true) {
 		int level = 0;
@@ -378,6 +383,18 @@ static void next_stage(Poker* g)
 	}
 	g->to_call = 0;
 	g->min_raise = PK_BIG;
+	if (g->variant == PK_DRAW && g->stage == PK_PREFLOP) {
+		/* Descarte: empiezan a cambiar desde la izquierda de quien reparte */
+		g->stage = PK_DISCARD;
+		for (int k = 1; k <= PK_PLAYERS; k++) {
+			int q = (g->dealer + k) % PK_PLAYERS;
+			if (pk_active(g, q)) {
+				g->current = q;
+				break;
+			}
+		}
+		return;
+	}
 	if (g->stage == PK_PREFLOP) {
 		for (int i = 0; i < 3; i++)
 			g->board[g->board_count++] = draw(g);
@@ -470,6 +487,123 @@ bool pk_act(Poker* g, PkAction action, int amount)
 	return true;
 }
 
+/* ---------------------------------------------------------------------------
+ * Omaha y descarte
+ * ------------------------------------------------------------------------- */
+
+static uint32_t score_with(int variant, const PkCard* hole, const PkCard* board, int nb)
+{
+	if (variant == PK_DRAW)
+		return pk_evaluate(hole, 5);
+	if (variant == PK_HOLDEM) {
+		PkCard seven[7] = { hole[0], hole[1] };
+		for (int i = 0; i < nb; i++)
+			seven[2 + i] = board[i];
+		return pk_evaluate(seven, 2 + nb);
+	}
+	/* Omaha: dos propias y tres de la mesa, exactamente */
+	if (nb < 3)
+		return pk_evaluate(hole, 4);
+	uint32_t best = 0;
+	for (int a = 0; a < 4; a++)
+		for (int b = a + 1; b < 4; b++)
+			for (int i = 0; i < nb; i++)
+				for (int j = i + 1; j < nb; j++)
+					for (int k = j + 1; k < nb; k++) {
+						PkCard five[5] = { hole[a], hole[b], board[i], board[j], board[k] };
+						uint32_t s = pk_evaluate(five, 5);
+						if (s > best)
+							best = s;
+					}
+	return best;
+}
+
+uint32_t pk_player_score(const Poker* g, int p)
+{
+	return score_with(g->variant, g->hole[p], g->board, g->board_count);
+}
+
+bool pk_can_discard(const Poker* g, const bool* sel)
+{
+	if (g->stage != PK_DISCARD)
+		return false;
+	int n = 0;
+	bool ace_kept = false;
+	for (int i = 0; i < 5; i++) {
+		n += sel[i];
+		if (!sel[i] && g->hole[g->current][i].rank == 14)
+			ace_kept = true;
+	}
+	return n <= 3 || (n == 4 && ace_kept);
+}
+
+bool pk_discard(Poker* g, const bool* sel)
+{
+	if (!pk_can_discard(g, sel))
+		return false;
+	int p = g->current;
+	int n = 0;
+	for (int i = 0; i < 5; i++)
+		if (sel[i]) {
+			g->hole[p][i] = draw(g);
+			n++;
+		}
+	g->discards[p] = n;
+	g->drew[p] = true;
+	for (int k = 1; k <= PK_PLAYERS; k++) {
+		int q = (p + k) % PK_PLAYERS;
+		if (pk_active(g, q) && !g->drew[q]) {
+			g->current = q;
+			return true;
+		}
+	}
+	/* Han cambiado todos: segunda ronda de apuestas */
+	if (can_bet_count(g) <= 1) {
+		showdown(g);
+		return true;
+	}
+	g->stage = PK_RIVER;
+	g->current = next_to_act(g, g->dealer);
+	return true;
+}
+
+void pk_ai_discard(const Poker* g, int p, bool* sel)
+{
+	const PkCard* h = g->hole[p];
+	int count[15] = { 0 }, suits[4] = { 0 };
+	for (int i = 0; i < 5; i++) {
+		count[h[i].rank]++;
+		suits[h[i].suit]++;
+		sel[i] = false;
+	}
+	int cat = pk_category(pk_evaluate(h, 5));
+	if (cat >= 4 && cat != 7)
+		return; /* escalera o mejor: se queda con todo */
+	if (cat >= 1) {
+		/* Se queda con las cartas repetidas */
+		for (int i = 0; i < 5; i++)
+			sel[i] = count[h[i].rank] < 2;
+		return;
+	}
+	for (int s = 0; s < 4; s++)
+		if (suits[s] == 4) {
+			for (int i = 0; i < 5; i++)
+				sel[i] = h[i].suit != s; /* a por el color */
+			return;
+		}
+	/* Nada: se queda con las dos más altas (o solo con el as) */
+	int hi = 0, hi2 = -1;
+	for (int i = 1; i < 5; i++)
+		if (h[i].rank > h[hi].rank)
+			hi = i;
+	for (int i = 0; i < 5; i++)
+		if (i != hi && (hi2 < 0 || h[i].rank > h[hi2].rank))
+			hi2 = i;
+	bool ace_alone = h[hi].rank == 14 && h[hi2].rank < 11;
+	for (int i = 0; i < 5; i++)
+		sel[i] = i != hi && (ace_alone || i != hi2);
+}
+
 bool pk_hand_finished(const Poker* g)
 {
 	return g->stage >= PK_SHOWDOWN;
@@ -484,10 +618,12 @@ int pk_equity(Poker* g, int player, int samples)
 	/* Cartas que no se ven: todas menos las propias y las de la mesa */
 	PkCard unseen[52];
 	int nu = 0;
+	int hn = g->hole_n;
 	for (int s = 0; s < 4; s++)
 		for (int r = 2; r <= 14; r++) {
-			bool seen = (g->hole[player][0].rank == r && g->hole[player][0].suit == s) ||
-			            (g->hole[player][1].rank == r && g->hole[player][1].suit == s);
+			bool seen = false;
+			for (int i = 0; i < hn; i++)
+				seen |= g->hole[player][i].rank == r && g->hole[player][i].suit == s;
 			for (int i = 0; i < g->board_count; i++)
 				seen |= g->board[i].rank == r && g->board[i].suit == s;
 			if (!seen)
@@ -496,30 +632,42 @@ int pk_equity(Poker* g, int player, int samples)
 	int opponents = active_count(g) - 1;
 	if (opponents < 1)
 		return 100;
+	/* En el Omaha cada jugada cuesta 60 valoraciones: menos muestras */
+	if (g->variant == PK_OMAHA && samples > 70)
+		samples = 70;
+	/* Descarte antes de cambiar: se simula el cambio propio */
+	bool sel[5] = { false };
+	bool will_draw = g->variant == PK_DRAW && g->stage < PK_DISCARD;
+	if (will_draw)
+		pk_ai_discard(g, player, sel);
 	int wins2 = 0;
 	for (int k = 0; k < samples; k++) {
-		/* Baraja parcial: lo necesario para la mesa y los rivales */
-		int need = (PK_BOARD - g->board_count) + opponents * 2;
+		int need = (g->variant == PK_DRAW ? 0 : PK_BOARD - g->board_count) + opponents * hn + (will_draw ? 4 : 0);
+		if (need > nu)
+			need = nu;
 		for (int i = 0; i < need; i++) {
 			int j = i + rng_range(&g->rng, nu - i);
 			PkCard t = unseen[i];
 			unseen[i] = unseen[j];
 			unseen[j] = t;
 		}
+		int u = 0;
 		PkCard board[PK_BOARD];
 		int nb = 0;
-		for (int i = 0; i < g->board_count && nb < PK_BOARD; i++)
-			board[nb++] = g->board[i];
-		int u = 0;
-		while (nb < PK_BOARD)
-			board[nb++] = unseen[u++];
-		PkCard seven[7] = { g->hole[player][0], g->hole[player][1], board[0], board[1], board[2], board[3], board[4] };
-		uint32_t mine = pk_evaluate(seven, 7);
+		if (g->variant != PK_DRAW) {
+			for (int i = 0; i < g->board_count; i++)
+				board[nb++] = g->board[i];
+			while (nb < PK_BOARD)
+				board[nb++] = unseen[u++];
+		}
+		PkCard mine_cards[PK_MAX_HOLE];
+		for (int i = 0; i < hn; i++)
+			mine_cards[i] = will_draw && sel[i] ? unseen[u++] : g->hole[player][i];
+		uint32_t mine = score_with(g->variant, mine_cards, board, nb);
 		int result = 2; /* 2 gana, 1 empata, 0 pierde */
 		for (int o = 0; o < opponents && result > 0; o++) {
-			PkCard theirs[7] = { unseen[u], unseen[u + 1], board[0], board[1], board[2], board[3], board[4] };
-			u += 2;
-			uint32_t s = pk_evaluate(theirs, 7);
+			uint32_t s = score_with(g->variant, &unseen[u], board, nb);
+			u += hn;
 			if (s > mine)
 				result = 0;
 			else if (s == mine)

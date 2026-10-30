@@ -26,6 +26,7 @@
 #include "games/poker.h"
 #include "games/treintayuna.h"
 #include "games/as23.h"
+#include "games/videopoker.h"
 #include "games/mahjong.h"
 #include "games/toma6.h"
 #include "games/freecell.h"
@@ -3121,6 +3122,123 @@ static void test_mahjong(void)
 	printf("  mahjong: %d de 100 resueltas cogiendo la primera pareja\n", solved);
 }
 
+static void test_poker_variants(void)
+{
+	Poker g;
+	/* Omaha: con cuatro corazones en la mano y uno en la mesa NO hay color
+	 * (hacen falta tres de la mesa) */
+	pk_init_variant(&g, PK_OMAHA, 1);
+	CHECK(g.hole_n == 4);
+	g.hole[0][0] = (PkCard){ 14, 1 };
+	g.hole[0][1] = (PkCard){ 13, 1 };
+	g.hole[0][2] = (PkCard){ 12, 1 };
+	g.hole[0][3] = (PkCard){ 11, 1 };
+	g.board[0] = (PkCard){ 2, 1 };
+	g.board[1] = (PkCard){ 7, 0 };
+	g.board[2] = (PkCard){ 8, 2 };
+	g.board[3] = (PkCard){ 9, 3 };
+	g.board[4] = (PkCard){ 3, 0 };
+	g.board_count = 5;
+	CHECK(pk_category(pk_player_score(&g, 0)) < 5);
+	/* Con tres corazones en la mesa, sí */
+	g.board[1] = (PkCard){ 7, 1 };
+	g.board[2] = (PkCard){ 8, 1 };
+	CHECK(pk_category(pk_player_score(&g, 0)) == 5);
+	/* Y un trío en la mesa con una pareja en la mano no es póker: es full */
+	g.hole[0][0] = (PkCard){ 9, 0 };
+	g.hole[0][1] = (PkCard){ 9, 1 };
+	g.board[0] = (PkCard){ 9, 2 };
+	g.board[1] = (PkCard){ 4, 3 };
+	g.board[2] = (PkCard){ 4, 0 };
+	g.board[3] = (PkCard){ 4, 1 };
+	CHECK(pk_category(pk_player_score(&g, 0)) == 6);
+
+	/* Descarte: cinco cartas, se cambian como mucho tres (cuatro con un as) */
+	pk_init_variant(&g, PK_DRAW, 2);
+	CHECK(g.hole_n == 5 && g.stage == PK_PREFLOP && g.board_count == 0);
+	while (g.stage == PK_PREFLOP)
+		CHECK(pk_act(&g, PK_CHECK_CALL, 0));
+	CHECK(g.stage == PK_DISCARD && g.board_count == 0);
+	bool four[5] = { true, true, true, true, false };
+	g.hole[g.current][4] = (PkCard){ 5, 0 };
+	CHECK(!pk_can_discard(&g, four));
+	g.hole[g.current][4] = (PkCard){ 14, 0 };
+	CHECK(pk_can_discard(&g, four));
+	int first = g.current;
+	CHECK(pk_discard(&g, four) && g.discards[first] == 4 && g.current != first);
+	while (g.stage == PK_DISCARD) {
+		bool sel[5];
+		pk_ai_discard(&g, g.current, sel);
+		CHECK(pk_can_discard(&g, sel) && pk_discard(&g, sel));
+	}
+	CHECK(g.stage == PK_RIVER);
+
+	/* Partidas enteras de las dos variantes */
+	for (int v = PK_OMAHA; v <= PK_DRAW; v++) {
+		int finished = 0;
+		for (int game = 0; game < 20; game++) {
+			pk_init_variant(&g, (PkVariant)v, 300 + game);
+			int guard = 0;
+			while (!pk_game_over(&g) && guard++ < 4000) {
+				if (pk_hand_finished(&g)) {
+					int total = 0;
+					for (int p = 0; p < PK_PLAYERS; p++)
+						total += g.chips[p];
+					CHECK(total == PK_PLAYERS * PK_START);
+					pk_new_hand(&g);
+					continue;
+				}
+				if (g.stage == PK_DISCARD) {
+					bool sel[5];
+					pk_ai_discard(&g, g.current, sel);
+					CHECK(pk_discard(&g, sel));
+					continue;
+				}
+				int amount = 0;
+				PkAction a = pk_ai_decide(&g, &amount);
+				CHECK(pk_act(&g, a, amount));
+			}
+			finished += pk_game_over(&g);
+		}
+		printf("  póker %s: %d/20 partidas acabadas\n", v == PK_OMAHA ? "Omaha" : "de descarte", finished);
+	}
+}
+
+static void test_videopoker(void)
+{
+	PkCard royal[5] = { { 10, 1 }, { 11, 1 }, { 12, 1 }, { 13, 1 }, { 14, 1 } };
+	PkCard sf[5] = { { 9, 1 }, { 10, 1 }, { 11, 1 }, { 12, 1 }, { 13, 1 } };
+	PkCard jacks[5] = { { 11, 1 }, { 11, 2 }, { 3, 1 }, { 5, 0 }, { 9, 3 } };
+	PkCard tens[5] = { { 10, 1 }, { 10, 2 }, { 3, 1 }, { 5, 0 }, { 9, 3 } };
+	CHECK(vp_rank(royal) == VP_ROYAL && vp_rank(sf) == VP_STRAIGHT_FLUSH);
+	CHECK(vp_rank(jacks) == VP_JACKS && vp_rank(tens) == VP_NOTHING);
+	CHECK(vp_pay(VP_ROYAL, 5) == 4000 && vp_pay(VP_ROYAL, 4) == 1000 && vp_pay(VP_FULL, 2) == 18);
+	VideoPoker g;
+	vp_init(&g, 3);
+	g.bet = 5;
+	CHECK(vp_deal(&g) && g.credits == VP_START - 5 && !vp_deal(&g));
+	CHECK(vp_toggle(&g, 0) && g.held[0]);
+	PkCard kept = g.hand[0];
+	CHECK(vp_draw(&g) && g.hand[0].rank == kept.rank && g.hand[0].suit == kept.suit && g.phase == VP_RESULT);
+	/* Jugando con el consejo se recupera casi todo lo apostado (la máquina gana un poco) */
+	long bet = 0, won = 0;
+	vp_init(&g, 11);
+	for (int k = 0; k < 600; k++) {
+		g.credits = 1000;
+		g.bet = 1;
+		CHECK(vp_deal(&g));
+		bool hold[5];
+		vp_advice(&g, hold);
+		for (int i = 0; i < 5; i++)
+			g.held[i] = hold[i];
+		CHECK(vp_draw(&g));
+		bet++;
+		won += g.win;
+	}
+	CHECK(won * 100 / bet > 70); /* 600 manos: mucha suerte de por medio */
+	printf("  videopóker: con el consejo devuelve el %ld %% de lo apostado\n", won * 100 / bet);
+}
+
 static void test_cucu(void)
 {
 	Cucu g;
@@ -3709,6 +3827,8 @@ int main(void)
 	test_rk_simulation();
 	test_mona();
 	test_as23();
+	test_videopoker();
+	test_poker_variants();
 	test_mahjong();
 	test_toma6();
 	test_freecell();
