@@ -59,6 +59,16 @@ static const Scene* scene_for(SceneId id)
 		return &scene_reversi;
 	case SCENE_BURRO:
 		return &scene_burro;
+	case SCENE_TRESENRAYA:
+		return &scene_tresenraya;
+	case SCENE_FLOTA:
+		return &scene_flota;
+	case SCENE_PARCHIS:
+		return &scene_parchis;
+	case SCENE_TOMA6:
+		return &scene_toma6;
+	case SCENE_FREECELL:
+		return &scene_freecell;
 	case SCENE_BINGO:
 		return &scene_bingo;
 	case SCENE_TRESILLO:

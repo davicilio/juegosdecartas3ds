@@ -26,6 +26,11 @@
 #include "games/poker.h"
 #include "games/treintayuna.h"
 #include "games/as23.h"
+#include "games/toma6.h"
+#include "games/freecell.h"
+#include "games/parchis.h"
+#include "games/flota.h"
+#include "games/tresenraya.h"
 #include "games/bingo.h"
 #include "games/tresillo.h"
 #include "games/mierda.h"
@@ -2777,6 +2782,295 @@ static void test_bingo(void)
 	printf("  bingo: línea a la bola %d, bingo a la bola %d de media\n", line_at / lines, bingo_at / games);
 }
 
+static void test_tresenraya(void)
+{
+	TresEnRaya g;
+	tx_init(&g, 1);
+	CHECK(g.current == 1 && tx_play(&g, 0) && !tx_play(&g, 0) && g.current == 2);
+	tx_play(&g, 3);
+	tx_play(&g, 1);
+	tx_play(&g, 4);
+	CHECK(tx_play(&g, 2) && g.winner == 1 && g.line[0] == 0 && g.line[2] == 2);
+	CHECK(!tx_play(&g, 8));
+	/* En difícil la CPU no pierde nunca, ni contra otra CPU al azar */
+	int results[4] = { 0 };
+	for (int game = 0; game < 400; game++) {
+		tx_init(&g, 50 + game);
+		g.level = 2;
+		while (!g.winner) {
+			int m;
+			if (g.current == 1) {
+				int free_cells[9], n = 0;
+				for (int i = 0; i < 9; i++)
+					if (!g.cell[i])
+						free_cells[n++] = i;
+				m = free_cells[rng_range(&g.rng, n)];
+			} else {
+				m = tx_ai_choose(&g);
+			}
+			CHECK(tx_play(&g, m));
+		}
+		results[g.winner]++;
+	}
+	CHECK(results[1] == 0);
+	printf("  tres en raya: al azar %d, CPU %d, empates %d\n", results[1], results[2], results[3]);
+}
+
+static void test_flota(void)
+{
+	Flota g;
+	for (int game = 0; game < 200; game++) {
+		hf_init(&g, 70 + game);
+		/* Barcos completos y sin tocarse */
+		for (int p = 0; p < 2; p++) {
+			int cells = 0;
+			for (int r = 0; r < HF_SIZE; r++)
+				for (int c = 0; c < HF_SIZE; c++) {
+					int s = g.ship_at[p][r][c];
+					if (s < 0)
+						continue;
+					cells++;
+					for (int dr = -1; dr <= 1; dr++)
+						for (int dc = -1; dc <= 1; dc++) {
+							int a = r + dr, b = c + dc;
+							if (a >= 0 && a < HF_SIZE && b >= 0 && b < HF_SIZE && g.ship_at[p][a][b] >= 0)
+								CHECK(g.ship_at[p][a][b] == s);
+						}
+				}
+			CHECK(cells == 5 + 4 + 3 + 3 + 2);
+		}
+	}
+	/* Agua pasa el turno; tocado repite */
+	hf_init(&g, 3);
+	int wr = -1, wc = -1, sr = -1, sc = -1;
+	for (int r = 0; r < HF_SIZE; r++)
+		for (int c = 0; c < HF_SIZE; c++) {
+			if (g.ship_at[1][r][c] < 0 && wr < 0) {
+				wr = r;
+				wc = c;
+			}
+			if (g.ship_at[1][r][c] >= 0 && sr < 0) {
+				sr = r;
+				sc = c;
+			}
+		}
+	CHECK(hf_fire(&g, sr, sc) == HF_HIT && g.current == 0);
+	CHECK(hf_fire(&g, sr, sc) == HF_NONE);
+	CHECK(hf_fire(&g, wr, wc) == HF_WATER && g.current == 1);
+	/* La IA siempre gana en menos de 100 disparos, y más rápido que al azar */
+	long total = 0;
+	int games = 300;
+	for (int game = 0; game < games; game++) {
+		hf_init(&g, 900 + game);
+		g.current = 1;
+		int guard = 0;
+		while (g.winner < 0 && guard++ < 200) {
+			if (g.current == 0) {
+				/* El humano no dispara: se da agua al azar para pasar el turno */
+				g.current = 1;
+				continue;
+			}
+			int t = hf_ai_target(&g);
+			CHECK(t >= 0 && hf_fire(&g, t / HF_SIZE, t % HF_SIZE) != HF_NONE);
+		}
+		CHECK(g.winner == 1);
+		total += g.shots[1];
+	}
+	CHECK(total / games < 65);
+	printf("  hundir la flota: la CPU necesita %ld disparos de media\n", total / games);
+}
+
+static void test_parchis(void)
+{
+	CHECK(pa_square(0, 0) == 5 && pa_square(0, 63) == 68 && pa_square(0, 64) == 0);
+	CHECK(pa_square(1, 0) == 22 && pa_square(1, 63) == 17 && pa_square(3, 63) == 51);
+	CHECK(pa_safe(12) && pa_safe(68) && !pa_safe(13));
+	Parchis g;
+	pa_init(&g, 1);
+	/* Sin un 5 no se sale: pasa el turno */
+	CHECK(pa_roll(&g, 3) == 3 && g.current == 1 && g.phase == PA_ROLL);
+	g.current = 0;
+	CHECK(pa_roll(&g, 5) && g.phase == PA_MOVE && pa_target(&g, 0) == 0);
+	CHECK(pa_move(&g, 0) && g.pos[0][0] == 0 && g.current == 1);
+	/* Comer: 20 de premio */
+	g.current = 0;
+	g.pos[1][0] = 8; /* azul en la 30: el amarillo a 2 pasos de la 7 */
+	g.pos[0][0] = 0;
+	int sq = pa_square(1, 8);
+	g.pos[0][1] = sq - pa_exit(0) - 2; /* dos casillas por detrás */
+	CHECK(pa_roll(&g, 2) && pa_target(&g, 1) == g.pos[0][1] + 2);
+	CHECK(pa_move(&g, 1) && g.pos[1][0] == PA_HOME && g.last_captured_player == 1);
+	CHECK(g.phase == PA_MOVE && g.move == 20 && g.current == 0);
+	CHECK(pa_move(&g, 0) && g.pos[0][0] == 20);
+	/* Barrera: no se puede pasar */
+	pa_init(&g, 2);
+	g.pos[0][0] = 10;
+	g.pos[1][0] = g.pos[1][1] = (pa_square(0, 12) - pa_exit(1) + PA_RING) % PA_RING;
+	CHECK(pa_square(1, g.pos[1][0]) == pa_square(0, 12));
+	g.pos[0][1] = g.pos[0][2] = g.pos[0][3] = PA_GOAL;
+	CHECK(pa_roll(&g, 4) && g.current != 0); /* la única ficha no puede pasar: pasa el turno */
+	/* Meta: hay que sacar lo justo y se cuentan 10 */
+	pa_init(&g, 3);
+	g.pos[0][0] = PA_GOAL - 3;
+	g.pos[0][1] = 0;
+	CHECK(pa_roll(&g, 4) && pa_target(&g, 0) == -2 && pa_move(&g, 1));
+	g.current = 0;
+	CHECK(pa_roll(&g, 3) && pa_move(&g, 0) && g.pos[0][0] == PA_GOAL && g.move == 10 && g.phase == PA_MOVE);
+
+	int wins[PA_PLAYERS] = { 0 };
+	long turns = 0;
+	for (int game = 0; game < 300; game++) {
+		pa_init(&g, 4000 + game);
+		int guard = 0;
+		while (g.phase != PA_OVER && guard++ < 20000) {
+			if (g.phase == PA_ROLL) {
+				pa_roll(&g, 0);
+				turns++;
+			} else {
+				int i = pa_ai_choose(&g);
+				CHECK(i >= 0 && pa_move(&g, i));
+			}
+			/* Nunca más de dos fichas en una casilla */
+			for (int s = 1; s <= PA_RING; s++) {
+				int n = 0;
+				for (int p = 0; p < PA_PLAYERS; p++)
+					for (int i = 0; i < PA_PIECES; i++)
+						n += pa_square(p, g.pos[p][i]) == s;
+				CHECK(n <= 2);
+			}
+		}
+		CHECK(g.phase == PA_OVER && g.winner >= 0 && pa_in_goal(&g, g.winner) == PA_PIECES);
+		wins[g.winner]++;
+	}
+	printf("  parchís: %ld tiradas por partida, ganan %d/%d/%d/%d\n", turns / 300, wins[0], wins[1], wins[2], wins[3]);
+}
+
+static void test_freecell(void)
+{
+	FreeCell g;
+	fc_new_game(&g, 1);
+	/* La partida nº 1 de Windows empieza: JD 2D 9H JC 5D 7H 7C 5H */
+	static const char* const want = "JD2D9HJC5D7H7C5H";
+	const char* ranks = "A23456789TJQK";
+	const char* suits = "SHDC";
+	char got[17];
+	for (int c = 0; c < FC_COLS; c++) {
+		got[c * 2] = ranks[g.b.col[c][0].rank - 1];
+		got[c * 2 + 1] = suits[g.b.col[c][0].suit];
+	}
+	got[16] = 0;
+	CHECK(strcmp(got, want) == 0);
+	CHECK(g.b.col_n[0] == 7 && g.b.col_n[7] == 6);
+	/* Capacidad: (libres + 1) x 2^vacías */
+	FcBoard b;
+	memset(&b, 0, sizeof b);
+	b.col_n[0] = 1;
+	CHECK(fc_capacity(&b, 0) == 5 << 7 && fc_capacity(&b, 1) == 5 << 6);
+	/* Mover a casilla libre, a montón y deshacer */
+	fc_new_game(&g, 1);
+	CHECK(fc_move(&g, 0, FC_CELL0) && g.b.cell[0].rank && g.b.col_n[0] == 6);
+	CHECK(!fc_move(&g, 1, FC_CELL0));
+	CHECK(fc_undo(&g) && g.b.col_n[0] == 7 && g.b.cell[0].rank == 0);
+	/* Partidas al azar con movimientos legales: nunca se pierden cartas */
+	Rng rng;
+	rng_seed(&rng, 9);
+	int won = 0;
+	for (int game = 1; game <= 200; game++) {
+		fc_new_game(&g, game);
+		for (int step = 0; step < 400 && !g.won; step++) {
+			fc_auto(&g);
+			int from = rng_range(&rng, FC_FOUND0), to = rng_range(&rng, FC_PLACES);
+			if (fc_can_move(&g.b, from, to))
+				CHECK(fc_move(&g, from, to));
+			int n = fc_cards_home(&g.b);
+			for (int c = 0; c < FC_COLS; c++) {
+				n += g.b.col_n[c];
+				CHECK(g.b.col_n[c] <= FC_MAXCOL);
+			}
+			for (int i = 0; i < FC_CELLS; i++)
+				n += g.b.cell[i].rank != 0;
+			CHECK(n == 52);
+		}
+		won += g.won;
+	}
+	printf("  carta blanca: el reparto nº 1 coincide; %d/200 ganadas moviendo al azar\n", won);
+}
+
+static void test_toma6(void)
+{
+	CHECK(tm_heads(55) == 7 && tm_heads(33) == 5 && tm_heads(20) == 3 && tm_heads(15) == 2 && tm_heads(7) == 1);
+	int total = 0;
+	for (int c = 1; c <= TM_CARDS; c++)
+		total += tm_heads(c);
+	CHECK(total == 171);
+	Toma6 g;
+	tm_init(&g, 1);
+	/* Filas preparadas: 10, 20, 30, 40 */
+	for (int r = 0; r < TM_ROWS; r++) {
+		g.row[r][0] = (uint8_t)(10 * (r + 1));
+		g.row_n[r] = 1;
+	}
+	CHECK(tm_target_row(&g, 25) == 1 && tm_target_row(&g, 99) == 3 && tm_target_row(&g, 5) == -1);
+	/* La sexta se lleva la fila */
+	g.row_n[3] = 5;
+	g.row[3][1] = 41;
+	g.row[3][2] = 42;
+	g.row[3][3] = 43;
+	g.row[3][4] = 44;
+	g.hand[0][0] = 50;
+	g.hand[1][0] = 3;
+	g.hand[2][0] = 11;
+	g.hand[3][0] = 12;
+	CHECK(tm_choose(&g, 0, 0) && tm_choose(&g, 1, 0) && tm_choose(&g, 2, 0) && g.phase == TM_CHOOSE);
+	CHECK(tm_choose(&g, 3, 0) && g.phase == TM_PLACE);
+	/* El 3 va primero y es más bajo que todo: elige fila */
+	CHECK(tm_step(&g) && g.phase == TM_TAKE_ROW && g.chooser == 1);
+	CHECK(tm_take_row(&g, 0) && g.score[1] == 3 && g.row[0][0] == 3 && g.row_n[0] == 1);
+	CHECK(tm_step(&g) && g.row_n[0] == 2 && g.row[0][1] == 11); /* 11 detrás del 3 */
+	CHECK(tm_step(&g) && g.row[0][2] == 12);
+	int before = g.score[0];
+	CHECK(tm_step(&g) && g.score[0] == before + 3 + 5 + 1 + 1 + 1 && g.row[3][0] == 50 && g.row_n[3] == 1);
+	CHECK(g.phase == TM_CHOOSE);
+
+	int wins[TM_PLAYERS] = { 0 }, rounds = 0;
+	for (int game = 0; game < 300; game++) {
+		tm_init(&g, 600 + game);
+		int guard = 0;
+		while (g.phase != TM_GAME_OVER && guard++ < 10000) {
+			switch (g.phase) {
+			case TM_CHOOSE:
+				for (int p = 0; p < TM_PLAYERS; p++)
+					CHECK(tm_choose(&g, p, p == 0 ? rng_range(&g.rng, g.hand_n[0]) : tm_ai_card(&g, p)));
+				break;
+			case TM_PLACE:
+				CHECK(tm_step(&g));
+				break;
+			case TM_TAKE_ROW:
+				CHECK(tm_take_row(&g, tm_ai_row(&g)));
+				break;
+			case TM_ROUND_OVER: {
+				int cards = 0;
+				for (int r = 0; r < TM_ROWS; r++) {
+					cards += g.row_n[r];
+					CHECK(g.row_n[r] >= 1 && g.row_n[r] <= TM_ROW_MAX);
+				}
+				rounds++;
+				tm_new_round(&g);
+				break;
+			}
+			default:
+				break;
+			}
+		}
+		CHECK(g.phase == TM_GAME_OVER);
+		wins[tm_winner(&g)]++;
+	}
+	/* El que juega al azar (el 0) gana menos que la IA */
+	CHECK(wins[0] < wins[1] && wins[0] < wins[2]);
+	printf("  toma 6: %d rondas por partida; ganan azar %d, IA %d/%d/%d\n", rounds / 300, wins[0], wins[1], wins[2],
+		wins[3]);
+}
+
 static void test_cucu(void)
 {
 	Cucu g;
@@ -3365,6 +3659,11 @@ int main(void)
 	test_rk_simulation();
 	test_mona();
 	test_as23();
+	test_toma6();
+	test_freecell();
+	test_parchis();
+	test_tresenraya();
+	test_flota();
 	test_bingo();
 	test_tresillo();
 	test_mierda();

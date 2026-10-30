@@ -100,13 +100,18 @@ pueden jugar; la lista se desplaza con la cruceta) y, en pequeño, **Configuraci
 | Mentiroso | ✅ Disponible |
 | Culo | ✅ Disponible |
 | Pocha | ✅ Disponible |
-| Póker (baraja francesa) | ✅ Disponible |
+| Póker Texas Hold'em (baraja francesa) | ✅ Disponible |
+| Carta blanca (baraja francesa) | ✅ Disponible |
 | Blackjack (baraja francesa) | ✅ Disponible |
 | Corazones (baraja francesa) | ✅ Disponible |
 | Conecta 4 (juego de mesa) | ✅ Disponible |
 | Damas (juego de mesa) | ✅ Disponible |
 | Dominó (juego de mesa) | ✅ Disponible |
 | Bingo (juego de mesa) | ✅ Disponible |
+| Parchís (juego de mesa) | ✅ Disponible |
+| Toma 6 (juego de mesa) | ✅ Disponible |
+| Hundir la flota (juego de mesa) | ✅ Disponible |
+| Tres en raya (juego de mesa) | ✅ Disponible |
 | Reversi (juego de mesa) | ✅ Disponible |
 | La oca (juego de mesa) | ✅ Disponible |
 | Uno (juego de mesa) | ✅ Disponible |
@@ -298,6 +303,35 @@ menú (al entrar en un juego se para) y como mucho los primeros 3 minutos y 56 s
 que ser un WAV PCM de 16 bits, mono o estéreo, de 8000 a 48000 Hz; con Audacity, por ejemplo:
 *Archivo → Exportar → Exportar como WAV* con "PCM de 16 bits con signo". Si no está, el menú
 funciona igual, sin música.
+
+### Parchís (juego de mesa)
+A cuatro colores contra tres rivales (tú eres el amarillo). Tira el dado (Ⓐ o tocándolo) y elige
+ficha con su botón o con la cruceta y Ⓐ. Con un 5 sacas ficha de casa (es obligatorio si
+puedes); con un 6 vuelves a tirar, y si no te queda ninguna en casa vale 7; al tercer 6 seguido
+la última ficha movida vuelve a casa. Dos fichas del mismo color forman barrera. Si caes en una
+ficha de otro color fuera de los seguros (las casillas con círculo) te la comes y cuentas 20;
+al meter una en la meta cuentas 10. Gana quien mete antes las cuatro.
+
+### Toma 6 (juego de mesa)
+104 cartas con cabezas de buey (casi todas 1; las acabadas en 5, 2; las de 10, 3; las de números
+repetidos, 5; y el 55, 7). Todos eligen carta a la vez y se colocan de la más baja a la más alta,
+cada una en la fila cuya última carta es la más alta de las menores. Quien pone la sexta de una
+fila se la lleva, y si tu carta es más baja que todas, eliges qué fila te llevas. Cuando alguien
+llega a 66 cabezas, gana quien menos tiene.
+
+![Toma 6](docs/toma6.png)
+
+### Hundir la flota y tres en raya (juegos de mesa)
+- **Hundir la flota**: tu flota (portaaviones, acorazado, dos cruceros y destructor) se coloca
+  sola; Ⓧ la recoloca. Dispara tocando el mar enemigo (o cruceta y Ⓐ): agua, tocado o hundido.
+  Si tocas, repites. La CPU va a por tus barcos con cabeza.
+- **Tres en raya**: tú las X. En difícil la CPU no pierde nunca.
+
+### Carta blanca (baraja francesa)
+El solitario FreeCell: 8 columnas boca arriba, 4 casillas libres y 4 montones del as al rey.
+Toca una carta y luego dónde la quieres poner (tocar dos veces la misma la sube al montón o
+la manda a una casilla libre). Las escaleras se mueven de golpe si caben. Ⓨ deshace y Ⓧ reparte
+otra. Las partidas van numeradas como en el FreeCell de Windows.
 
 ### Bingo (juego de mesa)
 Bingo de 90 bolas con los cartones de siempre: 3 filas y 9 columnas, 15 números (5 por
