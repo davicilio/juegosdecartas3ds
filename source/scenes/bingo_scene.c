@@ -10,6 +10,7 @@
 #include "ui/audio.h"
 #include "ui/gfx.h"
 #include "ui/mii.h"
+#include "ui/wallet.h"
 #include "ui/widgets.h"
 
 #define CELL_W  34.0f
@@ -24,6 +25,7 @@ static const char* const SPEED_NAME[3] = { "lento", "normal", "rápido" };
 
 static Bingo s_game;
 static bool s_started;
+static bool s_on_table; /* hay fichas del monedero en la mesa */
 static int s_ncards = 2;
 static int s_page;
 static int s_speed = 1;
@@ -87,6 +89,8 @@ static void bi_enter(void)
 {
 	if (!s_started) {
 		bi_init(&s_game, (uint32_t)time(NULL) ^ 0xB160);
+		s_game.chips[0] = wallet_take(BI_START);
+		s_on_table = true;
 		s_started = true;
 		message("¿Cuántos cartones quieres?");
 	}
@@ -98,12 +102,34 @@ static void bi_enter(void)
 	}
 }
 
-static void start(void)
+/* Devuelve al monedero las fichas de la mesa. Si la partida no ha acabado
+ * se anula y se devuelven también los cartones, salvo que ya hayas cobrado
+ * la línea. */
+static void cash_out(void)
 {
+	if (!s_on_table)
+		return;
+	int n = s_game.chips[0];
+	if (s_game.phase == BI_PLAYING && s_game.line_winner != 0)
+		n += s_game.card_n[0] * BI_PRICE;
+	wallet_give(n);
+	s_game.chips[0] = 0;
+	s_on_table = false;
+}
+
+/* Devuelve false si no hay fichas ni en la mesa ni en el monedero */
+static bool start(void)
+{
+	/* Si en la mesa no llega, se cogen más del monedero */
+	int cost = s_ncards * BI_PRICE;
+	if (s_game.chips[0] < cost)
+		s_game.chips[0] += wallet_take(cost - s_game.chips[0]);
+	if (s_game.chips[0] < BI_PRICE)
+		return false;
 	if (!bi_start(&s_game, s_ncards)) {
 		audio_play(SFX_ERROR);
 		message("No tienes fichas para tantos cartones");
-		return;
+		return true;
 	}
 	s_page = 0;
 	s_ball_timer = 0.0f;
@@ -116,6 +142,7 @@ static void start(void)
 	audio_play(SFX_CONFIRM);
 	audio_say("empieza");
 	message("¡Empieza el bingo! Tacha los números que salgan");
+	return true;
 }
 
 /* Para cantar, la línea o el cartón tienen que estar tachados */
@@ -227,8 +254,8 @@ static SceneId bi_update(const Input* in, float dt)
 		button_set(&s_btn_go, 60, 200, 200, 30, go, C2D_Color32(40, 140, 60, 255), KEY_A);
 		s_end_time += dt;
 		s_btn_go.enabled = s_game.phase == BI_SETUP || s_end_time > 1.5f;
-		if (button_update(&s_btn_go, in))
-			start();
+		if (button_update(&s_btn_go, in) && !start())
+			return SCENE_FICHAS;
 	} else {
 		button_set(&s_btn_line, 8, 206, 120, 28, GLYPH_X " ¡Línea!", C2D_Color32(60, 90, 160, 255), KEY_X);
 		button_set(&s_btn_bingo, 136, 206, 120, 28, GLYPH_Y " ¡Bingo!", C2D_Color32(200, 40, 45, 255), KEY_Y);
@@ -471,12 +498,12 @@ static void bi_draw_bottom(void)
 		gfx_text(s_game.phase == BI_OVER ? "¿Otra partida? Elige cartones" : "Elige cuántos cartones juegas", BOTTOM_W / 2,
 			40, 0, 0.55f, COLOR_GOLD, C2D_AlignCenter);
 		gfx_textf(BOTTOM_W / 2, 66, 0, 0.47f, COLOR_CREAM, C2D_AlignCenter,
-			"Cada cartón cuesta %d fichas. Tienes %d.", BI_PRICE, s_game.chips[0]);
+			"Cada cartón cuesta %d fichas. Tienes %d.", BI_PRICE, s_game.chips[0] + wallet_chips());
 		gfx_text("Línea: 30 % del bote · Bingo: el resto", BOTTOM_W / 2, 88, 0, 0.45f, C2D_Color32(200, 230, 200, 255),
 			C2D_AlignCenter);
 		for (int i = 0; i < BI_MAX_CARDS; i++) {
 			s_btn_n[i].color = i + 1 == s_ncards ? C2D_Color32(220, 150, 30, 255) : C2D_Color32(60, 90, 160, 255);
-			button_draw(&s_btn_n[i], (i + 1) * BI_PRICE <= s_game.chips[0]);
+			button_draw(&s_btn_n[i], (i + 1) * BI_PRICE <= s_game.chips[0] + wallet_chips());
 		}
 		gfx_textf(BOTTOM_W / 2, 172, 0, 0.42f, COLOR_CREAM, C2D_AlignCenter, "Velocidad: %s (cruceta arriba/abajo)",
 			SPEED_NAME[s_speed]);
@@ -499,4 +526,11 @@ static void bi_draw_bottom(void)
 	}
 }
 
-const Scene scene_bingo = { bi_enter, bi_update, bi_draw_top, bi_draw_bottom };
+/* Salir a medias desde la pausa: la próxima vez se empieza de cero */
+static void scene_leave(void)
+{
+	cash_out();
+	s_started = false;
+}
+
+const Scene scene_bingo = { bi_enter, bi_update, bi_draw_top, bi_draw_bottom, scene_leave };

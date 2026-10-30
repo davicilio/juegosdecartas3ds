@@ -561,4 +561,10 @@ static void ch_scene_draw_bottom(void)
 		button_draw(&s_btn_b, s_btn_b.enabled && s_game.phase == CH_PHASE_DISCARD);
 }
 
-const Scene scene_chinchon = { ch_scene_enter, ch_scene_update, ch_scene_draw_top, ch_scene_draw_bottom };
+/* Salir a medias desde la pausa: la próxima vez se empieza de cero */
+static void scene_leave(void)
+{
+	s_started = false;
+}
+
+const Scene scene_chinchon = { ch_scene_enter, ch_scene_update, ch_scene_draw_top, ch_scene_draw_bottom, scene_leave };

@@ -9,6 +9,7 @@ void profile_init(PlayerProfile* p)
 	p->magic = PROFILE_MAGIC;
 	p->version = PROFILE_VERSION;
 	p->online_miis = 1;
+	p->chips = PROFILE_START_CHIPS;
 	avatar_default(&p->avatar);
 }
 
@@ -53,6 +54,19 @@ typedef struct {
 	uint32_t played[PROFILE_V3_SLOTS];
 	uint32_t won[PROFILE_V3_SLOTS];
 } PlayerProfileV3;
+
+/* Versión 4: sin monedero */
+typedef struct {
+	uint32_t magic;
+	uint16_t version;
+	uint8_t created;
+	uint8_t from_console;
+	uint8_t online_miis;
+	uint8_t reserved[3];
+	Avatar avatar;
+	uint32_t played[PROFILE_GAME_SLOTS];
+	uint32_t won[PROFILE_GAME_SLOTS];
+} PlayerProfileV4;
 
 static bool load_v1(PlayerProfile* p, const uint8_t* buf, size_t n)
 {
@@ -117,6 +131,25 @@ static bool load_v3(PlayerProfile* p, const uint8_t* buf, size_t n)
 	return true;
 }
 
+static bool load_v4(PlayerProfile* p, const uint8_t* buf, size_t n)
+{
+	PlayerProfileV4 old;
+	if (n != sizeof old)
+		return false;
+	memcpy(&old, buf, sizeof old);
+	if (old.magic != PROFILE_MAGIC || old.version != 4)
+		return false;
+	profile_init(p);
+	p->created = old.created;
+	p->from_console = old.from_console;
+	p->online_miis = old.online_miis;
+	p->avatar = old.avatar;
+	avatar_sanitize(&p->avatar);
+	memcpy(p->played, old.played, sizeof old.played);
+	memcpy(p->won, old.won, sizeof old.won);
+	return true;
+}
+
 bool profile_load(PlayerProfile* p, const char* path)
 {
 	PlayerProfile tmp;
@@ -126,7 +159,7 @@ bool profile_load(PlayerProfile* p, const char* path)
 		return false;
 	size_t n = fread(buf, 1, sizeof buf, f);
 	fclose(f);
-	if (load_v1(p, buf, n) || load_v2(p, buf, n) || load_v3(p, buf, n))
+	if (load_v1(p, buf, n) || load_v2(p, buf, n) || load_v3(p, buf, n) || load_v4(p, buf, n))
 		return true;
 	if (n != sizeof tmp)
 		return false;
@@ -134,6 +167,8 @@ bool profile_load(PlayerProfile* p, const char* path)
 	if (tmp.magic != PROFILE_MAGIC || tmp.version != PROFILE_VERSION)
 		return false;
 	avatar_sanitize(&tmp.avatar);
+	if (tmp.chips < 0)
+		tmp.chips = 0;
 	*p = tmp;
 	return true;
 }
@@ -145,6 +180,23 @@ bool profile_save(const PlayerProfile* p, const char* path)
 		return false;
 	bool ok = fwrite(p, 1, sizeof *p, f) == sizeof *p;
 	return fclose(f) == 0 && ok;
+}
+
+int profile_take_chips(PlayerProfile* p, int want)
+{
+	int n = want < p->chips ? want : p->chips;
+	if (n < 0)
+		n = 0;
+	p->chips -= n;
+	return n;
+}
+
+void profile_give_chips(PlayerProfile* p, int n)
+{
+	if (n <= 0)
+		return;
+	/* Tope para que no se desborde */
+	p->chips = p->chips > 99999999 - n ? 99999999 : p->chips + n;
 }
 
 void profile_record(PlayerProfile* p, GameId game, bool won)

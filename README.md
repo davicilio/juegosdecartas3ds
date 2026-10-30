@@ -75,6 +75,23 @@ se usa en todos los juegos; **Por defecto** recupera el dorso granate de siempre
 El juego compone el dorso en una textura con las capas que genera
 `tools/gen_backs.py`.
 
+## Fichas y monedas de juego
+
+Todos los juegos con apuestas (siete y media, cinquillo, julepe, póker, Omaha, póker de descarte,
+blackjack, videopóker y bingo) usan **las mismas fichas**, que se guardan en tu perfil. Empiezas
+con 2000. Al sentarte a una mesa coges fichas del monedero (100 en la siete y media, 1000 en el
+póker...) y al acabar la partida vuelven las que te queden, con lo que hayas ganado.
+
+Si te quedas sin fichas, en **Configuración → Fichas** las cambias por las **monedas de juego**
+de la consola, las que se ganan andando con la 3DS en el bolsillo: cada moneda vale 100 fichas.
+
+## Pausa
+
+En cualquier juego, el botón **Menú** (o START) pausa la partida. **Reanudar** sigue donde
+estabas; **Salir** da la partida por acabada, sin guardarla, y devuelve al monedero las fichas
+que tenías en la mesa (también las apostadas en una mano sin terminar, que se anula). La
+próxima vez se empieza una partida nueva.
+
 ## Juegos
 
 El menú tiene páginas (se cambian con L/R o tocando las pestañas): **Baraja española**, **Baraja francesa** y **De mesa**. Cada una tiene sus juegos y sus **Próximamente** (los que todavía no se
@@ -136,7 +153,7 @@ pueden jugar; la lista se desplaza con la cruceta) y, en pequeño, **Configuraci
 Te enfrentas a la banca. Las cartas del 1 al 7 valen su número y las figuras
 (sota, caballo y rey) medio punto. Pide cartas hasta acercarte a 7½ sin pasarte.
 Los empates son para la banca y la **siete y media real** (un 7 y una figura con
-solo dos cartas) cobra el doble. Empiezas con 100 fichas y apuestas entre 5 y 50
+solo dos cartas) cobra el doble. Te sientas con 100 fichas y apuestas entre 5 y 50
 en cada mano.
 
 La banca no hace trampas: tu primera carta está boca abajo y solo ve las demás.

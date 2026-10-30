@@ -10,6 +10,7 @@
 #include "ui/gfx.h"
 #include "ui/table.h"
 #include "ui/widgets.h"
+#include "ui/wallet.h"
 
 static const float TRICK_X[JU_PLAYERS] = { 200, 150, 200, 250 };
 static const float TRICK_Y[JU_PLAYERS] = { 146, 112, 80, 112 };
@@ -19,6 +20,7 @@ static const float TRICK_Y[JU_PLAYERS] = { 146, 112, 80, 112 };
 static Julepe s_game;
 static Table s_table;
 static bool s_started;
+static bool s_on_table; /* hay fichas del monedero en la mesa */
 static bool s_sel[JU_HAND];
 static int s_cursor;
 static float s_cpu_timer, s_trick_timer, s_end_time;
@@ -41,11 +43,35 @@ static void start_hand(void)
 	table_message(&s_table, "Reparte %s. Pinta: %s. Plato: %d", who(s_game.dealer), trump, s_game.pot);
 }
 
+/* Te sientas con fichas del monedero (en vez de las JU_START de la partida) */
+static void buy_in(void)
+{
+	s_game.chips[0] += wallet_take(JU_START) - JU_START;
+	s_on_table = true;
+}
+
+/* Tus fichas vuelven al monedero (y si debes, se paga de él). Si la mano no
+ * ha acabado, se anula y recuperas también lo que has puesto en el plato. */
+static void cash_out(void)
+{
+	if (!s_on_table)
+		return;
+	int n = s_game.chips[0];
+	if (s_game.phase < JU_HAND_OVER && s_game.dealer == 0)
+		n += JU_ANTE;
+	if (n > 0)
+		wallet_give(n);
+	else
+		wallet_take(-n);
+	s_on_table = false;
+}
+
 static void ju_enter(void)
 {
 	if (!s_started) {
 		table_init(&s_table, CPU_RAMON, CPU_LOLA, CPU_PEPE);
 		ju_init(&s_game, (uint32_t)time(NULL) ^ 0x1E3E);
+		buy_in();
 		s_started = true;
 		start_hand();
 	}
@@ -174,15 +200,20 @@ static SceneId ju_update(const Input* in, float dt)
 	case JU_HAND_OVER:
 	case JU_GAME_OVER: {
 		bool over = s_game.phase == JU_GAME_OVER;
-		button_set(&s_btn_main, 12, y, 144, h, over ? GLYPH_A " Otra partida" : GLYPH_A " Siguiente mano",
+		bool broke = over && wallet_chips() == 0;
+		button_set(&s_btn_main, 12, y, 144, h,
+			broke ? GLYPH_A " Comprar fichas" : over ? GLYPH_A " Otra partida" : GLYPH_A " Siguiente mano",
 			C2D_Color32(40, 140, 60, 255), KEY_A);
 		button_set(&s_btn_alt, 164, y, 144, h, GLYPH_B " Menú", C2D_Color32(190, 60, 50, 255), KEY_B);
 		s_btn_main.enabled = s_btn_alt.enabled = s_end_time > 0.6f;
 		s_end_time += dt;
 		if (button_update(&s_btn_main, in)) {
-			if (over)
+			if (broke)
+				return SCENE_FICHAS;
+			if (over) {
 				ju_new_game(&s_game);
-			else
+				buy_in();
+			} else
 				ju_new_hand(&s_game);
 			start_hand();
 		} else if (button_update(&s_btn_alt, in)) {
@@ -226,6 +257,7 @@ static SceneId ju_update(const Input* in, float dt)
 			if (s_game.phase == JU_GAME_OVER) {
 				bool won = ju_winner(&s_game) == 0;
 				profile_record_game(GAME_JULEPE, won);
+				cash_out(); /* acabada: tus fichas, al monedero */
 				audio_play(won ? SFX_WIN : SFX_LOSE);
 			}
 		}
@@ -318,4 +350,11 @@ static void ju_draw_bottom(void)
 		button_draw(&s_btn_alt, s_btn_alt.enabled);
 }
 
-const Scene scene_julepe = { ju_enter, ju_update, ju_draw_top, ju_draw_bottom };
+/* Salir a medias desde la pausa: la próxima vez se empieza de cero */
+static void scene_leave(void)
+{
+	cash_out();
+	s_started = false;
+}
+
+const Scene scene_julepe = { ju_enter, ju_update, ju_draw_top, ju_draw_bottom, scene_leave };

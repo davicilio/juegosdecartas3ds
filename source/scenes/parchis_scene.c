@@ -399,4 +399,10 @@ static void pa_draw_bottom(void)
 	gfx_text("Seguros: casillas con círculo", 230, 216, 0, 0.4f, C2D_Color32(200, 230, 200, 255), C2D_AlignCenter);
 }
 
-const Scene scene_parchis = { pa_enter, pa_update, pa_draw_top, pa_draw_bottom };
+/* Salir a medias desde la pausa: la próxima vez se empieza de cero */
+static void scene_leave(void)
+{
+	s_started = false;
+}
+
+const Scene scene_parchis = { pa_enter, pa_update, pa_draw_top, pa_draw_bottom, scene_leave };

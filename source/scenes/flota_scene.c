@@ -243,4 +243,10 @@ static void hf_draw_bottom(void)
 		gfx_text("Dispara la CPU...", BOTTOM_W / 2, 220, 0, 0.45f, C2D_Color32(200, 230, 200, 255), C2D_AlignCenter);
 }
 
-const Scene scene_flota = { hf_enter, hf_update, hf_draw_top, hf_draw_bottom };
+/* Salir a medias desde la pausa: la próxima vez se empieza de cero */
+static void scene_leave(void)
+{
+	s_started = false;
+}
+
+const Scene scene_flota = { hf_enter, hf_update, hf_draw_top, hf_draw_bottom, scene_leave };

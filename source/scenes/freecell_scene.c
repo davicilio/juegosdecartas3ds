@@ -247,4 +247,10 @@ static void fc_draw_bottom(void)
 	button_draw(&s_btn_menu, true);
 }
 
-const Scene scene_freecell = { fc_enter, fc_update, fc_draw_top, fc_draw_bottom };
+/* Salir a medias desde la pausa: la próxima vez se empieza de cero */
+static void scene_leave(void)
+{
+	s_started = false;
+}
+
+const Scene scene_freecell = { fc_enter, fc_update, fc_draw_top, fc_draw_bottom, scene_leave };

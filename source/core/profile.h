@@ -68,7 +68,9 @@ typedef enum {
 _Static_assert(GAME_COUNT <= PROFILE_GAME_SLOTS, "faltan huecos de estadísticas en el perfil");
 
 #define PROFILE_MAGIC   0x4D494931u /* "MII1" */
-#define PROFILE_VERSION 4
+#define PROFILE_VERSION 5
+/* Fichas con las que empieza un perfil nuevo (o uno de antes de la versión 5) */
+#define PROFILE_START_CHIPS 2000
 
 typedef struct {
 	uint32_t magic;
@@ -80,12 +82,19 @@ typedef struct {
 	Avatar avatar;
 	uint32_t played[PROFILE_GAME_SLOTS];
 	uint32_t won[PROFILE_GAME_SLOTS];
+	/* Monedero: las fichas del jugador, comunes a todos los juegos con apuestas */
+	int32_t chips;
+	uint32_t reserved2[3];
 } PlayerProfile;
 
 void profile_init(PlayerProfile* p);
 bool profile_load(PlayerProfile* p, const char* path);
 bool profile_save(const PlayerProfile* p, const char* path);
 void profile_record(PlayerProfile* p, GameId game, bool won);
+/* Monedero. profile_take_chips saca hasta want fichas (las que haya) y
+ * devuelve cuántas ha sacado. */
+int profile_take_chips(PlayerProfile* p, int want);
+void profile_give_chips(PlayerProfile* p, int n);
 const char* game_name(GameId game);
 /* "partidas" o "manos" según el juego */
 const char* game_unit(GameId game);

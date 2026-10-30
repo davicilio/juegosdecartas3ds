@@ -463,4 +463,10 @@ static void rk_scene_draw_bottom(void)
 	}
 }
 
-const Scene scene_rummikub = { rk_scene_enter, rk_scene_update, rk_scene_draw_top, rk_scene_draw_bottom };
+/* Salir a medias desde la pausa: la próxima vez se empieza de cero */
+static void scene_leave(void)
+{
+	s_started = false;
+}
+
+const Scene scene_rummikub = { rk_scene_enter, rk_scene_update, rk_scene_draw_top, rk_scene_draw_bottom, scene_leave };

@@ -730,7 +730,13 @@ static void gn_scene_draw_bottom(void)
 	button_draw(&s_btn_swap, s_btn_swap.enabled && (playing || bidding));
 }
 
-const Scene scene_guinote = { guinote_enter, gn_scene_update, gn_scene_draw_top, gn_scene_draw_bottom };
-const Scene scene_tute = { tute_enter, gn_scene_update, gn_scene_draw_top, gn_scene_draw_bottom };
-const Scene scene_tute_cabron = { cabron_enter, gn_scene_update, gn_scene_draw_top, gn_scene_draw_bottom };
-const Scene scene_tute_subastado = { subastado_enter, gn_scene_update, gn_scene_draw_top, gn_scene_draw_bottom };
+/* Salir a medias desde la pausa: la próxima vez se empieza de cero */
+static void scene_leave(void)
+{
+	s_started[s_variant] = false;
+}
+
+const Scene scene_guinote = { guinote_enter, gn_scene_update, gn_scene_draw_top, gn_scene_draw_bottom, scene_leave };
+const Scene scene_tute = { tute_enter, gn_scene_update, gn_scene_draw_top, gn_scene_draw_bottom, scene_leave };
+const Scene scene_tute_cabron = { cabron_enter, gn_scene_update, gn_scene_draw_top, gn_scene_draw_bottom, scene_leave };
+const Scene scene_tute_subastado = { subastado_enter, gn_scene_update, gn_scene_draw_top, gn_scene_draw_bottom, scene_leave };

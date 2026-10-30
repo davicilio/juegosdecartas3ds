@@ -173,4 +173,10 @@ static void tx_draw_bottom(void)
 		button_draw(&s_btn_again, s_end_time > 0.6f);
 }
 
-const Scene scene_tresenraya = { tx_enter, tx_update, tx_draw_top, tx_draw_bottom };
+/* Salir a medias desde la pausa: la próxima vez se empieza de cero */
+static void scene_leave(void)
+{
+	s_started = false;
+}
+
+const Scene scene_tresenraya = { tx_enter, tx_update, tx_draw_top, tx_draw_bottom, scene_leave };

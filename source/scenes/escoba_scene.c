@@ -665,4 +665,10 @@ static void es_scene_draw_bottom(void)
 	}
 }
 
-const Scene scene_escoba = { es_scene_enter, es_scene_update, es_scene_draw_top, es_scene_draw_bottom };
+/* Salir a medias desde la pausa: la próxima vez se empieza de cero */
+static void scene_leave(void)
+{
+	s_started = false;
+}
+
+const Scene scene_escoba = { es_scene_enter, es_scene_update, es_scene_draw_top, es_scene_draw_bottom, scene_leave };

@@ -43,6 +43,7 @@ typedef struct {
 	int low[NUM_SUITS];
 	int high[NUM_SUITS];
 	int chips[CQ_PLAYERS];
+	int paid[CQ_PLAYERS]; /* puesto en el plato esta ronda */
 	int pot;
 	int current;      /* jugador al que le toca */
 	int round_winner; /* -1 mientras se juega */

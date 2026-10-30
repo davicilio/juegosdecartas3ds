@@ -1069,6 +1069,44 @@ static void test_profile_v3(void)
 	remove(path);
 }
 
+static void test_profile_v4(void)
+{
+	/* Un perfil de la versión 4 conserva todo y recibe el monedero inicial */
+	struct {
+		uint32_t magic;
+		uint16_t version;
+		uint8_t created, from_console, online_miis, reserved[3];
+		Avatar avatar;
+		uint32_t played[PROFILE_GAME_SLOTS], won[PROFILE_GAME_SLOTS];
+	} old;
+	memset(&old, 0, sizeof old);
+	old.magic = PROFILE_MAGIC;
+	old.version = 4;
+	old.created = 1;
+	avatar_from_mii(&old.avatar, &cpu_avatar(CPU_PEPE)->mii, "Cuatro");
+	old.played[GAME_MAHJONG] = 7;
+	old.won[GAME_VIDEOPOKER] = 2;
+	const char* path = "test_perfil_v4.dat";
+	FILE* f = fopen(path, "wb");
+	fwrite(&old, 1, sizeof old, f);
+	fclose(f);
+	PlayerProfile p;
+	CHECK(profile_load(&p, path));
+	CHECK(p.version == PROFILE_VERSION && p.created == 1 && strcmp(p.avatar.name, "Cuatro") == 0);
+	CHECK(p.played[GAME_MAHJONG] == 7 && p.won[GAME_VIDEOPOKER] == 2);
+	CHECK(p.chips == PROFILE_START_CHIPS);
+	/* El monedero se guarda */
+	CHECK(profile_take_chips(&p, 500) == 500 && p.chips == PROFILE_START_CHIPS - 500);
+	CHECK(profile_take_chips(&p, 99999) == PROFILE_START_CHIPS - 500 && p.chips == 0);
+	CHECK(profile_take_chips(&p, 10) == 0);
+	profile_give_chips(&p, 321);
+	profile_give_chips(&p, -5);
+	CHECK(profile_save(&p, path));
+	PlayerProfile q;
+	CHECK(profile_load(&q, path) && q.chips == 321);
+	remove(path);
+}
+
 static void test_profile_v2(void)
 {
 	/* Un perfil de la versión 2 (6 juegos) conserva su Mii y sus estadísticas */
@@ -3122,6 +3160,42 @@ static void test_mahjong(void)
 	printf("  mahjong: %d de 100 resueltas cogiendo la primera pareja\n", solved);
 }
 
+static void test_chip_stacks(void)
+{
+	/* Póker: te sientas con las fichas que traes del monedero */
+	Poker g;
+	pk_init_stack(&g, PK_OMAHA, 77, 7);
+	CHECK(g.chips[0] + g.invested[0] == 7);
+	CHECK(g.chips[1] + g.invested[1] == PK_START);
+	int total = 0;
+	for (int p = 0; p < PK_PLAYERS; p++)
+		total += g.chips[p] + g.invested[p];
+	CHECK(total == 7 + 3 * PK_START);
+	/* Cinquillo: lo puesto en el plato en cada ronda */
+	Cinquillo c;
+	cq_init(&c, 5);
+	for (int p = 0; p < CQ_PLAYERS; p++)
+		CHECK(c.paid[p] == CQ_ANTE && c.chips[p] == CQ_START_CHIPS - CQ_ANTE);
+	int pot = 0;
+	for (int p = 0; p < CQ_PLAYERS; p++)
+		pot += c.paid[p];
+	CHECK(pot == c.pot);
+	for (int guard = 0; guard < 500 && c.phase == CQ_PHASE_PLAYING; guard++) {
+		int i = cq_ai_choose(&c, c.current);
+		if (i >= 0)
+			cq_play(&c, i);
+		else
+			cq_pass(&c);
+		if (c.phase == CQ_PHASE_PLAYING) {
+			pot = 0;
+			for (int p = 0; p < CQ_PLAYERS; p++)
+				pot += c.paid[p];
+			CHECK(pot == c.pot);
+		}
+	}
+	CHECK(c.phase != CQ_PHASE_PLAYING);
+}
+
 static void test_poker_variants(void)
 {
 	Poker g;
@@ -3829,6 +3903,7 @@ int main(void)
 	test_as23();
 	test_videopoker();
 	test_poker_variants();
+	test_chip_stacks();
 	test_mahjong();
 	test_toma6();
 	test_freecell();
@@ -3864,6 +3939,7 @@ int main(void)
 	test_pyr_simulation();
 	test_profile();
 	test_profile_v3();
+	test_profile_v4();
 	test_mii_parts();
 	test_cardback();
 	test_profile_v1();

@@ -9,6 +9,7 @@
 #include "ui/audio.h"
 #include "ui/gfx.h"
 #include "ui/mii.h"
+#include "ui/wallet.h"
 #include "ui/widgets.h"
 
 #define TABLE_SCALE 0.46f
@@ -35,6 +36,7 @@ static const char* seat_name(int p)
 static Cinquillo s_game;
 static Mood s_mood[CQ_PLAYERS];
 static bool s_started;
+static bool s_on_table; /* hay fichas del monedero en la mesa */
 
 static VisCard s_table[NUM_SUITS][RANKS_PER_SUIT];
 static VisCard s_hand[DECK_SIZE]; /* indexado por card_index */
@@ -112,10 +114,32 @@ static void reset_visuals(void)
 	select_first_legal();
 }
 
+/* Nueva partida: te sientas con fichas del monedero (en vez de las
+ * CQ_START_CHIPS de la partida; la entrada de la primera ronda ya está puesta) */
+static void new_game(void)
+{
+	cq_init(&s_game, (uint32_t)time(NULL) ^ 0xC1C0);
+	int mine = wallet_take(CQ_START_CHIPS);
+	int ante = mine < s_game.paid[0] ? mine : s_game.paid[0];
+	s_game.pot += ante - s_game.paid[0];
+	s_game.paid[0] = ante;
+	s_game.chips[0] = mine - ante;
+	s_on_table = true;
+}
+
+/* Tus fichas vuelven al monedero. Si la ronda no ha acabado, se anula y
+ * recuperas lo que has puesto en el plato. */
+static void cash_out(void)
+{
+	if (s_on_table)
+		wallet_give(s_game.chips[0] + (s_game.phase == CQ_PHASE_PLAYING ? s_game.paid[0] : 0));
+	s_on_table = false;
+}
+
 static void cq_scene_enter(void)
 {
 	if (!s_started || s_game.phase == CQ_PHASE_GAME_OVER) {
-		cq_init(&s_game, (uint32_t)time(NULL) ^ 0xC1C0);
+		new_game();
 		s_started = true;
 		reset_visuals();
 	}
@@ -272,11 +296,14 @@ static SceneId cq_scene_update(const Input* in, float dt)
 			cq_next_round(&s_game);
 		break;
 	case CQ_PHASE_GAME_OVER:
-		button_set(&s_btn_play, 12, y, 144, h, GLYPH_A " Nueva partida", C2D_Color32(40, 140, 60, 255), KEY_A);
+		button_set(&s_btn_play, 12, y, 144, h, wallet_chips() > 0 ? GLYPH_A " Nueva partida" : GLYPH_A " Comprar fichas",
+			C2D_Color32(40, 140, 60, 255), KEY_A);
 		button_set(&s_btn_pass, 164, y, 144, h, GLYPH_B " Menú", C2D_Color32(190, 60, 50, 255), KEY_B);
 		s_btn_play.enabled = s_btn_pass.enabled = !busy && s_result_time > 0.6f;
 		if (button_update(&s_btn_play, in)) {
-			cq_init(&s_game, (uint32_t)time(NULL));
+			if (wallet_chips() == 0)
+				return SCENE_FICHAS;
+			new_game();
 			clear_table();
 			s_seen_turns = 0;
 			s_seen_round = s_game.round;
@@ -314,8 +341,10 @@ static SceneId cq_scene_update(const Input* in, float dt)
 			audio_play(winner == 0 ? SFX_WIN : SFX_LOSE);
 			for (int p = 0; p < CQ_PLAYERS; p++)
 				mood_set(&s_mood[p], p == winner ? EXPR_HAPPY : EXPR_SAD, 3.0f);
-			if (over)
+			if (over) {
 				profile_record_game(GAME_CINQUILLO, winner == 0);
+				cash_out(); /* acabada: tus fichas, al monedero */
+			}
 		}
 		s_result_time += dt;
 	}
@@ -482,4 +511,11 @@ static void cq_scene_draw_bottom(void)
 		button_draw(&s_btn_pass, s_btn_pass.enabled && my_turn);
 }
 
-const Scene scene_cinquillo = { cq_scene_enter, cq_scene_update, cq_scene_draw_top, cq_scene_draw_bottom };
+/* Salir a medias desde la pausa: la próxima vez se empieza de cero */
+static void scene_leave(void)
+{
+	cash_out();
+	s_started = false;
+}
+
+const Scene scene_cinquillo = { cq_scene_enter, cq_scene_update, cq_scene_draw_top, cq_scene_draw_bottom, scene_leave };

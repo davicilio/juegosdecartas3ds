@@ -5,6 +5,7 @@
 #include "ui/audio.h"
 #include "ui/gfx.h"
 #include "ui/mii.h"
+#include "ui/wallet.h"
 #include "ui/widgets.h"
 
 typedef struct {
@@ -224,6 +225,10 @@ static const MenuEntry entries[] = {
 	  "Diseña la parte de atrás de las cartas: color, dibujo, marco, emblema y tu propio texto "
 	  "(por ejemplo, el nombre de tu banco o de tu peña). Se usa en todos los juegos.",
 	  SCENE_CARDBACK, SUIT_OROS, { C(OROS, 1), C(OROS, 1), C(OROS, 1) }, { -1, -1, -1 } },
+	{ "Fichas",
+	  "Tus fichas valen para todos los juegos con apuestas. Si te quedas sin ellas, cámbialas por "
+	  "las monedas de juego de la consola, las que se consiguen andando con la 3DS en el bolsillo.",
+	  SCENE_FICHAS, SUIT_OROS, { C(OROS, 1), C(OROS, 1), C(OROS, 1) }, { -1, -1, -1 } },
 };
 
 #define NUM_ENTRIES ((int)(sizeof entries / sizeof entries[0]))
@@ -237,6 +242,8 @@ enum { SEC_PLAY, SEC_SOON, SEC_LIST, SEC_CONFIG = SEC_LIST, SEC_HIDDEN = -1 };
 static const char* const SECTION_TITLE[SEC_LIST] = { "Juegos", "Próximamente" };
 
 #define COL_X(c)    (8.0f + (c) * 156.0f)
+#define CONFIG_X(c) (8.0f + (c) * 103.0f) /* la configuración va en tres columnas */
+#define CONFIG_W    99.0f
 #define TAB_H       22.0f
 #define HEAD_H      15.0f
 #define GAME_W      148.0f
@@ -259,7 +266,7 @@ static int page_of(const MenuEntry* e)
 static int section_of(int i)
 {
 	const MenuEntry* e = &entries[i];
-	if (e->scene == SCENE_PROFILE || e->scene == SCENE_CARDBACK)
+	if (e->scene == SCENE_PROFILE || e->scene == SCENE_CARDBACK || e->scene == SCENE_FICHAS)
 		return SEC_CONFIG;
 	if (page_of(e) != s_page)
 		return SEC_HIDDEN;
@@ -270,7 +277,8 @@ static int section_of(int i)
  * columna y su fila para la cruceta; y de cada título. */
 static float s_item_y[NUM_ENTRIES];
 static int s_item_col[NUM_ENTRIES], s_item_row[NUM_ENTRIES];
-static int s_row_item[MAX_ROWS][2];
+static int s_row_item[MAX_ROWS][3];
+static int s_row_cols[MAX_ROWS];
 static int s_rows;
 static float s_head_y[SEC_LIST];
 static int s_section_count[SEC_LIST + 1];
@@ -290,15 +298,18 @@ static void layout(void)
 			s_head_y[sec] = y;
 			y += HEAD_H;
 		}
+		int cols = sec == SEC_CONFIG ? 3 : 2;
 		for (int i = 0; i < NUM_ENTRIES; i++) {
 			if (section_of(i) != sec)
 				continue;
-			if (k % 2 == 0) {
-				s_row_item[s_rows][0] = s_row_item[s_rows][1] = i;
+			if (k % cols == 0) {
+				s_row_item[s_rows][0] = s_row_item[s_rows][1] = s_row_item[s_rows][2] = i;
+				s_row_cols[s_rows] = 1;
 				s_rows++;
 			}
-			s_row_item[s_rows - 1][k % 2] = i;
-			s_item_col[i] = k % 2;
+			s_row_item[s_rows - 1][k % cols] = i;
+			s_row_cols[s_rows - 1] = k % cols + 1;
+			s_item_col[i] = k % cols;
 			s_item_row[i] = s_rows - 1;
 			s_item_y[i] = sec == SEC_CONFIG ? CONFIG_Y : y + (k / 2) * GAME_STEP;
 			k++;
@@ -329,9 +340,9 @@ static bool is_config(int i)
 static void item_rect(int i, float* x, float* y, float* w, float* h)
 {
 	layout();
-	*x = COL_X(s_item_col[i]);
+	*x = is_config(i) ? CONFIG_X(s_item_col[i]) : COL_X(s_item_col[i]);
 	*y = s_item_y[i];
-	*w = GAME_W;
+	*w = is_config(i) ? CONFIG_W : GAME_W;
 	*h = is_config(i) ? CONFIG_H : GAME_H;
 }
 
@@ -400,6 +411,25 @@ static void menu_enter(void)
 	screen_rect(s_selected, &s_cursor_x, &s_cursor_y, &w, &h);
 }
 
+/* Juegos que se juegan con las fichas del monedero */
+static bool uses_chips(SceneId s)
+{
+	switch (s) {
+	case SCENE_SIETEYMEDIA:
+	case SCENE_CINQUILLO:
+	case SCENE_POKER:
+	case SCENE_OMAHA:
+	case SCENE_DRAWPOKER:
+	case SCENE_BLACKJACK:
+	case SCENE_VIDEOPOKER:
+	case SCENE_BINGO:
+	case SCENE_JULEPE:
+		return true;
+	default:
+		return false;
+	}
+}
+
 static SceneId launch(int i)
 {
 	if (entries[i].scene == SCENE_COUNT) {
@@ -409,6 +439,9 @@ static SceneId launch(int i)
 	}
 	audio_play(SFX_CONFIRM);
 	audio_music_stop(); /* la música es solo del menú */
+	/* Sin fichas no se puede jugar a los juegos con apuestas: a comprarlas */
+	if (uses_chips(entries[i].scene) && wallet_chips() == 0)
+		return SCENE_FICHAS;
 	return entries[i].scene;
 }
 
@@ -417,8 +450,11 @@ static int move(int i, int dx, int dy)
 {
 	layout();
 	int row = s_item_row[i], col = s_item_col[i];
-	col = (col + dx + 2) % 2;
+	int cols = s_row_cols[row];
+	col = (col + dx + cols) % cols;
 	row = (row + dy + s_rows) % s_rows;
+	if (col >= s_row_cols[row])
+		col = s_row_cols[row] - 1;
 	return s_row_item[row][col]; /* en una fila de un solo juego, ese */
 }
 
@@ -582,8 +618,11 @@ static void menu_draw_top(void)
 		gfx_ellipse(78, 214, 40, 8, DEPTH_TABLE, C2D_Color32(0, 0, 0, 90));
 		mii_draw_body(me, 78, 216, 118, DEPTH_CARDS + 1.0f, mood_expr(&s_mood));
 	}
+	/* En "Fichas", tu montón */
+	if (e->scene == SCENE_FICHAS)
+		gfx_chip_stack(wallet_chips(), 78, 170, DEPTH_CARDS);
 	/* Abanico de cartas del juego seleccionado */
-	for (int i = 0; i < 3 && e->scene != SCENE_PROFILE; i++) {
+	for (int i = 0; i < 3 && e->scene != SCENE_PROFILE && e->scene != SCENE_FICHAS; i++) {
 		float a = (i - 1) * 0.32f + sinf(t * 1.3f + i) * 0.04f;
 		float cx = 78 + (i - 1) * 26.0f;
 		float cy = 160 + fabsf((float)(i - 1)) * 8.0f + sinf(t * 2.0f + i * 0.7f) * 2.0f;
@@ -645,6 +684,8 @@ static void menu_draw_top(void)
 		draw_board_icon(e->scene, 176, 126, 1.0f, DEPTH_UI);
 	else if (e->scene == SCENE_RUMMIKUB)
 		gfx_board(BOARD_JOKER, 176, 128, 0.8f, 0.0f, DEPTH_UI, NULL);
+	else if (e->scene == SCENE_FICHAS)
+		gfx_sprite_ex(SPR_CHIP_BLACK, 176, 126, 0.8f, 0.8f, 0.0f, DEPTH_UI, NULL);
 	else
 		gfx_sprite(SPR_SUIT_FIRST + e->icon, 176, 126, 0.8f, DEPTH_UI);
 	gfx_text(e->scene == SCENE_PROFILE ? me->name : e->name, 192, 115, DEPTH_UI, 0.6f, COLOR_GOLD, C2D_AlignLeft);
@@ -656,6 +697,13 @@ static void menu_draw_top(void)
 		k++;
 	}
 	gfx_text_wrap(e->description, 166, 140, DEPTH_UI, 0.42f, COLOR_CREAM, 214);
+	/* En los juegos con apuestas, las fichas que tienes */
+	if (uses_chips(e->scene) || e->scene == SCENE_FICHAS) {
+		int chips = wallet_chips();
+		gfx_rrect(262, 84, 120, 20, 7, DEPTH_UI, chips > 0 ? C2D_Color32(40, 110, 50, 255) : C2D_Color32(150, 40, 40, 255));
+		gfx_textf(322, 86, DEPTH_UI, 0.45f, COLOR_WHITE, C2D_AlignCenter, chips > 0 ? "Fichas: %d" : "¡Sin fichas!",
+			chips);
+	}
 	if (e->scene == SCENE_COUNT) {
 		gfx_rrect(290, 84, 92, 20, 7, DEPTH_UI, C2D_Color32(120, 120, 120, 255));
 		gfx_text("Próximamente", 336, 86, DEPTH_UI, 0.45f, COLOR_WHITE, C2D_AlignCenter);
@@ -729,13 +777,17 @@ static void menu_draw_bottom(void)
 			draw_board_icon(e->scene, x + 13, y + h / 2, 0.8f, 0);
 		else if (e->scene == SCENE_RUMMIKUB)
 			gfx_board(BOARD_JOKER, x + 13, y + h / 2 + 2, 0.75f, 0.0f, 0, NULL);
+		else if (e->scene == SCENE_FICHAS)
+			gfx_sprite_ex(SPR_CHIP_BLACK, x + 13, y + h / 2, 0.55f, 0.55f, 0.0f, 0, NULL);
 		else
 			gfx_sprite(SPR_SUIT_FIRST + e->icon, x + 13, y + h / 2, icon, 0);
+		/* En la franja de configuración no cabe el nombre largo del dorso */
+		const char* label = small && e->scene == SCENE_CARDBACK ? "Dorso" : e->name;
 		float scale = small ? 0.45f : 0.52f;
-		float tw = gfx_text_width(e->name, scale);
+		float tw = gfx_text_width(label, scale);
 		if (tw > w - 30.0f)
 			scale = fmaxf(0.45f, scale * (w - 30.0f) / tw);
-		gfx_text(e->name, x + 26, y + (small ? 2 : 3), 0, scale,
+		gfx_text(label, x + 26, y + (small ? 2 : 3), 0, scale,
 			available ? C2D_Color32(90, 15, 20, 255) : C2D_Color32(110, 100, 95, 255), C2D_AlignLeft);
 	}
 	/* Pestañas de las páginas */

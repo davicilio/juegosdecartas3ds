@@ -8,6 +8,7 @@
 #include "ui/audio.h"
 #include "ui/gfx.h"
 #include "ui/mii.h"
+#include "ui/wallet.h"
 #include "ui/widgets.h"
 
 #define CARD_Y  96.0f
@@ -15,6 +16,7 @@
 
 static VideoPoker s_game;
 static bool s_started;
+static bool s_on_table; /* hay fichas del monedero en la máquina */
 static int s_cursor;
 static float s_flash;
 static bool s_advised;
@@ -30,10 +32,28 @@ static float card_x(int i)
 	return BOTTOM_W / 2.0f + (i - 2) * 60.0f;
 }
 
+/* Fichas del monedero a la máquina */
+static void buy_in(void)
+{
+	s_game.credits = wallet_take(VP_START);
+	s_on_table = true;
+}
+
+/* Devuelve al monedero los créditos, también la apuesta de una mano sin
+ * acabar (que se anula) */
+static void cash_out(void)
+{
+	if (s_on_table)
+		wallet_give(s_game.credits + (s_game.phase == VP_HOLD ? s_game.bet : 0));
+	s_game.credits = 0;
+	s_on_table = false;
+}
+
 static void vp_enter(void)
 {
 	if (!s_started) {
 		vp_init(&s_game, (uint32_t)time(NULL) ^ 0x7E0);
+		buy_in();
 		s_started = true;
 	}
 	button_set(&s_btn_menu, 258, 2, 54, 20, "Menú", C2D_Color32(120, 30, 35, 255), KEY_START);
@@ -99,7 +119,9 @@ static SceneId vp_update(const Input* in, float dt)
 			s_cursor = 0;
 		}
 		if (s_game.credits < 1 && (in->down & KEY_R)) {
-			s_game.credits = VP_START; /* la máquina presta otra vez */
+			if (wallet_chips() == 0)
+				return SCENE_FICHAS;
+			buy_in(); /* más fichas del monedero */
 			audio_play(SFX_CHIP);
 		}
 	}
@@ -161,10 +183,17 @@ static void vp_draw_bottom(void)
 			gfx_text("Sin premio", BOTTOM_W / 2, 28, 0, 0.5f, COLOR_CREAM, C2D_AlignCenter);
 	}
 	if (s_game.credits < 1 && !holding)
-		gfx_text("Sin créditos: R para empezar otra vez", BOTTOM_W / 2, 184, 0, 0.45f, COLOR_RED, C2D_AlignCenter);
+		gfx_text(wallet_chips() > 0 ? "Sin créditos: R para meter más fichas" : "Sin fichas: R para comprar más", BOTTOM_W / 2, 184, 0, 0.45f, COLOR_RED, C2D_AlignCenter);
 	button_draw(&s_btn_bet, s_btn_bet.enabled);
 	button_draw(&s_btn_max, s_btn_max.enabled);
 	button_draw(&s_btn_deal, s_btn_deal.enabled);
 }
 
-const Scene scene_videopoker = { vp_enter, vp_update, vp_draw_top, vp_draw_bottom };
+/* Salir a medias desde la pausa: la próxima vez se empieza de cero */
+static void scene_leave(void)
+{
+	cash_out();
+	s_started = false;
+}
+
+const Scene scene_videopoker = { vp_enter, vp_update, vp_draw_top, vp_draw_bottom, scene_leave };

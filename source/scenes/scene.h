@@ -56,6 +56,7 @@ typedef enum {
 	SCENE_PROFILE,
 	SCENE_RIVALS,
 	SCENE_CARDBACK,
+	SCENE_FICHAS,
 	SCENE_COUNT,
 	SCENE_QUIT
 } SceneId;
@@ -66,6 +67,9 @@ typedef struct {
 	SceneId (*update)(const Input* in, float dt);
 	void (*draw_top)(void);
 	void (*draw_bottom)(void);
+	/* Al salir a medias desde la pausa: la partida se da por acabada (sin
+	 * guardarla) y se devuelven al monedero las fichas que había en la mesa. */
+	void (*leave)(void);
 } Scene;
 
 extern const Scene scene_menu;
@@ -120,6 +124,7 @@ extern const Scene scene_piramide;
 extern const Scene scene_profile;
 extern const Scene scene_rivals;
 extern const Scene scene_cardback;
+extern const Scene scene_fichas;
 
 /* Carga el dorso de las cartas guardado en la SD. */
 void cardback_editor_init(void);

@@ -9,6 +9,7 @@
 #include "ui/gfx.h"
 #include "ui/input.h"
 #include "ui/mii.h"
+#include "ui/widgets.h"
 
 #define FADE_TIME 0.25f
 
@@ -117,9 +118,45 @@ static const Scene* scene_for(SceneId id)
 		return &scene_rivals;
 	case SCENE_CARDBACK:
 		return &scene_cardback;
+	case SCENE_FICHAS:
+		return &scene_fichas;
 	default:
 		return &scene_menu;
 	}
+}
+
+/* Las partidas se pausan al ir al menú; el resto de pantallas no. */
+static bool is_game(SceneId id)
+{
+	return id != SCENE_MENU && id != SCENE_PROFILE && id != SCENE_RIVALS && id != SCENE_CARDBACK &&
+		id != SCENE_FICHAS && id < SCENE_COUNT;
+}
+
+/* Pausa: la partida se queda quieta debajo hasta que se reanuda o se sale */
+static Button s_btn_resume, s_btn_quit;
+
+static void pause_start(void)
+{
+	button_set(&s_btn_resume, 40, 70, 240, 44, GLYPH_A " Reanudar", C2D_Color32(40, 140, 60, 255), KEY_A);
+	button_set(&s_btn_quit, 40, 134, 240, 44, GLYPH_X " Salir", C2D_Color32(190, 60, 50, 255), KEY_X);
+	audio_play(SFX_SELECT);
+}
+
+static void pause_draw_top(void)
+{
+	gfx_rect(0, 0, TOP_W, SCREEN_H, 0, C2D_Color32(0, 0, 0, 150));
+	gfx_panel(120, 90, 160, 60, 0, C2D_Color32(110, 20, 25, 235), COLOR_GOLD);
+	gfx_text("Pausa", TOP_W / 2, 104, 0, 0.9f, COLOR_GOLD, C2D_AlignCenter);
+}
+
+static void pause_draw_bottom(void)
+{
+	gfx_rect(0, 0, BOTTOM_W, SCREEN_H, 0, C2D_Color32(20, 4, 6, 225));
+	gfx_text("Partida en pausa", BOTTOM_W / 2, 24, 0, 0.6f, COLOR_GOLD, C2D_AlignCenter);
+	button_draw(&s_btn_resume, true);
+	button_draw(&s_btn_quit, false);
+	gfx_text_wrap("Si sales, la partida se da por acabada y vuelven a tu monedero las fichas que tenías en la mesa.",
+		24, 190, 0, 0.42f, C2D_Color32(230, 215, 190, 255), 272);
 }
 
 int main(void)
@@ -147,6 +184,7 @@ int main(void)
 	SceneId pending = current;
 	float fade = 1.0f;     /* 1 = negro */
 	bool fading_out = false;
+	bool paused = false;
 	scene_for(current)->enter();
 
 	Input in = { 0 };
@@ -171,11 +209,24 @@ int main(void)
 				Input none = { 0 };
 				scene->update(&none, 0.0f);
 			}
+		} else if (paused) {
+			if (button_update(&s_btn_resume, &in) || (in.down & (KEY_B | KEY_START))) {
+				paused = false;
+			} else if (button_update(&s_btn_quit, &in)) {
+				paused = false;
+				if (scene->leave)
+					scene->leave();
+				pending = SCENE_MENU;
+				fading_out = true;
+			}
 		} else {
 			if (fade > 0.0f)
 				fade -= dt / FADE_TIME;
 			SceneId next = scene->update(&in, dt);
-			if (next != current) {
+			if (next == SCENE_MENU && is_game(current)) {
+				paused = true;
+				pause_start();
+			} else if (next != current) {
 				pending = next;
 				fading_out = true;
 			}
@@ -186,13 +237,23 @@ int main(void)
 			if (!gfx_begin_top(eye))
 				continue;
 			scene->draw_top();
+			if (paused)
+				pause_draw_top();
 			gfx_fade(fade);
 		}
 		gfx_begin_bottom();
 		scene->draw_bottom();
+		if (paused)
+			pause_draw_bottom();
 		gfx_fade(fade);
 		gfx_frame_end();
 	}
+
+	/* Si se cierra la aplicación en mitad de una partida, las fichas que
+	 * había en la mesa vuelven al monedero */
+	const Scene* last = scene_for(current);
+	if (is_game(current) && last->leave)
+		last->leave();
 
 	audio_exit();
 	gfx_exit();

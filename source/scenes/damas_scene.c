@@ -261,4 +261,10 @@ static void da_draw_bottom(void)
 		gfx_text("¡Hay que comer!", 160, 2, 0, 0.42f, COLOR_GOLD, C2D_AlignCenter);
 }
 
-const Scene scene_damas = { da_enter, da_update, da_draw_top, da_draw_bottom };
+/* Salir a medias desde la pausa: la próxima vez se empieza de cero */
+static void scene_leave(void)
+{
+	s_started = false;
+}
+
+const Scene scene_damas = { da_enter, da_update, da_draw_top, da_draw_bottom, scene_leave };

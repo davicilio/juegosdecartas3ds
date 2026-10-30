@@ -8,6 +8,7 @@
 #include "ui/audio.h"
 #include "ui/gfx.h"
 #include "ui/mii.h"
+#include "ui/wallet.h"
 #include "ui/widgets.h"
 
 #define DEALER_Y 74.0f
@@ -15,6 +16,7 @@
 
 static Blackjack s_game;
 static bool s_started;
+static bool s_on_table; /* hay fichas del monedero en la mesa */
 static float s_dealer_timer, s_result_time;
 static BjPhase s_prev_phase;
 static Mood s_dealer_mood, s_my_mood;
@@ -26,10 +28,36 @@ static int fr_id(PkCard c)
 	return c.suit * 13 + c.rank - 2;
 }
 
+/* Fichas del monedero a la mesa */
+static void buy_in(void)
+{
+	s_game.chips = wallet_take(BJ_START);
+	bj_set_bet(&s_game, s_game.bet);
+	if (s_game.chips < BJ_MIN_BET)
+		s_game.phase = BJ_BROKE;
+	s_on_table = true;
+}
+
+/* Devuelve al monedero las fichas de la mesa, también las apostadas en una
+ * mano sin acabar (que se anula) */
+static void cash_out(void)
+{
+	if (!s_on_table)
+		return;
+	int n = s_game.chips;
+	if (s_game.phase == BJ_PLAYING || s_game.phase == BJ_DEALER)
+		for (int k = 0; k < s_game.hand_count; k++)
+			n += s_game.hands[k].bet;
+	wallet_give(n);
+	s_game.chips = 0;
+	s_on_table = false;
+}
+
 static void bj_enter(void)
 {
 	if (!s_started) {
 		bj_init(&s_game, (uint32_t)time(NULL) ^ 0xB1AC);
+		buy_in();
 		s_started = true;
 		snprintf(s_message, sizeof s_message, "Elige tu apuesta y reparte");
 	}
@@ -110,12 +138,19 @@ static SceneId bj_update(const Input* in, float dt)
 		}
 		break;
 	case BJ_BROKE:
-		button_set(&s_b1, 12, y, 144, h, GLYPH_A " Empezar de nuevo", C2D_Color32(40, 140, 60, 255), KEY_A);
+		/* Lo poco que quede (menos que la apuesta mínima) vuelve al monedero */
+		cash_out();
+		button_set(&s_b1, 12, y, 144, h,
+			wallet_chips() >= BJ_MIN_BET ? GLYPH_A " Empezar de nuevo" : GLYPH_A " Comprar fichas",
+			C2D_Color32(40, 140, 60, 255), KEY_A);
 		button_set(&s_b2, 164, y, 144, h, GLYPH_B " Menú", C2D_Color32(190, 60, 50, 255), KEY_B);
 		s_b1.enabled = s_b2.enabled = true;
 		if (button_update(&s_b1, in)) {
+			if (wallet_chips() < BJ_MIN_BET)
+				return SCENE_FICHAS;
 			bj_reset(&s_game);
-			snprintf(s_message, sizeof s_message, "Otras %d fichas. ¡Suerte!", BJ_START);
+			buy_in();
+			snprintf(s_message, sizeof s_message, "Otras %d fichas. ¡Suerte!", s_game.chips);
 		} else if (button_update(&s_b2, in)) {
 			return SCENE_MENU;
 		}
@@ -208,4 +243,11 @@ static void bj_draw_bottom(void)
 	}
 }
 
-const Scene scene_blackjack = { bj_enter, bj_update, bj_draw_top, bj_draw_bottom };
+/* Salir a medias desde la pausa: la próxima vez se empieza de cero */
+static void scene_leave(void)
+{
+	cash_out();
+	s_started = false;
+}
+
+const Scene scene_blackjack = { bj_enter, bj_update, bj_draw_top, bj_draw_bottom, scene_leave };

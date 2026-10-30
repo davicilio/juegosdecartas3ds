@@ -105,6 +105,8 @@ const char* pk_category_name(int category);
 
 void pk_init(Poker* g, uint32_t seed);
 void pk_init_variant(Poker* g, PkVariant variant, uint32_t seed);
+/* Igual, pero tú te sientas con my_chips fichas (las que traes del monedero) */
+void pk_init_stack(Poker* g, PkVariant variant, uint32_t seed, int my_chips);
 /* Mejor jugada del jugador con lo que hay ahora en la mesa */
 uint32_t pk_player_score(const Poker* g, int player);
 /* Descarte: el jugador actual cambia las cartas marcadas */

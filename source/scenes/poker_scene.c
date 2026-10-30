@@ -10,6 +10,7 @@
 #include "ui/audio.h"
 #include "ui/gfx.h"
 #include "ui/table.h"
+#include "ui/wallet.h"
 #include "ui/widgets.h"
 
 static Poker s_games[PK_VARIANTS];
@@ -18,6 +19,7 @@ static int s_v; /* PkVariant */
 static Table s_tables[PK_VARIANTS];
 #define s_table s_tables[s_v]
 static bool s_started[PK_VARIANTS];
+static bool s_on_table[PK_VARIANTS]; /* hay fichas del monedero en la mesa */
 static bool s_sel[PK_MAX_HOLE]; /* descarte: cartas marcadas */
 static const SceneId SCENE_OF[PK_VARIANTS] = { SCENE_POKER, SCENE_OMAHA, SCENE_DRAWPOKER };
 static const GameId GAME_OF[PK_VARIANTS] = { GAME_POKER, GAME_OMAHA, GAME_DRAWPOKER };
@@ -78,12 +80,22 @@ static void new_hand(void)
 
 static void new_game(void)
 {
-	pk_init_variant(G, (PkVariant)s_v, (uint32_t)time(NULL) ^ (0x9043 + s_v * 77));
+	pk_init_stack(G, (PkVariant)s_v, (uint32_t)time(NULL) ^ (0x9043 + s_v * 77), wallet_take(PK_START));
+	s_on_table[s_v] = true;
 	s_recorded[s_v] = false;
 	s_cpu_timer = s_end_time = 0.0f;
 	s_prev_stage = G->stage;
 	s_turn_seen = -1;
-	table_message(&s_table, "Cada uno empieza con %d fichas. Ciegas %d/%d", PK_START, PK_SMALL, PK_BIG);
+	table_message(&s_table, "Te sientas con %d fichas. Ciegas %d/%d", G->chips[0] + G->invested[0], PK_SMALL, PK_BIG);
+}
+
+/* Devuelve al monedero tus fichas, también lo apostado en una mano sin
+ * acabar (que se anula) */
+static void cash_out(void)
+{
+	if (s_on_table[s_v])
+		wallet_give(G->chips[0] + (pk_hand_finished(G) ? 0 : G->invested[0]));
+	s_on_table[s_v] = false;
 }
 
 static void enter_variant(int v)
@@ -236,12 +248,16 @@ static SceneId poker_update(const Input* in, float dt)
 		}
 	} else {
 		bool over = pk_game_over(G);
-		button_set(&s_btn_call, 12, y, 144, h, over ? GLYPH_A " Otra partida" : GLYPH_A " Siguiente mano",
+		bool broke = over && wallet_chips() == 0;
+		button_set(&s_btn_call, 12, y, 144, h,
+			broke ? GLYPH_A " Comprar fichas" : over ? GLYPH_A " Otra partida" : GLYPH_A " Siguiente mano",
 			C2D_Color32(40, 140, 60, 255), KEY_A);
 		button_set(&s_btn_fold, 164, y, 144, h, GLYPH_B " Menú", C2D_Color32(190, 60, 50, 255), KEY_B);
 		s_btn_call.enabled = s_btn_fold.enabled = s_end_time > 0.8f;
 		s_end_time += dt;
 		if (button_update(&s_btn_call, in)) {
+			if (broke)
+				return SCENE_FICHAS;
 			if (over)
 				new_game();
 			else
@@ -267,6 +283,7 @@ static SceneId poker_update(const Input* in, float dt)
 			if (pk_game_over(G) && !s_recorded[s_v]) {
 				s_recorded[s_v] = true;
 				profile_record_game(GAME_OF[s_v], G->chips[0] > 0);
+				cash_out(); /* acabada: lo que te quede, al monedero */
 			}
 		}
 		s_prev_stage = G->stage;
@@ -393,6 +410,13 @@ static void poker_draw_bottom(void)
 	}
 }
 
-const Scene scene_poker = { poker_enter, poker_update, poker_draw_top, poker_draw_bottom };
-const Scene scene_omaha = { omaha_enter, poker_update, poker_draw_top, poker_draw_bottom };
-const Scene scene_drawpoker = { draw_enter, poker_update, poker_draw_top, poker_draw_bottom };
+/* Salir a medias desde la pausa: la próxima vez se empieza de cero */
+static void scene_leave(void)
+{
+	cash_out();
+	s_started[s_v] = false;
+}
+
+const Scene scene_poker = { poker_enter, poker_update, poker_draw_top, poker_draw_bottom, scene_leave };
+const Scene scene_omaha = { omaha_enter, poker_update, poker_draw_top, poker_draw_bottom, scene_leave };
+const Scene scene_drawpoker = { draw_enter, poker_update, poker_draw_top, poker_draw_bottom, scene_leave };

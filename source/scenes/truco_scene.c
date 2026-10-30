@@ -424,5 +424,11 @@ static void tr_draw_bottom(void)
 			button_draw(&s_btn[i], true);
 }
 
-const Scene scene_truco = { tr_enter, tr_update, tr_draw_top, tr_draw_bottom };
-const Scene scene_truc = { truc_enter, tr_update, tr_draw_top, tr_draw_bottom };
+/* Salir a medias desde la pausa: la próxima vez se empieza de cero */
+static void scene_leave(void)
+{
+	s_started[s_v] = false;
+}
+
+const Scene scene_truco = { tr_enter, tr_update, tr_draw_top, tr_draw_bottom, scene_leave };
+const Scene scene_truc = { truc_enter, tr_update, tr_draw_top, tr_draw_bottom, scene_leave };

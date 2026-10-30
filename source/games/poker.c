@@ -147,6 +147,11 @@ void pk_init(Poker* g, uint32_t seed)
 
 void pk_init_variant(Poker* g, PkVariant variant, uint32_t seed)
 {
+	pk_init_stack(g, variant, seed, PK_START);
+}
+
+void pk_init_stack(Poker* g, PkVariant variant, uint32_t seed, int my_chips)
+{
 	g->variant = variant;
 	g->hole_n = variant == PK_OMAHA ? 4 : variant == PK_DRAW ? 5 : 2;
 	rng_seed(&g->rng, seed);
@@ -154,6 +159,7 @@ void pk_init_variant(Poker* g, PkVariant variant, uint32_t seed)
 		g->chips[p] = PK_START;
 		g->out[p] = false;
 	}
+	g->chips[0] = my_chips;
 	g->dealer = PK_PLAYERS - 1;
 	g->hands_played = 0;
 	pk_new_hand(g);

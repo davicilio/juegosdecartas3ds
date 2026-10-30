@@ -832,4 +832,10 @@ static void mus_scene_draw_bottom(void)
 	gfx_text(GLYPH_B " Cerrar", BOTTOM_W / 2, 210, 0, 0.55f, COLOR_WHITE, C2D_AlignCenter);
 }
 
-const Scene scene_mus = { mus_scene_enter, mus_scene_update, mus_scene_draw_top, mus_scene_draw_bottom };
+/* Salir a medias desde la pausa: la próxima vez se empieza de cero */
+static void scene_leave(void)
+{
+	s_started = false;
+}
+
+const Scene scene_mus = { mus_scene_enter, mus_scene_update, mus_scene_draw_top, mus_scene_draw_bottom, scene_leave };

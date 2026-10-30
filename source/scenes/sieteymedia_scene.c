@@ -8,6 +8,7 @@
 #include "ui/audio.h"
 #include "ui/gfx.h"
 #include "ui/mii.h"
+#include "ui/wallet.h"
 #include "ui/widgets.h"
 
 #define CARD_SCALE 0.75f
@@ -20,6 +21,7 @@
 
 static SieteYMedia s_game;
 static bool s_started;
+static bool s_on_table; /* hay fichas del monedero en la mesa */
 
 static VisCard s_player_vis[SYM_MAX_HAND];
 static VisCard s_bank_vis[SYM_MAX_HAND];
@@ -86,10 +88,27 @@ static bool animating(void)
 	return false;
 }
 
+/* Nueva partida con fichas sacadas del monedero */
+static void new_game(void)
+{
+	sym_init(&s_game, (uint32_t)time(NULL) ^ 0x5EED7);
+	s_game.chips = wallet_take(SYM_START_CHIPS);
+	sym_change_bet(&s_game, 0);
+	s_on_table = true;
+}
+
+/* Devuelve al monedero las fichas de la mesa */
+static void cash_out(void)
+{
+	if (s_on_table)
+		wallet_give(s_game.chips);
+	s_on_table = false;
+}
+
 static void sym_scene_enter(void)
 {
 	if (!s_started || s_game.phase == SYM_PHASE_GAME_OVER) {
-		sym_init(&s_game, (uint32_t)time(NULL) ^ 0x5EED7);
+		new_game();
 		s_started = true;
 		s_player_shown = s_bank_shown = 0;
 	}
@@ -114,7 +133,8 @@ static void layout_buttons(void)
 		button_set(&s_btn_main, 60, y, 200, h, GLYPH_A " Siguiente mano", C2D_Color32(40, 140, 60, 255), KEY_A);
 		break;
 	case SYM_PHASE_GAME_OVER:
-		button_set(&s_btn_main, 12, y, 144, h, GLYPH_A " Nueva partida", C2D_Color32(40, 140, 60, 255), KEY_A);
+		button_set(&s_btn_main, 12, y, 144, h, wallet_chips() > 0 ? GLYPH_A " Nueva partida" : GLYPH_A " Comprar fichas",
+			C2D_Color32(40, 140, 60, 255), KEY_A);
 		button_set(&s_btn_alt, 164, y, 144, h, GLYPH_B " Menú", C2D_Color32(190, 60, 50, 255), KEY_B);
 		break;
 	default:
@@ -167,7 +187,9 @@ static SceneId sym_scene_update(const Input* in, float dt)
 	case SYM_PHASE_GAME_OVER:
 		if (result_ready && s_result_time > 0.4f) {
 			if (button_update(&s_btn_main, in)) {
-				sym_init(&s_game, (uint32_t)time(NULL));
+				if (wallet_chips() == 0)
+					return SCENE_FICHAS;
+				new_game();
 			} else if (button_update(&s_btn_alt, in)) {
 				return SCENE_MENU;
 			}
@@ -360,4 +382,11 @@ static void sym_scene_draw_bottom(void)
 	}
 }
 
-const Scene scene_sieteymedia = { sym_scene_enter, sym_scene_update, sym_scene_draw_top, sym_scene_draw_bottom };
+/* Salir a medias desde la pausa: la próxima vez se empieza de cero */
+static void scene_leave(void)
+{
+	cash_out();
+	s_started = false;
+}
+
+const Scene scene_sieteymedia = { sym_scene_enter, sym_scene_update, sym_scene_draw_top, sym_scene_draw_bottom, scene_leave };

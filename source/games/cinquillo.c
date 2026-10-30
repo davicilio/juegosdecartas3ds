@@ -10,6 +10,7 @@ static int pay(Cinquillo* g, int player, int amount)
 	if (amount > g->chips[player])
 		amount = g->chips[player];
 	g->chips[player] -= amount;
+	g->paid[player] += amount;
 	g->pot += amount;
 	return amount;
 }
@@ -47,6 +48,7 @@ void cq_start_round(Cinquillo* g)
 
 	for (int p = 0; p < CQ_PLAYERS; p++) {
 		g->hand_count[p] = 0;
+		g->paid[p] = 0;
 		for (int i = 0; i < CQ_HAND_SIZE; i++)
 			deck_draw(&deck, &g->hands[p][g->hand_count[p]++]);
 		cq_sort_hand(g, p);

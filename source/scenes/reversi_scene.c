@@ -204,4 +204,10 @@ static void rv_draw_bottom(void)
 			BOTTOM_W / 2, 214, 0, 0.45f, s_note[0] ? COLOR_GOLD : COLOR_CREAM, C2D_AlignCenter);
 }
 
-const Scene scene_reversi = { rv_enter, rv_update, rv_draw_top, rv_draw_bottom };
+/* Salir a medias desde la pausa: la próxima vez se empieza de cero */
+static void scene_leave(void)
+{
+	s_started = false;
+}
+
+const Scene scene_reversi = { rv_enter, rv_update, rv_draw_top, rv_draw_bottom, scene_leave };

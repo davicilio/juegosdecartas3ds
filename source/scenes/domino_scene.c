@@ -271,4 +271,10 @@ static void do_draw_bottom(void)
 	}
 }
 
-const Scene scene_domino = { do_enter, do_update, do_draw_top, do_draw_bottom };
+/* Salir a medias desde la pausa: la próxima vez se empieza de cero */
+static void scene_leave(void)
+{
+	s_started = false;
+}
+
+const Scene scene_domino = { do_enter, do_update, do_draw_top, do_draw_bottom, scene_leave };

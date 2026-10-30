@@ -283,4 +283,10 @@ static void tm_draw_bottom(void)
 		button_draw(&s_btn_main, s_btn_main.enabled);
 }
 
-const Scene scene_toma6 = { tm_enter, tm_update, tm_draw_top, tm_draw_bottom };
+/* Salir a medias desde la pausa: la próxima vez se empieza de cero */
+static void scene_leave(void)
+{
+	s_started = false;
+}
+
+const Scene scene_toma6 = { tm_enter, tm_update, tm_draw_top, tm_draw_bottom, scene_leave };

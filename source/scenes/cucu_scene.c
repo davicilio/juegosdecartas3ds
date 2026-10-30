@@ -186,4 +186,10 @@ static void cucu_draw_bottom(void)
 	button_draw(&s_btn_keep, s_btn_keep.enabled);
 }
 
-const Scene scene_cucu = { cucu_enter, cucu_update, cucu_draw_top, cucu_draw_bottom };
+/* Salir a medias desde la pausa: la próxima vez se empieza de cero */
+static void scene_leave(void)
+{
+	s_started = false;
+}
+
+const Scene scene_cucu = { cucu_enter, cucu_update, cucu_draw_top, cucu_draw_bottom, scene_leave };

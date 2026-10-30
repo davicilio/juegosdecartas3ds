@@ -319,4 +319,10 @@ static void pu_draw_bottom(void)
 		button_draw(&s_btn_say, s_btn_say.enabled);
 }
 
-const Scene scene_pumba = { pu_enter, pu_update, pu_draw_top, pu_draw_bottom };
+/* Salir a medias desde la pausa: la próxima vez se empieza de cero */
+static void scene_leave(void)
+{
+	s_started = false;
+}
+
+const Scene scene_pumba = { pu_enter, pu_update, pu_draw_top, pu_draw_bottom, scene_leave };
