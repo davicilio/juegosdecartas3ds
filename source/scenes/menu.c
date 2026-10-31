@@ -176,6 +176,10 @@ static const MenuEntry entries[] = {
 	  "Damas españolas: comer es obligatorio (y la jugada que más come), las fichas comen hacia "
 	  "delante y la dama vuela por las diagonales. Tres niveles de dificultad.",
 	  SCENE_DAMAS, SUIT_OROS, { C(OROS, 1), C(OROS, 1), C(OROS, 1) }, { CPU_MANOLO, -1, -1 }, KIND_BOARD },
+	{ "Ajedrez",
+	  "Ajedrez contra la consola, con enroque, captura al paso, coronación y tablas. Antes de jugar "
+	  "eliges la dificultad (de principiante a difícil) y si llevas blancas o negras.",
+	  SCENE_AJEDREZ, SUIT_OROS, { C(OROS, 1), C(OROS, 1), C(OROS, 1) }, { CPU_MANOLO, -1, -1 }, KIND_BOARD },
 	{ "Dominó",
 	  "Por parejas, como en el bar: casa tus fichas con los extremos de la mesa. Gana la mano quien "
 	  "se queda sin fichas (o la pareja con menos puntos si se cierra). A 100 puntos.",
@@ -535,7 +539,7 @@ static bool has_board_icon(SceneId scene)
 	return scene == SCENE_CONECTA4 || scene == SCENE_DAMAS || scene == SCENE_DOMINO || scene == SCENE_REVERSI ||
 	       scene == SCENE_OCA || scene == SCENE_BINGO || scene == SCENE_TRESENRAYA || scene == SCENE_FLOTA ||
 	       scene == SCENE_PARCHIS || scene == SCENE_TOMA6 || scene == SCENE_MAHJONG || scene == SCENE_NEGOCIO ||
-	       scene == SCENE_RIICHI || scene == SCENE_BUSCAMINAS;
+	       scene == SCENE_RIICHI || scene == SCENE_BUSCAMINAS || scene == SCENE_AJEDREZ;
 }
 
 static void draw_board_icon(SceneId scene, float cx, float cy, float s, float depth)
@@ -591,6 +595,15 @@ static void draw_board_icon(SceneId scene, float cx, float cy, float s, float de
 			gfx_text("15", cx, cy - 3.2f * s, depth, 0.25f * s, C2D_Color32(30, 30, 40, 255), C2D_AlignCenter);
 		else
 			gfx_ellipse(cx - 3 * s, cy - 3.5f * s, 1.6f * s, 1.1f * s, depth, C2D_Color32(255, 255, 255, 160));
+		return;
+	}
+	if (scene == SCENE_AJEDREZ) {
+		/* Un peón sobre dos casillas */
+		gfx_rect(cx - 9 * s, cy - 9 * s, 9 * s, 18 * s, depth, C2D_Color32(240, 217, 181, 255));
+		gfx_rect(cx, cy - 9 * s, 9 * s, 18 * s, depth, C2D_Color32(181, 136, 99, 255));
+		gfx_rect(cx - 5 * s, cy + 4 * s, 10 * s, 3 * s, depth, C2D_Color32(40, 35, 40, 255));
+		gfx_ellipse(cx, cy + 1 * s, 3.6f * s, 3.4f * s, depth, C2D_Color32(40, 35, 40, 255));
+		gfx_ellipse(cx, cy - 4 * s, 2.8f * s, 2.8f * s, depth, C2D_Color32(40, 35, 40, 255));
 		return;
 	}
 	if (scene == SCENE_BUSCAMINAS) {

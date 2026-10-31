@@ -30,6 +30,7 @@
 #include "games/mahjong.h"
 #include "games/toma6.h"
 #include "games/freecell.h"
+#include "games/ajedrez.h"
 #include "games/buscaminas.h"
 #include "games/negocio.h"
 #include "games/parejas.h"
@@ -3441,6 +3442,114 @@ static void test_parejas(void)
 	CHECK(strong > 70);
 }
 
+static void test_ajedrez(void)
+{
+	Ajedrez g;
+	aj_init(&g, 1);
+	/* Recuentos de posiciones (perft) conocidos */
+	CHECK(aj_perft(&g, 1) == 20 && aj_perft(&g, 2) == 400 && aj_perft(&g, 3) == 8902);
+	CHECK(aj_perft(&g, 4) == 197281);
+	CHECK(aj_from_fen(&g, "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1"));
+	CHECK(aj_perft(&g, 1) == 48 && aj_perft(&g, 2) == 2039 && aj_perft(&g, 3) == 97862);
+	CHECK(aj_from_fen(&g, "8/2p5/3p4/KP5r/1R3p1k/8/4P1P1/8 w - - 0 1"));
+	CHECK(aj_perft(&g, 1) == 14 && aj_perft(&g, 2) == 191 && aj_perft(&g, 3) == 2812 && aj_perft(&g, 4) == 43238);
+	CHECK(aj_from_fen(&g, "r3k2r/Pppp1ppp/1b3nbN/nP6/BBP1P3/q4N2/Pp1P2PP/R2Q1RK1 w kq - 0 1"));
+	CHECK(aj_perft(&g, 1) == 6 && aj_perft(&g, 2) == 264 && aj_perft(&g, 3) == 9467);
+	CHECK(aj_from_fen(&g, "rnbq1k1r/pp1Pbppp/2p5/8/2B5/8/PPP1NnPP/RNBQK2R w KQ - 1 8"));
+	CHECK(aj_perft(&g, 1) == 44 && aj_perft(&g, 2) == 1486 && aj_perft(&g, 3) == 62379);
+	/* Hacer y deshacer deja la posición igual */
+	CHECK(aj_from_fen(&g, "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1"));
+	Ajedrez copy = g;
+	AjMove moves[AJ_MAX_MOVES];
+	int n = aj_legal_moves(&g, moves);
+	for (int i = 0; i < n; i++) {
+		aj_make(&g, moves[i]);
+		aj_unmake(&g);
+	}
+	CHECK(memcmp(g.sq, copy.sq, sizeof g.sq) == 0 && g.hash == copy.hash && g.castling == copy.castling);
+
+	/* Notación */
+	char buf[16];
+	AjMove m;
+	aj_init(&g, 1);
+	CHECK(aj_find_move(&g, 12, 28, 0, &m));
+	aj_move_name(&g, m, buf, sizeof buf);
+	CHECK(strcmp(buf, "e4") == 0);
+	CHECK(aj_find_move(&g, 6, 21, 0, &m));
+	aj_move_name(&g, m, buf, sizeof buf);
+	CHECK(strcmp(buf, "Cf3") == 0);
+	CHECK(aj_from_fen(&g, "r3k2r/8/8/8/8/8/8/R3K2R w KQkq - 0 1"));
+	CHECK(aj_find_move(&g, 4, 6, 0, &m) && (m.flags & AJ_F_CASTLE));
+	aj_move_name(&g, m, buf, sizeof buf);
+	CHECK(strcmp(buf, "O-O") == 0);
+	aj_make(&g, m);
+	CHECK(g.sq[5] == AJ_ROOK && g.sq[6] == AJ_KING && !(g.castling & (AJ_WK | AJ_WQ)));
+	CHECK(aj_from_fen(&g, "6k1/5ppp/8/8/8/8/5PPP/3R2K1 w - - 0 1"));
+	CHECK(aj_find_move(&g, 3, 59, 0, &m));
+	aj_move_name(&g, m, buf, sizeof buf);
+	CHECK(strcmp(buf, "Td8#") == 0);
+	/* Coronación y captura al paso */
+	CHECK(aj_from_fen(&g, "8/P6k/8/8/8/8/8/K7 w - - 0 1"));
+	CHECK(aj_find_move(&g, 48, 56, AJ_KNIGHT, &m) && m.promo == AJ_KNIGHT);
+	aj_make(&g, m);
+	CHECK(g.sq[56] == AJ_KNIGHT);
+	CHECK(aj_from_fen(&g, "4k3/8/8/3pP3/8/8/8/4K3 w - d6 0 1"));
+	CHECK(aj_find_move(&g, 36, 43, 0, &m) && (m.flags & AJ_F_EP));
+	aj_make(&g, m);
+	CHECK(g.sq[35] == 0 && g.sq[43] == AJ_PAWN);
+
+	/* Finales de partida */
+	aj_init(&g, 1);
+	int fool[4][2] = { { 13, 21 }, { 52, 36 }, { 14, 30 }, { 59, 31 } }; /* f3 e5 g4 Dh4# */
+	for (int i = 0; i < 4; i++) {
+		CHECK(aj_find_move(&g, fool[i][0], fool[i][1], 0, &m));
+		aj_make(&g, m);
+	}
+	CHECK(aj_status(&g) == AJ_CHECKMATE);
+	CHECK(aj_from_fen(&g, "7k/5Q2/6K1/8/8/8/8/8 b - - 0 1"));
+	CHECK(aj_status(&g) == AJ_STALEMATE);
+	CHECK(aj_from_fen(&g, "7k/8/6K1/8/8/8/8/5B2 b - - 0 1"));
+	CHECK(aj_status(&g) == AJ_DRAW_MATERIAL);
+	/* Triple repetición: los caballos van y vuelven */
+	aj_init(&g, 1);
+	int dance[4][2] = { { 6, 21 }, { 62, 45 }, { 21, 6 }, { 45, 62 } };
+	for (int r = 0; r < 2; r++)
+		for (int i = 0; i < 4; i++) {
+			CHECK(aj_find_move(&g, dance[i][0], dance[i][1], 0, &m));
+			aj_make(&g, m);
+		}
+	CHECK(aj_status(&g) == AJ_DRAW_REPETITION);
+
+	/* La IA ve el mate en una y no regala la dama */
+	for (int lv = 1; lv < AJ_LEVELS; lv++) {
+		CHECK(aj_from_fen(&g, "6k1/5ppp/8/8/8/8/5PPP/3R2K1 w - - 0 1"));
+		m = aj_search(&g, lv);
+		CHECK(m.from == 3 && m.to == 59);
+	}
+	CHECK(aj_from_fen(&g, "4k3/8/8/3q4/8/8/3Q4/4K3 b - - 0 1")); /* la dama negra está atacada */
+	m = aj_search(&g, 3);
+	CHECK(m.from == 35 && (m.to == 11 || g.sq[m.to] == 0)); /* la cambia o la aparta */
+	aj_make(&g, m);
+	CHECK(aj_evaluate(&g) <= 100);
+	/* Partidas entre niveles: terminan y el difícil gana al principiante */
+	int strong = 0;
+	for (int seed = 1; seed <= 4; seed++) {
+		aj_init(&g, (uint32_t)seed);
+		AjStatus st = AJ_PLAYING;
+		while (st == AJ_PLAYING && g.ply < 300) {
+			int lv = (g.side > 0) == (seed % 2 == 0) ? 3 : 0;
+			aj_make(&g, aj_search(&g, lv));
+			st = aj_status(&g);
+		}
+		bool strong_white = seed % 2 == 0;
+		if (st == AJ_CHECKMATE && (g.side < 0) == strong_white)
+			strong++;
+		else if (st == AJ_PLAYING && (aj_evaluate(&g) > 0) == strong_white)
+			strong++;
+	}
+	CHECK(strong >= 3);
+}
+
 static void test_negocio(void)
 {
 	NgBoard b, c;
@@ -4308,6 +4417,7 @@ int main(void)
 	test_poker_variants();
 	test_chip_stacks();
 	test_negocio();
+	test_ajedrez();
 	test_buscaminas();
 	test_parejas();
 	test_riichi();

@@ -206,6 +206,17 @@ El reparto siempre tiene solución.
 
 ![Mahjong](mahjong.png)
 
+## Ajedrez (juego de mesa)
+Ajedrez contra la consola con todas las reglas: enroque, captura al paso, coronación (eliges la
+pieza), jaque mate, rey ahogado y tablas por material insuficiente, por los 50 movimientos y por
+triple repetición. **Antes de empezar eliges la dificultad**: principiante (mueve casi sin pensar),
+fácil, medio o difícil (piensa varias jugadas y castiga los errores), y si llevas blancas, negras
+o al azar.
+
+Toca una pieza para ver adónde puede ir y toca el destino (o usa la cruceta y Ⓐ). Arriba se ve
+el tablero grande con las jugadas en notación (C caballo, A alfil, T torre, D dama, R rey).
+**Deshacer** (Ⓨ) quita tu última jugada y la de tu rival.
+
 ## Buscaminas (juego de mesa)
 Destapa todas las casillas sin mina; cada número dice cuántas minas hay alrededor. Toca para
 destapar y, con L o R pulsado (o con el modo **Bandera**, Ⓨ), para poner o quitar banderas. Si
