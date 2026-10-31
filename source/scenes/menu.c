@@ -225,6 +225,11 @@ static const MenuEntry entries[] = {
 	  "De oca a oca y tiro porque me toca. Tira el dado y llega justo a la 63 esquivando la posada, "
 	  "el pozo, el laberinto, la cárcel... ¡y la muerte! De 2 a 4 jugadores.",
 	  SCENE_OCA, SUIT_OROS, { C(OROS, 1), C(OROS, 1), C(OROS, 1) }, { CPU_PACO, CPU_LOLA, CPU_PEPE }, KIND_BOARD },
+	{ "Conquista",
+	  "Conquista las 50 provincias de España: refuerza tus fronteras, ataca a tus vecinos con los dados "
+	  "y hazte con comunidades autónomas enteras para recibir más tropas. De 2 a 4 jugadores.",
+	  SCENE_CONQUISTA, SUIT_OROS, { C(OROS, 1), C(OROS, 1), C(OROS, 1) }, { CPU_PACO, CPU_CARMEN, CPU_RAMON },
+	  KIND_BOARD },
 	{ "Negocio redondo",
 	  "Compra calles, cobra alquileres y levanta plantas hasta arruinar a los demás. Cambia los "
 	  "nombres, colores y precios de las calles y crea tus propios tableros. De 2 a 4 jugadores.",
@@ -539,7 +544,8 @@ static bool has_board_icon(SceneId scene)
 	return scene == SCENE_CONECTA4 || scene == SCENE_DAMAS || scene == SCENE_DOMINO || scene == SCENE_REVERSI ||
 	       scene == SCENE_OCA || scene == SCENE_BINGO || scene == SCENE_TRESENRAYA || scene == SCENE_FLOTA ||
 	       scene == SCENE_PARCHIS || scene == SCENE_TOMA6 || scene == SCENE_MAHJONG || scene == SCENE_NEGOCIO ||
-	       scene == SCENE_RIICHI || scene == SCENE_BUSCAMINAS || scene == SCENE_AJEDREZ;
+	       scene == SCENE_RIICHI || scene == SCENE_BUSCAMINAS || scene == SCENE_AJEDREZ ||
+	       scene == SCENE_CONQUISTA;
 }
 
 static void draw_board_icon(SceneId scene, float cx, float cy, float s, float depth)
@@ -595,6 +601,17 @@ static void draw_board_icon(SceneId scene, float cx, float cy, float s, float de
 			gfx_text("15", cx, cy - 3.2f * s, depth, 0.25f * s, C2D_Color32(30, 30, 40, 255), C2D_AlignCenter);
 		else
 			gfx_ellipse(cx - 3 * s, cy - 3.5f * s, 1.6f * s, 1.1f * s, depth, C2D_Color32(255, 255, 255, 160));
+		return;
+	}
+	if (scene == SCENE_CONQUISTA) {
+		/* Un mapa con tres provincias de colores unidas */
+		gfx_rrect(cx - 9 * s, cy - 9 * s, 18 * s, 18 * s, 3 * s, depth, C2D_Color32(60, 110, 170, 255));
+		gfx_ellipse(cx, cy, 7 * s, 6 * s, depth, C2D_Color32(214, 200, 160, 255));
+		gfx_line(cx - 4 * s, cy - 2 * s, cx + 3 * s, cy - 3 * s, 0.8f * s, depth, C2D_Color32(90, 70, 50, 255));
+		gfx_line(cx + 3 * s, cy - 3 * s, cx, cy + 3 * s, 0.8f * s, depth, C2D_Color32(90, 70, 50, 255));
+		gfx_ellipse(cx - 4 * s, cy - 2 * s, 2.2f * s, 2.2f * s, depth, C2D_Color32(210, 40, 45, 255));
+		gfx_ellipse(cx + 3 * s, cy - 3 * s, 2.2f * s, 2.2f * s, depth, C2D_Color32(40, 100, 200, 255));
+		gfx_ellipse(cx, cy + 3 * s, 2.2f * s, 2.2f * s, depth, C2D_Color32(46, 158, 74, 255));
 		return;
 	}
 	if (scene == SCENE_AJEDREZ) {

@@ -213,7 +213,7 @@ const char* game_name(GameId game)
 	static const char* names[GAME_COUNT] = { "Siete y media", "Cinquillo", "Brisca", "Escoba", "Mus", "Chinchón",
 		"Guiñote", "Solitario", "Pirámide", "Tute", "Tute cabrón", "Uno",
 		"Rummikub", "La mona", "Cucú", "Treinta y una", "Mentiroso", "Culo",
-		"Póker", "Blackjack", "Corazones", "Pocha", "Conecta 4", "Damas", "Dominó", "As, 2, 3", "Pumba", "Julepe", "Tute subastado", "Truco", "Butifarra", "Reversi", "La oca", "Burro", "Mierda", "Truc", "Tresillo", "Cuatrillo", "Bingo", "Tres en raya", "Hundir la flota", "Parchís", "Carta blanca", "Toma 6", "Mahjong solitario", "Omaha", "Póker de descarte", "Videopóker", "Negocio redondo", "Mahjong riichi", "Buscaminas", "Parejas", "Ajedrez" };
+		"Póker", "Blackjack", "Corazones", "Pocha", "Conecta 4", "Damas", "Dominó", "As, 2, 3", "Pumba", "Julepe", "Tute subastado", "Truco", "Butifarra", "Reversi", "La oca", "Burro", "Mierda", "Truc", "Tresillo", "Cuatrillo", "Bingo", "Tres en raya", "Hundir la flota", "Parchís", "Carta blanca", "Toma 6", "Mahjong solitario", "Omaha", "Póker de descarte", "Videopóker", "Negocio redondo", "Mahjong riichi", "Buscaminas", "Parejas", "Ajedrez", "Conquista" };
 	return game < GAME_COUNT ? names[game] : "?";
 }
 

@@ -280,6 +280,23 @@ sin voz.
 
 ![Bingo](bingo.png)
 
+## Conquista (juego de mesa)
+Juego de estrategia sobre el mapa de España con sus **50 provincias**, de 2 a 4 jugadores. Las
+provincias se reparten al azar al empezar. Cada turno tiene tres fases:
+
+1. **Refuerzos**: recibes un tercio de tus provincias en tropas (como poco 3), más un extra por
+   cada **comunidad autónoma** que tengas entera (Andalucía y Castilla y León dan 5, Castilla-La
+   Mancha y Cataluña 3...). Toca tus provincias para colocarlas (Ⓧ: todas en la del cursor).
+2. **Ataque**: toca una provincia tuya con al menos dos tropas y luego una vecina enemiga.
+   Cada ronda, los dos tiráis un dado: gana el más alto, el empate es del defensor y el
+   atacante suma 1 si lleva más tropas. **Atacar** juega una ronda y **A muerte**, hasta
+   conquistarla o quedarte sin fuerzas. Al conquistar, la mitad de tus tropas pasan a ella.
+3. **Movimiento**: una vez por turno puedes pasar tropas entre dos provincias tuyas vecinas
+   (con L/R eliges cuántas).
+
+Baleares se une por mar con Barcelona y Valencia, y Canarias con Cádiz y Huelva. Gana quien
+conquista toda España o, tras 40 rondas, quien tiene más provincias.
+
 ## Negocio redondo (juego de mesa)
 Juego de compraventa de calles para 2 a 4 jugadores en un tablero de 28 casillas. Se empieza con
 1500 y se tiran dos dados (con dobles se vuelve a tirar, como mucho dos veces). Al pasar por la

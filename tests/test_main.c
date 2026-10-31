@@ -32,6 +32,7 @@
 #include "games/freecell.h"
 #include "games/ajedrez.h"
 #include "games/buscaminas.h"
+#include "games/conquista.h"
 #include "games/negocio.h"
 #include "games/parejas.h"
 #include "games/riichi.h"
@@ -3550,6 +3551,64 @@ static void test_ajedrez(void)
 	CHECK(strong >= 3);
 }
 
+static void test_conquista(void)
+{
+	/* El mapa: vecindades simétricas y todo conectado */
+	for (int a = 0; a < CN_PROVINCES; a++) {
+		CHECK(CN_MAP[a].region < CN_REGIONS);
+		for (int k = 0; k < CN_MAX_ADJ && CN_MAP[a].adj[k] >= 0; k++)
+			CHECK(cn_adjacent(CN_MAP[a].adj[k], a) && CN_MAP[a].adj[k] != a);
+	}
+	CHECK(cn_adjacent(13, 14)); /* las dos provincias canarias */
+	Conquista g;
+	cn_init(&g, 3, 9);
+	int total = 0;
+	for (int p = 0; p < 3; p++)
+		total += cn_provinces_of(&g, p);
+	CHECK(total == CN_PROVINCES && g.phase == CN_REINFORCE && g.to_place >= 3);
+	/* Refuerzos */
+	int mine = -1;
+	for (int i = 0; i < CN_PROVINCES && mine < 0; i++)
+		if (g.owner[i] == 0)
+			mine = i;
+	int before = g.troops[mine], n = g.to_place;
+	CHECK(cn_place(&g, mine, n) && g.troops[mine] == before + n && g.phase == CN_ATTACK);
+	/* Batalla */
+	int from = -1, to = -1;
+	for (int i = 0; i < CN_PROVINCES && from < 0; i++)
+		if (g.owner[i] == 0)
+			for (int k = 0; k < CN_MAX_ADJ && CN_MAP[i].adj[k] >= 0; k++)
+				if (g.owner[CN_MAP[i].adj[k]] != 0) {
+					from = i;
+					to = CN_MAP[i].adj[k];
+					break;
+				}
+	CHECK(from >= 0);
+	g.troops[from] = 30;
+	g.troops[to] = 2;
+	CHECK(cn_attack_all(&g, from, to));
+	CHECK(g.owner[to] == 0 || g.troops[from] == 1);
+	CHECK(g.troops[from] >= 1 && g.troops[to] >= 1);
+	cn_end_attacks(&g);
+	CHECK(g.phase == CN_FORTIFY);
+	cn_end_turn(&g);
+	CHECK(g.current == 1 && g.phase == CN_REINFORCE);
+	/* Partidas entre la IA */
+	int ended = 0;
+	for (int seed = 1; seed <= 100; seed++) {
+		cn_init(&g, 2 + seed % 3, (uint32_t)seed);
+		int steps = 0;
+		while (g.phase != CN_OVER && steps < 50000) {
+			cn_ai_step(&g);
+			steps++;
+			for (int i = 0; i < CN_PROVINCES; i++)
+				CHECK(g.troops[i] >= 1 && g.owner[i] >= 0 && g.owner[i] < g.players && !g.out[g.owner[i]]);
+		}
+		ended += g.phase == CN_OVER && g.winner >= 0;
+	}
+	CHECK(ended == 100);
+}
+
 static void test_negocio(void)
 {
 	NgBoard b, c;
@@ -4417,6 +4476,7 @@ int main(void)
 	test_poker_variants();
 	test_chip_stacks();
 	test_negocio();
+	test_conquista();
 	test_ajedrez();
 	test_buscaminas();
 	test_parejas();
