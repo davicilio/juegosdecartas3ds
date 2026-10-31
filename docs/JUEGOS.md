@@ -114,6 +114,12 @@ con triunfo; si la baza la gana tu compañero no hace falta. Las cartas que no
 puedes jugar se ven oscurecidas. Gana la pareja que llegue a **101**; si nadie
 llega, se juega otra mano "de vueltas" sumando los puntos.
 
+## Parejas
+Las cartas de dos barajas españolas, boca abajo. Levanta dos: si son iguales (mismo número y
+mismo palo) te las llevas y vuelves a levantar; si no, se tapan otra vez. Puedes jugar solo,
+contando los intentos, o contra un rival con tres niveles de memoria (despistada, normal o de
+elefante). Con 8 o 12 parejas.
+
 ## Tute y tute cabrón
 Se reparten las 40 cartas, diez a cada uno, y la última (la de quien reparte, que
 se ve como "pinta") marca el triunfo. Orden: as, tres, rey, caballo, sota, 7...
@@ -199,6 +205,13 @@ despejado) para quitarlas. Ⓧ da una pista, Ⓨ deshace, L baraja lo que queda 
 El reparto siempre tiene solución.
 
 ![Mahjong](mahjong.png)
+
+## Buscaminas (juego de mesa)
+Destapa todas las casillas sin mina; cada número dice cuántas minas hay alrededor. Toca para
+destapar y, con L o R pulsado (o con el modo **Bandera**, Ⓨ), para poner o quitar banderas. Si
+tocas un número que ya tiene sus banderas puestas, se destapan las demás casillas de alrededor.
+La primera casilla nunca tiene mina. Tres niveles (Ⓧ): fácil (9 x 9, 10 minas), medio (13 x 9,
+22) y difícil (16 x 10, 35), con récord de tiempo de cada uno.
 
 ## Mahjong riichi (juego de mesa)
 El mahjong japonés a cuatro: tú contra tres rivales, con 136 fichas (caracteres, círculos,

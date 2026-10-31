@@ -59,6 +59,10 @@ static const MenuEntry entries[] = {
 	  "La base de la pirámide está descubierta y lo de arriba, tapado. Saca cartas de tu mazo y "
 	  "quita de la base las iguales: si sacas un caballo, busca un caballo.",
 	  SCENE_PIRAMIDE, SUIT_COPAS, { C(COPAS, RANK_CABALLO), C(ESPADAS, RANK_CABALLO), C(BASTOS, 5) }, { -1, -1, -1 } },
+	{ "Parejas",
+	  "Las cartas, boca abajo y de dos en dos. Levanta dos: si son iguales te las llevas y repites. "
+	  "Juega solo o contra un rival que recuerda mejor o peor lo que ve.",
+	  SCENE_PAREJAS, SUIT_COPAS, { C(COPAS, 1), C(OROS, 12), C(COPAS, 1) }, { CPU_LOLA, -1, -1 } },
 	{ "Tute",
 	  "Por parejas, con las 40 cartas repartidas. Asiste y mata, canta las veinte y las cuarenta con "
 	  "rey y caballo... ¡y si juntas los cuatro reyes o caballos, canta el tute!",
@@ -181,6 +185,10 @@ static const MenuEntry entries[] = {
 	  "El solitario de las fichas chinas: la tortuga de 144 fichas. Quita parejas iguales que estén "
 	  "libres (sin nada encima y con un lado despejado). Siempre tiene solución.",
 	  SCENE_MAHJONG, SUIT_OROS, { C(OROS, 1), C(OROS, 1), C(OROS, 1) }, { -1, -1, -1 }, KIND_BOARD },
+	{ "Buscaminas",
+	  "Destapa todas las casillas sin pisar una mina: cada número te dice cuántas tiene alrededor. "
+	  "Pon banderas donde sepas que hay minas. Tres niveles y récord de tiempo.",
+	  SCENE_BUSCAMINAS, SUIT_OROS, { C(OROS, 1), C(OROS, 1), C(OROS, 1) }, { -1, -1, -1 }, KIND_BOARD },
 	{ "Mahjong riichi",
 	  "El mahjong japonés a cuatro: roba, descarta y forma cuatro combinaciones y una pareja. Pon, chi, "
 	  "kan, riichi, dora y yaku, con la puntuación de han y fu. Se juega la ronda del Este.",
@@ -527,7 +535,7 @@ static bool has_board_icon(SceneId scene)
 	return scene == SCENE_CONECTA4 || scene == SCENE_DAMAS || scene == SCENE_DOMINO || scene == SCENE_REVERSI ||
 	       scene == SCENE_OCA || scene == SCENE_BINGO || scene == SCENE_TRESENRAYA || scene == SCENE_FLOTA ||
 	       scene == SCENE_PARCHIS || scene == SCENE_TOMA6 || scene == SCENE_MAHJONG || scene == SCENE_NEGOCIO ||
-	       scene == SCENE_RIICHI;
+	       scene == SCENE_RIICHI || scene == SCENE_BUSCAMINAS;
 }
 
 static void draw_board_icon(SceneId scene, float cx, float cy, float s, float depth)
@@ -583,6 +591,15 @@ static void draw_board_icon(SceneId scene, float cx, float cy, float s, float de
 			gfx_text("15", cx, cy - 3.2f * s, depth, 0.25f * s, C2D_Color32(30, 30, 40, 255), C2D_AlignCenter);
 		else
 			gfx_ellipse(cx - 3 * s, cy - 3.5f * s, 1.6f * s, 1.1f * s, depth, C2D_Color32(255, 255, 255, 160));
+		return;
+	}
+	if (scene == SCENE_BUSCAMINAS) {
+		/* Una mina sobre una casilla */
+		gfx_rrect(cx - 9 * s, cy - 9 * s, 18 * s, 18 * s, 2 * s, depth, C2D_Color32(185, 190, 200, 255));
+		gfx_rect(cx - 6.5f * s, cy - 0.6f * s, 13 * s, 1.2f * s, depth, C2D_Color32(20, 20, 20, 255));
+		gfx_rect(cx - 0.6f * s, cy - 6.5f * s, 1.2f * s, 13 * s, depth, C2D_Color32(20, 20, 20, 255));
+		gfx_ellipse(cx, cy, 4.5f * s, 4.5f * s, depth, C2D_Color32(20, 20, 20, 255));
+		gfx_ellipse(cx - 1.5f * s, cy - 1.5f * s, 1.2f * s, 1.2f * s, depth, C2D_Color32(255, 255, 255, 220));
 		return;
 	}
 	if (scene == SCENE_NEGOCIO) {

@@ -30,7 +30,9 @@
 #include "games/mahjong.h"
 #include "games/toma6.h"
 #include "games/freecell.h"
+#include "games/buscaminas.h"
 #include "games/negocio.h"
+#include "games/parejas.h"
 #include "games/riichi.h"
 #include "games/parchis.h"
 #include "games/flota.h"
@@ -3328,6 +3330,117 @@ static void test_riichi(void)
 	printf("  riichi: %d manos ganadas y %d empates en 40 partidas\n", wins, draws);
 }
 
+static void test_buscaminas(void)
+{
+	for (int lv = 0; lv < BM_LEVELS; lv++) {
+		for (int seed = 1; seed <= 60; seed++) {
+			Buscaminas g;
+			bm_init(&g, (BmLevel)lv, (uint32_t)seed);
+			/* El primer toque nunca es mina y abre un hueco */
+			CHECK(bm_reveal(&g, g.w / 2, g.h / 2));
+			CHECK(g.state != BM_LOST && g.opened >= 1 && g.near[g.h / 2][g.w / 2] == 0);
+			int mines = 0;
+			for (int y = 0; y < g.h; y++)
+				for (int x = 0; x < g.w; x++)
+					mines += g.mine[y][x];
+			CHECK(mines == g.mines);
+			/* Jugador perfecto: destapa todo lo que no es mina */
+			for (int y = 0; y < g.h; y++)
+				for (int x = 0; x < g.w; x++)
+					if (!g.mine[y][x])
+						bm_reveal(&g, x, y);
+			CHECK(g.state == BM_WON && bm_flags(&g) == g.mines);
+		}
+	}
+	/* Banderas, acordes y explosión */
+	Buscaminas g;
+	bm_init(&g, BM_EASY, 7);
+	bm_reveal(&g, 0, 0);
+	int nx = -1, ny = -1;
+	for (int y = 0; y < g.h && nx < 0; y++)
+		for (int x = 0; x < g.w; x++)
+			if (g.open[y][x] && g.near[y][x] > 0) {
+				nx = x;
+				ny = y;
+				break;
+			}
+	CHECK(nx >= 0);
+	CHECK(!bm_chord(&g, nx, ny)); /* sin banderas no hace nada */
+	int mx = -1, my = -1;
+	for (int dy = -1; dy <= 1; dy++)
+		for (int dx = -1; dx <= 1; dx++) {
+			int x = nx + dx, y = ny + dy;
+			if (x >= 0 && y >= 0 && x < g.w && y < g.h && g.mine[y][x]) {
+				CHECK(bm_toggle_flag(&g, x, y));
+				mx = x;
+				my = y;
+			}
+		}
+	CHECK(bm_chord(&g, nx, ny) || g.near[ny][nx] > 0);
+	CHECK(g.state != BM_LOST);
+	CHECK(!bm_reveal(&g, mx, my)); /* con bandera no se destapa */
+	bm_toggle_flag(&g, mx, my);
+	CHECK(bm_reveal(&g, mx, my) && g.state == BM_LOST);
+}
+
+static void test_parejas(void)
+{
+	Parejas g;
+	pj_init(&g, 12, 1, 0, 3);
+	CHECK(g.n == 24);
+	for (int i = 0; i < g.n; i++) {
+		int same = 0;
+		for (int j = 0; j < g.n; j++)
+			same += j != i && pj_same(g.card[i], g.card[j]);
+		CHECK(same == 1);
+	}
+	/* Jugando solo y acertando siempre: 12 intentos */
+	while (g.phase != PJ_OVER) {
+		int a = -1, b = -1;
+		for (int i = 0; i < g.n && a < 0; i++)
+			for (int j = i + 1; j < g.n; j++)
+				if (!g.taken[i] && !g.taken[j] && pj_same(g.card[i], g.card[j])) {
+					a = i;
+					b = j;
+					break;
+				}
+		CHECK(pj_flip(&g, a) && !pj_flip(&g, a) && pj_flip(&g, b));
+		CHECK(g.phase == PJ_SHOW && g.last_match);
+		pj_resolve(&g);
+	}
+	CHECK(g.moves == 12 && g.score[0] == 12 && pj_winner(&g) == 0);
+	/* Contra el rival: una CPU con memoria perfecta gana casi siempre a una sin memoria */
+	int strong = 0;
+	for (int seed = 0; seed < 100; seed++) {
+		Parejas a, b;
+		pj_init(&a, 12, 2, 100, (uint32_t)seed);
+		pj_init(&b, 12, 2, 0, (uint32_t)seed);
+		/* El humano juega al azar en las dos (sin memoria) */
+		for (int k = 0; k < 2; k++) {
+			Parejas* g2 = k ? &b : &a;
+			int guard = 0;
+			while (g2->phase != PJ_OVER && guard++ < 2000) {
+				int i;
+				if (g2->current == 1) {
+					i = pj_ai_pick(g2);
+				} else {
+					int cand[PJ_MAX], n = 0;
+					for (int j = 0; j < g2->n; j++)
+						if (!g2->taken[j] && j != g2->first)
+							cand[n++] = j;
+					i = cand[rng_range(&g2->rng, n)];
+				}
+				CHECK(pj_flip(g2, i));
+				if (g2->phase == PJ_SHOW)
+					pj_resolve(g2);
+			}
+			CHECK(g2->phase == PJ_OVER && g2->score[0] + g2->score[1] == 12);
+		}
+		strong += a.score[1] > b.score[1];
+	}
+	CHECK(strong > 70);
+}
+
 static void test_negocio(void)
 {
 	NgBoard b, c;
@@ -4195,6 +4308,8 @@ int main(void)
 	test_poker_variants();
 	test_chip_stacks();
 	test_negocio();
+	test_buscaminas();
+	test_parejas();
 	test_riichi();
 	test_mahjong();
 	test_toma6();
