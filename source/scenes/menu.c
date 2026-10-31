@@ -177,10 +177,15 @@ static const MenuEntry entries[] = {
 	  "se queda sin fichas (o la pareja con menos puntos si se cierra). A 100 puntos.",
 	  SCENE_DOMINO, SUIT_OROS, { C(OROS, 1), C(OROS, 1), C(OROS, 1) }, { CPU_LOLA, CPU_PACO, CPU_MANOLO },
 	  KIND_BOARD },
-	{ "Mahjong",
+	{ "Mahjong solitario",
 	  "El solitario de las fichas chinas: la tortuga de 144 fichas. Quita parejas iguales que estén "
 	  "libres (sin nada encima y con un lado despejado). Siempre tiene solución.",
 	  SCENE_MAHJONG, SUIT_OROS, { C(OROS, 1), C(OROS, 1), C(OROS, 1) }, { -1, -1, -1 }, KIND_BOARD },
+	{ "Mahjong riichi",
+	  "El mahjong japonés a cuatro: roba, descarta y forma cuatro combinaciones y una pareja. Pon, chi, "
+	  "kan, riichi, dora y yaku, con la puntuación de han y fu. Se juega la ronda del Este.",
+	  SCENE_RIICHI, SUIT_OROS, { C(OROS, 1), C(OROS, 1), C(OROS, 1) }, { CPU_PACO, CPU_LUCIA, CPU_PEPE },
+	  KIND_BOARD },
 	{ "Toma 6",
 	  "Todos eligen carta a la vez y se colocan de menor a mayor en cuatro filas. ¡Quien pone la "
 	  "sexta se lleva la fila con sus cabezas de buey! Pierde quien llega a 66.",
@@ -521,7 +526,8 @@ static bool has_board_icon(SceneId scene)
 {
 	return scene == SCENE_CONECTA4 || scene == SCENE_DAMAS || scene == SCENE_DOMINO || scene == SCENE_REVERSI ||
 	       scene == SCENE_OCA || scene == SCENE_BINGO || scene == SCENE_TRESENRAYA || scene == SCENE_FLOTA ||
-	       scene == SCENE_PARCHIS || scene == SCENE_TOMA6 || scene == SCENE_MAHJONG || scene == SCENE_NEGOCIO;
+	       scene == SCENE_PARCHIS || scene == SCENE_TOMA6 || scene == SCENE_MAHJONG || scene == SCENE_NEGOCIO ||
+	       scene == SCENE_RIICHI;
 }
 
 static void draw_board_icon(SceneId scene, float cx, float cy, float s, float depth)
@@ -547,7 +553,7 @@ static void draw_board_icon(SceneId scene, float cx, float cy, float s, float de
 		gfx_ellipse(cx + 5 * s, cy - 5 * s, 2 * s, 2 * s, depth, C2D_Color32(240, 120, 30, 255));
 		return;
 	}
-	if (scene == SCENE_MAHJONG) {
+	if (scene == SCENE_MAHJONG || scene == SCENE_RIICHI) {
 		gfx_rrect(cx - 6 * s, cy - 7 * s, 13 * s, 16 * s, 2 * s, depth, C2D_Color32(150, 110, 60, 255));
 		gfx_rrect(cx - 7 * s, cy - 9 * s, 13 * s, 16 * s, 2 * s, depth, C2D_Color32(250, 245, 230, 255));
 		gfx_rrect(cx - 4.5f * s, cy - 6 * s, 8 * s, 10 * s, 1.5f * s, depth, C2D_Color32(200, 40, 40, 255));

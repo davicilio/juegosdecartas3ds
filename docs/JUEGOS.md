@@ -190,7 +190,7 @@ llega a 66 cabezas, gana quien menos tiene.
 
 ![Toma 6](toma6.png)
 
-## Mahjong (juego de mesa)
+## Mahjong solitario (juego de mesa)
 El solitario de fichas chinas con la tortuga de 144 fichas en cinco pisos: círculos, bambúes y
 caracteres del 1 al 9, los vientos (N, E, S, O), los dragones (rojo, verde y blanco), cuatro
 flores y cuatro estaciones (cualquier flor empareja con otra flor, y lo mismo las estaciones).
@@ -199,6 +199,23 @@ despejado) para quitarlas. Ⓧ da una pista, Ⓨ deshace, L baraja lo que queda 
 El reparto siempre tiene solución.
 
 ![Mahjong](mahjong.png)
+
+## Mahjong riichi (juego de mesa)
+El mahjong japonés a cuatro: tú contra tres rivales, con 136 fichas (caracteres, círculos,
+bambúes, vientos y dragones). Se juega la ronda del Este, empezando con 25000 puntos.
+
+- Robas y descartas (tocando la ficha dos veces, o con la cruceta y Ⓐ). Ganas con cuatro
+  combinaciones (escaleras o tríos) y una pareja, siete parejas o los trece huérfanos, y al menos
+  un **yaku**: **tsumo** (Ⓨ) con la ficha que robas o **ron** (Ⓨ) con el descarte de otro.
+- Llamadas sobre un descarte: **pon** (Ⓧ), **chi** (L, solo del jugador de tu izquierda; con la
+  cruceta abajo eliges la escalera) y **kan** (R). En tu turno, R hace un kan cerrado o añadido.
+- **Riichi** (Ⓧ en tu turno): con la mano cerrada y a una ficha de ganar apuestas 1000 puntos;
+  desde entonces tiras lo que robas. Abajo se ven tus **esperas** y si estás en **furiten**.
+- Puntuación con **han** y **fu**: riichi, ippatsu, tsumo, pinfu, tanyao, iipeikou, yakuhai,
+  sanshoku, ittsu, chanta, junchan, toitoi, sanankou, honitsu, chinitsu, chiitoitsu,
+  ryanpeikou... y yakuman (kokushi, suuankou, daisangen, tsuuiisou...). Dora y ura dora.
+- Si se acaba el muro, los que no están en tenpai pagan 3000 a los que sí. El que reparte sigue si
+  gana o está en tenpai.
 
 ## Hundir la flota y tres en raya (juegos de mesa)
 - **Hundir la flota**: tu flota (portaaviones, acorazado, dos cruceros y destructor) se coloca

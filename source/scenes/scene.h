@@ -43,6 +43,7 @@ typedef enum {
 	SCENE_TOMA6,
 	SCENE_MAHJONG,
 	SCENE_NEGOCIO,
+	SCENE_RIICHI,
 	SCENE_TABLEROS,
 	SCENE_OMAHA,
 	SCENE_DRAWPOKER,
@@ -113,6 +114,7 @@ extern const Scene scene_freecell;
 extern const Scene scene_toma6;
 extern const Scene scene_mahjong;
 extern const Scene scene_negocio;
+extern const Scene scene_riichi;
 extern const Scene scene_tableros;
 extern const Scene scene_omaha;
 extern const Scene scene_drawpoker;

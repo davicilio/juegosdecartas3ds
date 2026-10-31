@@ -31,6 +31,7 @@
 #include "games/toma6.h"
 #include "games/freecell.h"
 #include "games/negocio.h"
+#include "games/riichi.h"
 #include "games/parchis.h"
 #include "games/flota.h"
 #include "games/tresenraya.h"
@@ -3161,6 +3162,172 @@ static void test_mahjong(void)
 	printf("  mahjong: %d de 100 resueltas cogiendo la primera pareja\n", solved);
 }
 
+/* Mano en notación de mahjong: "123m456p789s1122z" (z: 1-4 vientos, 5-7 dragones) */
+static void rc_parse(const char* str, int c[RC_TYPES])
+{
+	memset(c, 0, sizeof(int) * RC_TYPES);
+	int pending[16], n = 0;
+	for (const char* q = str; *q; q++) {
+		if (*q >= '1' && *q <= '9') {
+			pending[n++] = *q - '1';
+		} else {
+			int base = *q == 'm' ? RC_MAN : *q == 'p' ? RC_PIN : *q == 's' ? RC_SOU : RC_EAST;
+			for (int i = 0; i < n; i++)
+				c[base + pending[i]]++;
+			n = 0;
+		}
+	}
+}
+
+static int rc_tile(const char* str)
+{
+	int c[RC_TYPES];
+	rc_parse(str, c);
+	for (int t = 0; t < RC_TYPES; t++)
+		if (c[t])
+			return t;
+	return -1;
+}
+
+static void test_riichi(void)
+{
+	int c[RC_TYPES];
+	bool w[RC_TYPES];
+	rc_parse("123m456p789s11122z", c);
+	CHECK(rc_shanten(c, 0) == -1 && rc_is_complete(c, 0));
+	rc_parse("123m456p789s1122z", c);
+	CHECK(rc_shanten(c, 0) == 0 && rc_waits(c, 0, w) == 2 && w[RC_EAST] && w[RC_SOUTH]);
+	rc_parse("1122m3344p5566s7z", c);
+	CHECK(rc_shanten(c, 0) == 0 && rc_waits(c, 0, w) == 1 && w[RC_CHUN]);
+	rc_parse("19m19p19s1234567z", c);
+	CHECK(rc_shanten(c, 0) == 0 && rc_waits(c, 0, w) == 13);
+	rc_parse("1112345678999m", c);
+	CHECK(rc_waits(c, 0, w) == 9);
+	rc_parse("13579m2468p1357s", c);
+	CHECK(rc_shanten(c, 0) >= 4);
+	/* Dora */
+	CHECK(rc_dora_of(rc_tile("9m")) == rc_tile("1m") && rc_dora_of(RC_NORTH) == RC_EAST);
+	CHECK(rc_dora_of(RC_CHUN) == RC_HAKU && rc_dora_of(rc_tile("4p")) == rc_tile("5p"));
+	/* Tabla de puntos */
+	CHECK(rc_base_points(1, 30, 0, NULL) == 240 && rc_base_points(4, 40, 0, NULL) == 2000);
+	CHECK(rc_base_points(3, 70, 0, NULL) == 2000 && rc_base_points(7, 30, 0, NULL) == 3000);
+	CHECK(rc_base_points(13, 30, 0, NULL) == 8000 && rc_base_points(0, 0, 2, NULL) == 16000);
+
+	RcWinInfo in;
+	RcResult r;
+	memset(&in, 0, sizeof in);
+	in.seat_wind = RC_SOUTH;
+	in.round_wind = RC_EAST;
+	/* Riichi, tsumo y pinfu: 3 han 20 fu = 1300/700 */
+	in.riichi = in.tsumo = true;
+	rc_parse("234m567p234678s99p", c);
+	CHECK(rc_score_hand(c, NULL, 0, rc_tile("4s"), &in, &r));
+	CHECK(r.han == 3 && r.fu == 20 && r.points == 2700);
+	/* Con espera cerrada (kanchan) ya no hay pinfu: 2 han 40 fu */
+	CHECK(rc_score_hand(c, NULL, 0, rc_tile("6p"), &in, &r));
+	CHECK(r.han == 2 && r.fu == 30 && r.points == 2000);
+	/* Tanyao abierto por ron: 1 han 30 fu = 1000 */
+	memset(&in, 0, sizeof in);
+	in.seat_wind = RC_SOUTH;
+	in.round_wind = RC_EAST;
+	RcMeld pon = { RC_PON, (uint8_t)rc_tile("5m"), 1, (uint8_t)rc_tile("5m") };
+	rc_parse("234p678s456s33s", c);
+	CHECK(rc_score_hand(c, &pon, 1, rc_tile("3s"), &in, &r));
+	CHECK(r.han == 1 && r.fu == 30 && r.points == 1000);
+	/* Sin yaku no se puede ganar */
+	rc_parse("123p678s456s99s", c);
+	CHECK(!rc_score_hand(c, &pon, 1, rc_tile("9s"), &in, &r));
+	/* Siete parejas con riichi por ron, de mano: 3 han 25 fu = 3200 */
+	in.riichi = true;
+	rc_parse("1122m3344p5566s77z", c);
+	CHECK(rc_score_hand(c, NULL, 0, RC_CHUN, &in, &r));
+	CHECK(r.han == 3 && r.fu == 25 && r.points == 3200);
+	/* Chinitsu cerrado por ron: 6 han (más iipeikou) = haneman 12000 */
+	in.riichi = false;
+	rc_parse("11223344567999m", c);
+	CHECK(rc_score_hand(c, NULL, 0, rc_tile("7m"), &in, &r));
+	CHECK(r.han >= 6 && r.points == 12000);
+	/* Daisangen: yakuman 32000 (48000 si reparte) */
+	rc_parse("555666777z234m11p", c);
+	CHECK(rc_score_hand(c, NULL, 0, rc_tile("1p"), &in, &r) && r.yakuman == 1 && r.points == 32000);
+	in.dealer = true;
+	CHECK(rc_score_hand(c, NULL, 0, rc_tile("1p"), &in, &r) && r.points == 48000);
+	in.dealer = false;
+	/* Kokushi */
+	rc_parse("19m19p19s12345677z", c);
+	CHECK(rc_score_hand(c, NULL, 0, RC_CHUN, &in, &r) && r.yakuman == 1);
+	/* Yakuhai del viento propio y fu de un trío oculto de honores */
+	rc_parse("222z345m678p234s55p", c);
+	CHECK(rc_score_hand(c, NULL, 0, rc_tile("5p"), &in, &r));
+	CHECK(r.han == 1 && r.fu == 40); /* 20 + 10 de mano por ron + 8 + 2 (tanki) = 40 */
+	/* Dora */
+	in.dora_n = 1;
+	in.dora_indicators[0] = rc_tile("4m");
+	CHECK(rc_score_hand(c, NULL, 0, rc_tile("5p"), &in, &r) && r.dora == 1 && r.han == 2);
+
+	/* Partidas enteras entre la IA: los puntos se conservan y terminan */
+	int games_over = 0, wins = 0, draws = 0;
+	for (int seed = 1; seed <= 40; seed++) {
+		Riichi g;
+		rc_init(&g, (uint32_t)seed * 2654435761u);
+		int steps = 0;
+		while (g.phase != RC_GAME_OVER && steps < 200000) {
+			steps++;
+			switch (g.phase) {
+			case RC_TURN:
+				if (rc_ai_tsumo(&g)) {
+					CHECK(rc_tsumo(&g));
+				} else {
+					int k = rc_ai_kan(&g);
+					if (k >= 0) {
+						CHECK(rc_self_kan(&g, k));
+					} else {
+						bool ri;
+						int i = rc_ai_discard(&g, &ri);
+						CHECK(rc_discard(&g, i, ri));
+					}
+				}
+				break;
+			case RC_CLAIM: {
+				RcClaim cl[RC_PLAYERS] = { RC_PASS, RC_PASS, RC_PASS, RC_PASS };
+				int chi = -1;
+				for (int p = 0; p < RC_PLAYERS; p++)
+					if (p != g.discarder) {
+						int lo;
+						cl[p] = rc_ai_claim(&g, p, &lo);
+						if (cl[p] == RC_DO_CHI)
+							chi = lo;
+					}
+				rc_resolve(&g, cl, chi);
+				break;
+			}
+			case RC_HAND_OVER:
+				if (g.result.draw)
+					draws++;
+				else {
+					wins++;
+					CHECK(g.result.han >= 1 && g.result.points >= 1000);
+				}
+				rc_next(&g);
+				break;
+			default:
+				break;
+			}
+			int total = g.sticks * 1000;
+			for (int p = 0; p < RC_PLAYERS; p++) {
+				total += g.scores[p];
+				int n = g.hand_n[p] + 3 * g.meld_n[p];
+				CHECK(n == 13 || n == 14);
+			}
+			CHECK(total == RC_PLAYERS * RC_START);
+		}
+		games_over += g.phase == RC_GAME_OVER;
+	}
+	CHECK(games_over == 40);
+	CHECK(wins > draws);
+	printf("  riichi: %d manos ganadas y %d empates en 40 partidas\n", wins, draws);
+}
+
 static void test_negocio(void)
 {
 	NgBoard b, c;
@@ -4028,6 +4195,7 @@ int main(void)
 	test_poker_variants();
 	test_chip_stacks();
 	test_negocio();
+	test_riichi();
 	test_mahjong();
 	test_toma6();
 	test_freecell();
