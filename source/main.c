@@ -9,6 +9,7 @@
 #include "ui/gfx.h"
 #include "ui/input.h"
 #include "ui/mii.h"
+#include "ui/updater.h"
 #include "ui/widgets.h"
 
 #define FADE_TIME 0.25f
@@ -142,6 +143,8 @@ static const Scene* scene_for(SceneId id)
 		return &scene_cardback;
 	case SCENE_FICHAS:
 		return &scene_fichas;
+	case SCENE_UPDATE:
+		return &scene_update;
 	default:
 		return &scene_menu;
 	}
@@ -151,7 +154,7 @@ static const Scene* scene_for(SceneId id)
 static bool is_game(SceneId id)
 {
 	return id != SCENE_MENU && id != SCENE_PROFILE && id != SCENE_RIVALS && id != SCENE_CARDBACK &&
-		id != SCENE_FICHAS && id != SCENE_TABLEROS && id < SCENE_COUNT;
+		id != SCENE_FICHAS && id != SCENE_TABLEROS && id != SCENE_UPDATE && id < SCENE_COUNT;
 }
 
 /* Juegos de cartas (los de tablero, fichas o bolas no llevan música) */
@@ -213,7 +216,7 @@ static void pause_draw_bottom(void)
 		24, 190, 0, 0.42f, C2D_Color32(230, 215, 190, 255), 272);
 }
 
-int main(void)
+int main(int argc, char** argv)
 {
 	if (!gfx_init()) {
 		/* Sin gráficos no se puede seguir: se informa en la consola. */
@@ -231,6 +234,9 @@ int main(void)
 	srand((unsigned)time(NULL));
 	audio_init();
 	rivals_init();
+	/* ¿Hay una versión nueva? Se mira en segundo plano */
+	updater_set_path(argc > 0 ? argv[0] : NULL);
+	updater_check();
 	cardback_editor_init();
 
 	/* La primera vez se crea el perfil antes de ir al menú */
@@ -317,6 +323,7 @@ int main(void)
 	if (is_game(current) && last->leave)
 		last->leave();
 
+	updater_exit();
 	audio_exit();
 	gfx_exit();
 	return 0;

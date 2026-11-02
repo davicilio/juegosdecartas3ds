@@ -5,6 +5,7 @@
 #include "ui/audio.h"
 #include "ui/gfx.h"
 #include "ui/mii.h"
+#include "ui/updater.h"
 #include "ui/wallet.h"
 #include "ui/widgets.h"
 
@@ -272,6 +273,10 @@ static const MenuEntry entries[] = {
 	  "Tus fichas valen para todos los juegos con apuestas. Si te quedas sin ellas, cámbialas por "
 	  "las monedas de juego de la consola, las que se consiguen andando con la 3DS en el bolsillo.",
 	  SCENE_FICHAS, SUIT_OROS, { C(OROS, 1), C(OROS, 1), C(OROS, 1) }, { -1, -1, -1 } },
+	{ "Actualizar el juego",
+	  "Busca por internet si hay una versión nueva del juego y la instala sin salir de la consola. "
+	  "Tu perfil, tus fichas y tus tableros se conservan.",
+	  SCENE_UPDATE, SUIT_OROS, { C(OROS, 1), C(OROS, 1), C(OROS, 1) }, { -1, -1, -1 } },
 };
 
 #define NUM_ENTRIES ((int)(sizeof entries / sizeof entries[0]))
@@ -285,8 +290,8 @@ enum { SEC_PLAY, SEC_SOON, SEC_LIST, SEC_CONFIG = SEC_LIST, SEC_HIDDEN = -1 };
 static const char* const SECTION_TITLE[SEC_LIST] = { "Juegos", "Próximamente" };
 
 #define COL_X(c)    (8.0f + (c) * 156.0f)
-#define CONFIG_X(c) (8.0f + (c) * 103.0f) /* la configuración va en tres columnas */
-#define CONFIG_W    99.0f
+#define CONFIG_X(c) (6.0f + (c) * 77.5f) /* la configuración va en cuatro columnas */
+#define CONFIG_W    74.0f
 #define TAB_H       22.0f
 #define HEAD_H      15.0f
 #define GAME_W      148.0f
@@ -309,7 +314,7 @@ static int page_of(const MenuEntry* e)
 static int section_of(int i)
 {
 	const MenuEntry* e = &entries[i];
-	if (e->scene == SCENE_PROFILE || e->scene == SCENE_CARDBACK || e->scene == SCENE_FICHAS)
+	if (e->scene == SCENE_PROFILE || e->scene == SCENE_CARDBACK || e->scene == SCENE_FICHAS || e->scene == SCENE_UPDATE)
 		return SEC_CONFIG;
 	if (page_of(e) != s_page)
 		return SEC_HIDDEN;
@@ -320,7 +325,7 @@ static int section_of(int i)
  * columna y su fila para la cruceta; y de cada título. */
 static float s_item_y[NUM_ENTRIES];
 static int s_item_col[NUM_ENTRIES], s_item_row[NUM_ENTRIES];
-static int s_row_item[MAX_ROWS][3];
+static int s_row_item[MAX_ROWS][4];
 static int s_row_cols[MAX_ROWS];
 static int s_rows;
 static float s_head_y[SEC_LIST];
@@ -341,12 +346,12 @@ static void layout(void)
 			s_head_y[sec] = y;
 			y += HEAD_H;
 		}
-		int cols = sec == SEC_CONFIG ? 3 : 2;
+		int cols = sec == SEC_CONFIG ? 4 : 2;
 		for (int i = 0; i < NUM_ENTRIES; i++) {
 			if (section_of(i) != sec)
 				continue;
 			if (k % cols == 0) {
-				s_row_item[s_rows][0] = s_row_item[s_rows][1] = s_row_item[s_rows][2] = i;
+				s_row_item[s_rows][0] = s_row_item[s_rows][1] = s_row_item[s_rows][2] = s_row_item[s_rows][3] = i;
 				s_row_cols[s_rows] = 1;
 				s_rows++;
 			}
@@ -546,6 +551,14 @@ static SceneId menu_update(const Input* in, float dt)
 		}
 	}
 	return SCENE_MENU;
+}
+
+/* Flecha de descarga en un círculo verde */
+static void draw_update_icon(float cx, float cy, float s, float depth)
+{
+	gfx_ellipse(cx, cy, 8 * s, 8 * s, depth, C2D_Color32(40, 140, 60, 255));
+	gfx_rect(cx - 1.5f * s, cy - 5 * s, 3 * s, 6 * s, depth, COLOR_WHITE);
+	gfx_triangle(cx - 4.5f * s, cy, cx + 4.5f * s, cy, cx, cy + 5 * s, depth, COLOR_WHITE);
 }
 
 static bool is_french(SceneId scene)
@@ -800,6 +813,8 @@ static void menu_draw_top(void)
 		gfx_board(BOARD_JOKER, 176, 128, 0.8f, 0.0f, DEPTH_UI, NULL);
 	else if (e->scene == SCENE_FICHAS)
 		gfx_sprite_ex(SPR_CHIP_BLACK, 176, 126, 0.8f, 0.8f, 0.0f, DEPTH_UI, NULL);
+	else if (e->scene == SCENE_UPDATE)
+		draw_update_icon(176, 126, 1.0f, DEPTH_UI);
 	else
 		gfx_sprite(SPR_SUIT_FIRST + e->icon, 176, 126, 0.8f, DEPTH_UI);
 	gfx_text(e->scene == SCENE_PROFILE ? me->name : e->name, 192, 115, DEPTH_UI, 0.6f, COLOR_GOLD, C2D_AlignLeft);
@@ -811,6 +826,12 @@ static void menu_draw_top(void)
 		k++;
 	}
 	gfx_text_wrap(e->description, 166, 140, DEPTH_UI, 0.42f, COLOR_CREAM, 214);
+	/* Aviso de versión nueva */
+	if (updater_state() == UPD_AVAILABLE) {
+		float pulse = 0.5f + 0.5f * sinf(t * 4.0f);
+		gfx_rrect(4, 4, 150, 20, 7, DEPTH_BANNER, C2D_Color32(40, (u8)(120 + 40 * pulse), 60, 255));
+		gfx_text("¡Versión nueva! Mira en Versión", 79, 6, DEPTH_BANNER, 0.42f, COLOR_WHITE, C2D_AlignCenter);
+	}
 	/* En los juegos con apuestas, las fichas que tienes */
 	if (uses_chips(e->scene) || e->scene == SCENE_FICHAS) {
 		int chips = wallet_chips();
@@ -893,16 +914,21 @@ static void menu_draw_bottom(void)
 			gfx_board(BOARD_JOKER, x + 13, y + h / 2 + 2, 0.75f, 0.0f, 0, NULL);
 		else if (e->scene == SCENE_FICHAS)
 			gfx_sprite_ex(SPR_CHIP_BLACK, x + 13, y + h / 2, 0.55f, 0.55f, 0.0f, 0, NULL);
+		else if (e->scene == SCENE_UPDATE)
+			draw_update_icon(x + 13, y + h / 2, 0.75f, 0);
 		else
 			gfx_sprite(SPR_SUIT_FIRST + e->icon, x + 13, y + h / 2, icon, 0);
 		/* En la franja de configuración no cabe el nombre largo del dorso */
-		const char* label = small && e->scene == SCENE_CARDBACK ? "Dorso" : e->name;
+		const char* label = !small ? e->name : e->scene == SCENE_CARDBACK ? "Dorso" : e->scene == SCENE_UPDATE ? "Versión" : e->scene == SCENE_PROFILE ? "Perfil" : e->name;
 		float scale = small ? 0.45f : 0.52f;
 		float tw = gfx_text_width(label, scale);
 		if (tw > w - 30.0f)
 			scale = fmaxf(0.45f, scale * (w - 30.0f) / tw);
 		gfx_text(label, x + 26, y + (small ? 2 : 3), 0, scale,
 			available ? C2D_Color32(90, 15, 20, 255) : C2D_Color32(110, 100, 95, 255), C2D_AlignLeft);
+		/* Aviso de versión nueva */
+		if (e->scene == SCENE_UPDATE && updater_state() == UPD_AVAILABLE)
+			gfx_ellipse(x + w - 5, y + 3, 4, 4, 0, C2D_Color32(220, 40, 40, 255));
 	}
 	/* Pestañas de las páginas */
 	gfx_rect(0, 0, BOTTOM_W, TAB_H, 0, C2D_Color32(70, 10, 16, 255));

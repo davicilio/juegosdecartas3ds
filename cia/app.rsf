@@ -167,6 +167,7 @@ AccessControlInfo:
   # para las caras de los Miis, selector de Miis y teclado)
   ServiceAccessControl:
    - APT:U
+   - am:net
    - ac:u
    - boss:U
    - cfg:u

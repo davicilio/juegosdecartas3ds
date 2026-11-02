@@ -35,6 +35,10 @@ El atlas de piezas de los juegos de mesa (ajedrez, dados, fichas de mahjong, bol
 bingo, iconos de Negocio redondo, mina y bandera) y los mapas de Conquista se generan con
 `python3 tools/gen_pieces.py`; el logotipo, el icono y el banner, con `tools/gen_assets.py`.
 
+El CI compila con `BUILD_NUMBER` (el número de la ejecución) y publica `version.txt` en la
+release, que es lo que compara el actualizador (`source/ui/updater.c`, con curl y mbedtls). Los
+certificados raíz que usa para comprobar las descargas están en `romfs/certs.pem`.
+
 ### Tests
 
 La lógica de los juegos no depende de la consola y se prueba con el compilador

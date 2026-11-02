@@ -61,7 +61,8 @@ jobs:
           name: voz
           path: romfs/voz/
       - name: Compilar
-        run: make -j"$(nproc)"
+        # El número de compilación es la versión que compara el actualizador del juego
+        run: make -j"$(nproc)" BUILD_NUMBER=${{ github.run_number }}
       - name: Subir JuegosDeCartas.3dsx
         uses: actions/upload-artifact@v4
         with:
@@ -113,7 +114,9 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           gh release delete ultima-version --repo "$GITHUB_REPOSITORY" --cleanup-tag --yes || true
-          gh release create ultima-version JuegosDeCartas.cia JuegosDeCartas.3dsx \
+          # version.txt: lo que mira el actualizador del juego para saber si hay versión nueva
+          echo "${{ github.run_number }}" > version.txt
+          gh release create ultima-version JuegosDeCartas.cia JuegosDeCartas.3dsx version.txt \
             --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" --prerelease \
             --title "Última versión" \
             --notes "Compilada automáticamente desde ${GITHUB_SHA::7}. Instala JuegosDeCartas.cia con FBI o abre JuegosDeCartas.3dsx desde el Homebrew Launcher."

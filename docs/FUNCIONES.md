@@ -2,6 +2,7 @@
 
 [← Volver al README](../README.md)
 
+- [Actualizar el juego](#actualizar-el-juego)
 - [Fichas y monedas de juego](#fichas-y-monedas-de-juego)
 - [Pausa](#pausa)
 - [Los personajes](#los-personajes-basados-en-los-miis-de-tu-consola)
@@ -9,6 +10,21 @@
 - [Música del menú](#música-del-menú)
 - [Controles](#controles)
 - [Aspecto "de 3DS"](#aspecto-de-3ds)
+
+## Actualizar el juego
+
+Al arrancar, el juego mira por internet (sin parar nada) si hay una versión nueva publicada en la
+release [ultima-version](https://github.com/davicilio/juegosdecartas3ds/releases/tag/ultima-version).
+Si la hay, en el menú aparece un aviso y un punto rojo en **Configuración → Versión**. Ahí se ve
+tu versión y la publicada, y con **Instalar** se descarga e instala sola:
+
+- Si lo tienes instalado como aplicación (**.cia**), se instala encima con el servicio de
+  instalación de la consola, como hace FBI.
+- Si lo abres desde el Homebrew Launcher (**.3dsx**), se sustituye el fichero.
+
+Luego basta con salir y volver a abrir el juego. El perfil, las fichas, los tableros y los récords
+se conservan. Las descargas van cifradas y se comprueba el certificado de GitHub. Para que funcione
+el repositorio tiene que ser público y la consola, tener internet.
 
 ## Fichas y monedas de juego
 

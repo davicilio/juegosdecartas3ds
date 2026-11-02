@@ -68,6 +68,7 @@ typedef enum {
 	SCENE_RIVALS,
 	SCENE_CARDBACK,
 	SCENE_FICHAS,
+	SCENE_UPDATE,
 	SCENE_COUNT,
 	SCENE_QUIT
 } SceneId;
@@ -147,6 +148,7 @@ extern const Scene scene_profile;
 extern const Scene scene_rivals;
 extern const Scene scene_cardback;
 extern const Scene scene_fichas;
+extern const Scene scene_update;
 
 /* Carga el dorso de las cartas guardado en la SD. */
 void cardback_editor_init(void);

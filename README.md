@@ -27,7 +27,7 @@ FBI).
 3. En la consola abre **FBI → SD → cias → JuegosDeCartas.cia → Install CIA**.
 4. El juego aparece en el menú HOME con su icono y su banner ("Juegos de mesa variados").
 
-Para actualizarlo basta con instalar el `.cia` nuevo encima.
+Las siguientes versiones se instalan desde el propio juego: **Configuración → Versión**.
 
 #### Con un QR
 
