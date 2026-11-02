@@ -217,6 +217,29 @@ Toca una pieza para ver adónde puede ir y toca el destino (o usa la cruceta y �
 el tablero grande con las jugadas en notación (C caballo, A alfil, T torre, D dama, R rey).
 **Deshacer** (Ⓨ) quita tu última jugada y la de tu rival.
 
+## Backgammon (juego de mesa)
+Tú llevas las blancas y vas hacia tu casa (abajo a la derecha); tu rival, las rojas, en sentido
+contrario. Tira los dados (Ⓐ), toca una ficha y luego su destino: se iluminan las fichas que
+puedes mover y adónde. Con dobles se mueve cuatro veces. No se puede caer donde haya dos o más
+fichas contrarias; si caes sobre una sola, la mandas a la barra y tendrá que volver a entrar antes
+de mover nada más. Con todas tus fichas en casa, sácalas tocando la bandeja de la derecha. Hay que
+usar todos los dados que se pueda (si solo cabe uno, el mayor). Gana quien saca antes sus quince
+fichas: doble (gammon) si el otro no ha sacado ninguna, y triple (backgammon) si además tiene
+fichas en la barra o en tu casa.
+
+## Generala (juego de mesa)
+Cinco dados y hasta tres tiradas por turno; toca los dados para guardarlos entre tirada y tirada.
+Al acabar, apunta la jugada en una casilla libre (o táchala con 0): del 1 al 6 (la suma de esos
+dados), escalera 20, full 30, póker 40, generala 50 y doble generala 100 (solo con la generala ya
+apuntada). Hechas en la primera tirada, la escalera, el full y el póker valen 5 más, y **una
+generala servida gana la partida**. De 2 a 4 jugadores; gana quien más sume.
+
+## Sudoku (juego de mesa)
+Rellena la cuadrícula para que cada fila, columna y caja de 3x3 tenga del 1 al 9. Los sudokus se
+generan al momento, siempre con una sola solución, en tres niveles. Toca una casilla y un número
+(o elige el número con L/R y ponlo con Ⓐ). Con **Notas** (Ⓧ) apuntas posibles números; con
+**Pista** (Ⓨ) se rellena una casilla (cuesta medio minuto). Los fallos se ven en rojo.
+
 ## Buscaminas (juego de mesa)
 Destapa todas las casillas sin mina; cada número dice cuántas minas hay alrededor. Toca para
 destapar y, con L o R pulsado (o con el modo **Bandera**, Ⓨ), para poner o quitar banderas. Si
@@ -418,6 +441,12 @@ Contra la banca, con cuatro barajas. Elige la apuesta (L/R ±10, Ⓧ +100) y rep
 **Pedir** (Ⓐ), **Plantarse** (Ⓑ), **Doblar** (Ⓧ: doblas la apuesta y recibes una
 carta) y **Separar** (Ⓨ: dos cartas iguales en dos manos). La banca pide hasta 17;
 el blackjack paga 3 a 2. En la pantalla de abajo ves qué haría la estrategia básica.
+
+## Solitario Araña (baraja francesa)
+Dos barajas en diez columnas. Una carta va sobre otra de un número más, de cualquier palo, pero
+solo se mueven juntas las escaleras del mismo palo. Al completar del rey al as del mismo palo, la
+escalera sale del tablero; hay que sacar las ocho. **Dar** (Ⓧ) pone una carta en cada columna
+(sin columnas vacías). Con 1, 2 o 4 palos, deshacer (Ⓨ) y pistas (R).
 
 ## Corazones (baraja francesa)
 Cuatro jugadores, trece cartas. Antes de cada mano pasas tres cartas (izquierda,

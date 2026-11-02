@@ -86,6 +86,14 @@ static const Scene* scene_for(SceneId id)
 		return &scene_ajedrez;
 	case SCENE_CONQUISTA:
 		return &scene_conquista;
+	case SCENE_SUDOKU:
+		return &scene_sudoku;
+	case SCENE_GENERALA:
+		return &scene_generala;
+	case SCENE_BACKGAMMON:
+		return &scene_backgammon;
+	case SCENE_SPIDER:
+		return &scene_spider;
 	case SCENE_TABLEROS:
 		return &scene_tableros;
 	case SCENE_TOMA6:
@@ -164,6 +172,9 @@ static bool is_card_game(SceneId id)
 	case SCENE_BUSCAMINAS:
 	case SCENE_AJEDREZ:
 	case SCENE_CONQUISTA:
+	case SCENE_SUDOKU:
+	case SCENE_GENERALA:
+	case SCENE_BACKGAMMON:
 	case SCENE_BINGO:
 	case SCENE_RUMMIKUB:
 		return false;

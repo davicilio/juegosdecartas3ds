@@ -31,7 +31,11 @@
 #include "games/toma6.h"
 #include "games/freecell.h"
 #include "games/ajedrez.h"
+#include "games/backgammon.h"
 #include "games/buscaminas.h"
+#include "games/generala.h"
+#include "games/spider.h"
+#include "games/sudoku.h"
 #include "games/conquista.h"
 #include "games/negocio.h"
 #include "games/parejas.h"
@@ -3609,6 +3613,192 @@ static void test_conquista(void)
 	CHECK(ended == 100);
 }
 
+static void test_sudoku(void)
+{
+	for (int lv = 0; lv < SD_LEVELS; lv++)
+		for (int seed = 1; seed <= 6; seed++) {
+			Sudoku g;
+			sd_generate(&g, (SdLevel)lv, (uint32_t)(seed * 97 + lv));
+			CHECK(sd_count_solutions(g.cell, 2) == 1);
+			/* La solución es válida */
+			Sudoku full = g;
+			memcpy(full.cell, full.solution, 81);
+			for (int i = 0; i < 81; i++)
+				CHECK(full.cell[i] >= 1 && full.cell[i] <= 9 && !sd_conflict(&full, i));
+			CHECK(sd_solved(&full));
+			for (int i = 0; i < 81; i++)
+				if (g.given[i])
+					CHECK(g.cell[i] == g.solution[i]);
+			int clues = sd_givens(&g);
+			CHECK(clues <= (lv == 0 ? 41 : lv == 1 ? 40 : 40) && clues >= 17);
+		}
+	Sudoku g;
+	sd_generate(&g, SD_EASY, 5);
+	int fixed = -1, free_cell = -1;
+	for (int i = 0; i < 81; i++) {
+		if (g.given[i] && fixed < 0)
+			fixed = i;
+		if (!g.given[i] && free_cell < 0)
+			free_cell = i;
+	}
+	CHECK(!sd_set(&g, fixed, 1));
+	int wrong = g.solution[free_cell] % 9 + 1;
+	CHECK(sd_set(&g, free_cell, wrong) && g.mistakes == 1);
+	CHECK(sd_toggle_note(&g, free_cell, 3) == false); /* con número no hay notas */
+	sd_set(&g, free_cell, 0);
+	CHECK(sd_toggle_note(&g, free_cell, 3) && (g.notes[free_cell] & (1 << 3)));
+	/* Rellenarlo con pistas lo resuelve */
+	while (sd_hint(&g, -1) >= 0)
+		;
+	CHECK(sd_solved(&g) && g.mistakes == 1);
+}
+
+static void test_generala(void)
+{
+	Generala g;
+	ge_init(&g, 2, 1);
+	int d1[5] = { 1, 2, 3, 4, 5 };
+	CHECK(ge_roll(&g, d1) && ge_points(&g, GE_STRAIGHT) == 25); /* servida */
+	int d2[5] = { 3, 3, 3, 6, 6 };
+	CHECK(ge_roll(&g, d2) && ge_points(&g, GE_FULL) == 30 && ge_points(&g, GE_THREES) == 9);
+	CHECK(ge_points(&g, GE_POKER) == 0 && ge_points(&g, GE_GENERALA) == 0);
+	CHECK(ge_score(&g, GE_FULL) && g.score[0][GE_FULL] == 30 && g.current == 1);
+	/* Generala servida: gana en el acto */
+	int d3[5] = { 4, 4, 4, 4, 4 };
+	CHECK(ge_roll(&g, d3) && ge_score(&g, GE_GENERALA) && g.phase == GE_OVER && g.winner == 1 && g.served_win);
+	/* Doble generala sin generala apuntada vale 0 */
+	ge_init(&g, 1, 2);
+	ge_roll(&g, d1);
+	int d4[5] = { 6, 6, 6, 6, 6 };
+	ge_roll(&g, d4);
+	CHECK(ge_value(&g, GE_DOUBLE) == 0 && ge_points(&g, GE_POKER) == 40);
+	/* Partidas enteras con la IA */
+	for (int seed = 1; seed <= 200; seed++) {
+		ge_init(&g, 1 + seed % 4, (uint32_t)seed);
+		int guard = 0;
+		while (g.phase != GE_OVER && guard++ < 2000) {
+			ge_roll(&g, NULL);
+			while (g.rolls < GE_ROLLS && ge_ai_hold(&g))
+				ge_roll(&g, NULL);
+			int cat = ge_ai_category(&g);
+			CHECK(cat >= 0 && ge_score(&g, cat));
+		}
+		CHECK(g.phase == GE_OVER && g.winner >= 0);
+		if (!g.served_win)
+			for (int p = 0; p < g.players; p++)
+				for (int c = 0; c < GE_CATS; c++)
+					CHECK(g.score[p][c] >= 0);
+	}
+}
+
+static int bg_count(const BgBoard* b, int p)
+{
+	int n = b->bar[p] + b->off[p];
+	for (int i = 0; i < BG_POINTS; i++)
+		n += p == 0 ? (b->pt[i] > 0 ? b->pt[i] : 0) : (b->pt[i] < 0 ? -b->pt[i] : 0);
+	return n;
+}
+
+static void test_backgammon(void)
+{
+	Backgammon g;
+	bg_init(&g, 3);
+	CHECK(bg_pips(&g.b, 0) == 167 && bg_pips(&g.b, 1) == 167);
+	g.current = 0;
+	bg_roll(&g, 3, 1);
+	BgStep st[64];
+	int n = bg_legal_steps(&g, st, 64);
+	CHECK(n > 0 && g.phase == BG_MOVE);
+	/* El clásico 3-1: 8/5 y 6/5 */
+	CHECK(bg_step(&g, 7, 4) && bg_step(&g, 5, 4));
+	CHECK(g.b.pt[4] == 2 && g.current == 1 && g.phase == BG_ROLL);
+	/* Golpe y barra: hay que entrar antes que nada */
+	memset(&g.b, 0, sizeof g.b);
+	g.b.pt[10] = 1;
+	g.b.pt[8] = -1;
+	g.b.pt[20] = -14;
+	g.b.pt[2] = 14;
+	g.current = 0;
+	g.phase = BG_ROLL;
+	bg_roll(&g, 2, 6);
+	CHECK(bg_step(&g, 10, 8) && g.b.bar[1] == 1 && g.b.pt[8] == 1);
+	g.current = 1;
+	g.phase = BG_ROLL;
+	g.left_n = 0;
+	bg_roll(&g, 5, 4);
+	n = bg_legal_steps(&g, st, 64);
+	for (int i = 0; i < n; i++)
+		CHECK(st[i].from == BG_BAR);
+	/* Si solo se puede usar un dado, el mayor */
+	memset(&g.b, 0, sizeof g.b);
+	g.b.pt[3] = 1;   /* blanca en la punta 4 */
+	g.b.pt[2] = -2;  /* bloqueada la 3 (con un 1) */
+	g.b.pt[0] = -2;  /* y la 1 (con un 3) */
+	g.b.pt[22] = 14;
+	g.current = 0;
+	g.phase = BG_ROLL;
+	g.left_n = 0;
+	g.b.pt[22] = 0;
+	g.b.off[0] = 14; /* todas en casa menos esa */
+	g.b.pt[18] = -11;
+	bg_roll(&g, 5, 1);
+	n = bg_legal_steps(&g, st, 64);
+	CHECK(n == 1 && st[0].die == 5 && st[0].to == BG_OFF);
+	/* Partidas enteras entre la IA */
+	int games = 0;
+	for (int seed = 1; seed <= 30; seed++) {
+		bg_init(&g, (uint32_t)seed);
+		int guard = 0;
+		while (g.phase != BG_OVER && guard++ < 3000) {
+			if (g.phase == BG_ROLL)
+				bg_roll(&g, 0, 0);
+			else
+				bg_ai_play(&g);
+			CHECK(bg_count(&g.b, 0) == 15 && bg_count(&g.b, 1) == 15);
+		}
+		games += g.phase == BG_OVER && g.winner >= 0 && g.points >= 1;
+	}
+	CHECK(games == 30);
+}
+
+static void test_spider(void)
+{
+	Spider g;
+	sp_init(&g, 4, 9);
+	int total = g.b.stock_n;
+	for (int c = 0; c < SP_COLS; c++) {
+		total += g.b.col_n[c];
+		CHECK(g.b.col[c][g.b.col_n[c] - 1].up && !g.b.col[c][0].up);
+	}
+	CHECK(total == 104 && g.b.stock_n == 50);
+	CHECK(sp_deal(&g) && g.b.stock_n == 40 && sp_undo(&g) && g.b.stock_n == 50);
+	/* Una escalera completa del mismo palo sale sola */
+	memset(&g.b, 0, sizeof g.b);
+	for (int r = 13; r >= 2; r--)
+		g.b.col[0][g.b.col_n[0]++] = (SpCard){ (uint8_t)r, 1, true };
+	g.b.col[1][g.b.col_n[1]++] = (SpCard){ 5, 0, true };
+	g.b.col[1][g.b.col_n[1]++] = (SpCard){ 1, 1, true };
+	CHECK(sp_run(&g.b, 0) == 12);
+	CHECK(sp_can_move(&g.b, 1, 1, 0) && !sp_can_move(&g.b, 1, 2, 0));
+	CHECK(sp_move(&g, 1, 1, 0) && g.b.done == 1 && g.b.col_n[0] == 0);
+	/* Con un palo, jugando con las pistas se completan escaleras */
+	int won = 0, runs = 0;
+	for (int seed = 1; seed <= 20; seed++) {
+		sp_init(&g, 1, (uint32_t)seed);
+		for (int k = 0; k < 2000 && !g.won; k++) {
+			int f, n2, t;
+			if (sp_hint(&g.b, &f, &n2, &t))
+				CHECK(sp_move(&g, f, n2, t));
+			else if (!sp_deal(&g))
+				break;
+		}
+		won += g.won;
+		runs += g.b.done;
+	}
+	CHECK(runs >= 3);
+	printf("  araña (1 palo): %d escaleras y %d partidas ganadas en 20, solo con las pistas\n", runs, won);
+}
+
 static void test_negocio(void)
 {
 	NgBoard b, c;
@@ -4476,6 +4666,10 @@ int main(void)
 	test_poker_variants();
 	test_chip_stacks();
 	test_negocio();
+	test_sudoku();
+	test_generala();
+	test_backgammon();
+	test_spider();
 	test_conquista();
 	test_ajedrez();
 	test_buscaminas();

@@ -162,6 +162,10 @@ static const MenuEntry entries[] = {
 	  "El solitario FreeCell: todas las cartas boca arriba en ocho columnas y cuatro casillas "
 	  "libres. Sube los cuatro palos del as al rey. Las partidas van numeradas como en Windows.",
 	  SCENE_FREECELL, SUIT_OROS, { C(OROS, 1), C(OROS, 1), C(OROS, 1) }, { -1, -1, -1 }, KIND_FRENCH },
+	{ "Solitario Araña",
+	  "Dos barajas en diez columnas: ordena del rey al as del mismo palo para sacar las escaleras. "
+	  "Con 1, 2 o 4 palos. Con pistas y deshacer.",
+	  SCENE_SPIDER, SUIT_OROS, { C(OROS, 1), C(OROS, 1), C(OROS, 1) }, { -1, -1, -1 }, KIND_FRENCH },
 	{ "Corazones",
 	  "Evita llevarte corazones (1 punto) y la reina de picas (13). Antes de cada mano se pasan tres "
 	  "cartas. ¡O llévatelos todos y dispara a la luna! A 100 puntos gana quien menos tenga.",
@@ -176,6 +180,18 @@ static const MenuEntry entries[] = {
 	  "Damas españolas: comer es obligatorio (y la jugada que más come), las fichas comen hacia "
 	  "delante y la dama vuela por las diagonales. Tres niveles de dificultad.",
 	  SCENE_DAMAS, SUIT_OROS, { C(OROS, 1), C(OROS, 1), C(OROS, 1) }, { CPU_MANOLO, -1, -1 }, KIND_BOARD },
+	{ "Backgammon",
+	  "El juego de tablas de siempre: tira los dados, avanza tus quince fichas hasta tu casa y sácalas "
+	  "antes que tu rival. Come las fichas sueltas y bloquea su camino.",
+	  SCENE_BACKGAMMON, SUIT_OROS, { C(OROS, 1), C(OROS, 1), C(OROS, 1) }, { CPU_RAMON, -1, -1 }, KIND_BOARD },
+	{ "Generala",
+	  "Cinco dados y tres tiradas por turno para hacer escalera, full, póker o generala. Una generala "
+	  "a la primera gana la partida. De 2 a 4 jugadores.",
+	  SCENE_GENERALA, SUIT_OROS, { C(OROS, 1), C(OROS, 1), C(OROS, 1) }, { CPU_PEPE, CPU_LOLA, CPU_PACO }, KIND_BOARD },
+	{ "Sudoku",
+	  "Rellena la cuadrícula de 9x9 sin repetir números en filas, columnas ni cajas. Sudokus nuevos "
+	  "cada vez, con solución única, en tres niveles. Con notas y pistas.",
+	  SCENE_SUDOKU, SUIT_OROS, { C(OROS, 1), C(OROS, 1), C(OROS, 1) }, { -1, -1, -1 }, KIND_BOARD },
 	{ "Ajedrez",
 	  "Ajedrez contra la consola, con enroque, captura al paso, coronación y tablas. Antes de jugar "
 	  "eliges la dificultad (de principiante a difícil) y si llevas blancas o negras.",
@@ -535,7 +551,7 @@ static SceneId menu_update(const Input* in, float dt)
 static bool is_french(SceneId scene)
 {
 	return scene == SCENE_POKER || scene == SCENE_BLACKJACK || scene == SCENE_CORAZONES || scene == SCENE_FREECELL ||
-	       scene == SCENE_OMAHA || scene == SCENE_DRAWPOKER || scene == SCENE_VIDEOPOKER;
+	       scene == SCENE_OMAHA || scene == SCENE_DRAWPOKER || scene == SCENE_VIDEOPOKER || scene == SCENE_SPIDER;
 }
 
 /* Icono de los juegos de mesa sin cartas (s = escala, 1 = unos 16 px) */
@@ -545,7 +561,7 @@ static bool has_board_icon(SceneId scene)
 	       scene == SCENE_OCA || scene == SCENE_BINGO || scene == SCENE_TRESENRAYA || scene == SCENE_FLOTA ||
 	       scene == SCENE_PARCHIS || scene == SCENE_TOMA6 || scene == SCENE_MAHJONG || scene == SCENE_NEGOCIO ||
 	       scene == SCENE_RIICHI || scene == SCENE_BUSCAMINAS || scene == SCENE_AJEDREZ ||
-	       scene == SCENE_CONQUISTA;
+	       scene == SCENE_CONQUISTA || scene == SCENE_SUDOKU || scene == SCENE_GENERALA || scene == SCENE_BACKGAMMON;
 }
 
 static void draw_board_icon(SceneId scene, float cx, float cy, float s, float depth)
@@ -606,6 +622,36 @@ static void draw_board_icon(SceneId scene, float cx, float cy, float s, float de
 			gfx_text("15", cx, cy - 3.2f * s, depth, 0.25f * s, C2D_Color32(30, 30, 40, 255), C2D_AlignCenter);
 		else
 			gfx_ellipse(cx - 3 * s, cy - 3.5f * s, 1.6f * s, 1.1f * s, depth, C2D_Color32(255, 255, 255, 160));
+		return;
+	}
+	if (scene == SCENE_SUDOKU) {
+		/* Una caja de 3x3 con algunos números */
+		gfx_rect(cx - 9 * s, cy - 9 * s, 18 * s, 18 * s, depth, C2D_Color32(40, 40, 60, 255));
+		static const char* const N[9] = { "5", "", "3", "", "7", "", "1", "", "9" };
+		for (int k = 0; k < 9; k++) {
+			float x = cx - 8.5f * s + k % 3 * 5.8f * s, y = cy - 8.5f * s + k / 3 * 5.8f * s;
+			gfx_rect(x, y, 5.2f * s, 5.2f * s, depth, C2D_Color32(252, 250, 244, 255));
+			if (N[k][0] && s >= 2.0f)
+				gfx_text(N[k], x + 2.6f * s, y + 2.6f * s - 15.0f * 0.2f * s, depth, 0.2f * s, C2D_Color32(30, 30, 45, 255),
+					C2D_AlignCenter);
+		}
+		return;
+	}
+	if (scene == SCENE_GENERALA) {
+		gfx_piece(PIECE_DIE_FIRST + 4, cx - 4 * s, cy - 3 * s, s * 0.36f, s * 0.36f, depth);
+		gfx_piece(PIECE_DIE_FIRST + 5, cx + 4 * s, cy + 4 * s, s * 0.36f, s * 0.36f, depth);
+		return;
+	}
+	if (scene == SCENE_BACKGAMMON) {
+		gfx_rrect(cx - 9 * s, cy - 9 * s, 18 * s, 18 * s, 2 * s, depth, C2D_Color32(30, 100, 60, 255));
+		for (int k = 0; k < 3; k++) {
+			float x = cx - 9 * s + k * 6 * s;
+			u32 c = k % 2 ? C2D_Color32(230, 210, 170, 255) : C2D_Color32(160, 50, 45, 255);
+			gfx_triangle(x, cy - 9 * s, x + 6 * s, cy - 9 * s, x + 3 * s, cy, depth, c);
+			gfx_triangle(x, cy + 9 * s, x + 6 * s, cy + 9 * s, x + 3 * s, cy, depth, k % 2 ? C2D_Color32(160, 50, 45, 255) : C2D_Color32(230, 210, 170, 255));
+		}
+		gfx_ellipse(cx - 6 * s, cy + 6 * s, 2.6f * s, 2.6f * s, depth, C2D_Color32(245, 238, 220, 255));
+		gfx_ellipse(cx + 6 * s, cy - 6 * s, 2.6f * s, 2.6f * s, depth, C2D_Color32(150, 30, 35, 255));
 		return;
 	}
 	if (scene == SCENE_CONQUISTA) {
@@ -705,7 +751,10 @@ static void menu_draw_top(void)
 			static const int omaha[3] = { 0 * 13 + 12, 1 * 13 + 12, 2 * 13 + 12 };
 			static const int draw[3] = { 3 * 13 + 8, 3 * 13 + 9, 3 * 13 + 10 };
 			static const int royal[3] = { 1 * 13 + 10, 1 * 13 + 11, 1 * 13 + 12 };
-			if (e->scene == SCENE_OMAHA)
+			static const int spider[3] = { 0 * 13 + 11, 0 * 13 + 10, 0 * 13 + 9 };
+			if (e->scene == SCENE_SPIDER)
+				f0 = spider;
+			else if (e->scene == SCENE_OMAHA)
 				f0 = omaha;
 			else if (e->scene == SCENE_DRAWPOKER)
 				f0 = draw;
