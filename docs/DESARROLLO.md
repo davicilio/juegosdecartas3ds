@@ -31,6 +31,10 @@ de `tools/`) y la configuración del `.cia` en `cia/app.rsf`.
 
 El QR de instalación se regenera con `python3 tools/gen_qr.py URL docs/qr_cia.png`.
 
+El atlas de piezas de los juegos de mesa (ajedrez, dados, fichas de mahjong, bolas y bombo del
+bingo, iconos de Negocio redondo, mina y bandera) y los mapas de Conquista se generan con
+`python3 tools/gen_pieces.py`; el logotipo, el icono y el banner, con `tools/gen_assets.py`.
+
 ### Tests
 
 La lógica de los juegos no depende de la consola y se prueba con el compilador

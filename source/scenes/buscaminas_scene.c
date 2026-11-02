@@ -182,17 +182,12 @@ static u32 number_color(int n)
 
 static void draw_mine(float cx, float cy, float r, float depth)
 {
-	gfx_line(cx - r * 1.3f, cy, cx + r * 1.3f, cy, 1.5f, depth, C2D_Color32(20, 20, 20, 255));
-	gfx_line(cx, cy - r * 1.3f, cx, cy + r * 1.3f, 1.5f, depth, C2D_Color32(20, 20, 20, 255));
-	gfx_ellipse(cx, cy, r, r, depth, C2D_Color32(20, 20, 20, 255));
-	gfx_ellipse(cx - r * 0.35f, cy - r * 0.35f, r * 0.25f, r * 0.25f, depth, C2D_Color32(255, 255, 255, 220));
+	gfx_piece(PIECE_MINE, cx, cy, r / 7.0f, r / 7.0f, depth);
 }
 
 static void draw_flag(float cx, float cy, float s, float depth)
 {
-	gfx_rect(cx - 1, cy - 7 * s, 2, 13 * s, depth, C2D_Color32(40, 40, 40, 255));
-	gfx_triangle(cx + 1, cy - 7 * s, cx + 1, cy - 1 * s, cx - 7 * s, cy - 4 * s, depth, C2D_Color32(220, 30, 30, 255));
-	gfx_rect(cx - 5 * s, cy + 5 * s, 10 * s, 2, depth, C2D_Color32(40, 40, 40, 255));
+	gfx_piece(PIECE_FLAG, cx, cy, s * 1.05f, s * 1.05f, depth);
 }
 
 static void bm_draw_top(void)

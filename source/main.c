@@ -1,4 +1,4 @@
-/* Baraja Española para Nintendo 3DS: siete y media, cinquillo, brisca, escoba, chinchón y mus. */
+/* Juegos de mesa variados by Davicilio: juegos de cartas y de mesa para Nintendo 3DS. */
 #include <3ds.h>
 #include <stdio.h>
 #include <stdlib.h>

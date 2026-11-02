@@ -30,6 +30,7 @@ static int s_ncards = 2;
 static int s_page;
 static int s_speed = 1;
 static int s_cur_card, s_cur_row, s_cur_col; /* casilla señalada con la cruceta */
+static float s_rot, s_spin; /* giro del bombo y su velocidad */
 static float s_ball_timer, s_pause, s_ball_anim, s_end_time;
 static float s_claim_at[BI_PLAYERS][2]; /* cuándo canta línea/bingo cada rival (-1 nada) */
 static float s_clock;
@@ -89,6 +90,7 @@ static void bi_enter(void)
 {
 	if (!s_started) {
 		bi_init(&s_game, (uint32_t)time(NULL) ^ 0xB160);
+		s_banner_time = 99.0f; /* sin cartel al entrar */
 		s_game.chips[0] = wallet_take(BI_START);
 		s_on_table = true;
 		s_started = true;
@@ -236,6 +238,9 @@ static SceneId bi_update(const Input* in, float dt)
 		return SCENE_MENU;
 	s_clock += dt;
 	s_ball_anim += dt;
+	/* El bombo gira deprisa mientras se juega y casi se para entre partidas */
+	s_spin = approach(s_spin, s_game.phase == BI_PLAYING ? 1.0f : 0.06f, 0.8f, dt);
+	s_rot += dt * 3.0f * s_spin;
 	s_banner_time += dt;
 	if (s_game.phase == BI_SETUP || s_game.phase == BI_OVER) {
 		if (in->down & KEY_UP)
@@ -367,20 +372,23 @@ static SceneId bi_update(const Input* in, float dt)
  * Dibujo
  * ------------------------------------------------------------------------- */
 
+/* Color de la bola según la decena (los mismos que las bolas del atlas) */
+static int ball_index(int n)
+{
+	return n >= 90 ? 8 : n / 10;
+}
+
 static u32 ball_color(int n)
 {
 	static const u32 cols[9] = { 0xD83A3A, 0xE07A1E, 0xE0B81E, 0x4CA84C, 0x2E9C9C,
 		0x2E6CC8, 0x6A4CC0, 0xB04CB0, 0x707070 };
-	int c = n >= 90 ? 8 : n / 10;
-	return cols[c];
+	return cols[ball_index(n)];
 }
 
 static void draw_ball_at(float x, float y, float r, int n, float depth)
 {
-	gfx_ellipse(x + 1.5f, y + 2, r, r, depth, C2D_Color32(0, 0, 0, 80));
-	gfx_ellipse(x, y, r, r, depth, gfx_rgb(ball_color(n), 255));
-	gfx_ellipse(x, y, r * 0.7f, r * 0.7f, depth, C2D_Color32(255, 255, 255, 255));
-	gfx_ellipse(x - r * 0.5f, y - r * 0.55f, r * 0.2f, r * 0.13f, depth, C2D_Color32(255, 255, 255, 160));
+	gfx_ellipse(x + 1.5f, y + 2.5f, r, r * 0.95f, depth, C2D_Color32(0, 0, 0, 70));
+	gfx_piece(PIECE_BALL_FIRST + ball_index(n), x, y, r / 22.0f, r / 22.0f, depth);
 	/* El número, derecho y centrado en el círculo blanco: el tamaño se ajusta
 	 * a su ancho y la altura se centra con la de las cifras (unos 15 px por
 	 * encima de la mitad de la línea con escala 1) */
@@ -395,29 +403,137 @@ static void draw_ball_at(float x, float y, float r, int n, float depth)
 	gfx_textf_plain(x, y - 15.5f * scale, depth, scale, C2D_Color32(30, 30, 40, 255), C2D_AlignCenter, "%s", num);
 }
 
+/* ---------------------------------------------------------------------------
+ * Bombo en 3D: una esfera de alambre que gira sobre su eje horizontal, vista
+ * un poco de lado, con las bolas dando vueltas dentro.
+ * ------------------------------------------------------------------------- */
+
+#define DRUM_YAW 0.45f /* giro de la cámara alrededor del eje vertical */
+
+typedef struct {
+	float x, y, z;
+} Vec3;
+
+/* Gira (x, y, z) por la cámara y lo lleva a la pantalla; devuelve la profundidad */
+static float drum_project(Vec3 v, float bx, float by, float* sx, float* sy)
+{
+	float c = cosf(DRUM_YAW), s = sinf(DRUM_YAW);
+	float x = v.x * c + v.z * s, z = -v.x * s + v.z * c;
+	*sx = bx + x;
+	*sy = by + v.y;
+	return z;
+}
+
+/* Meridianos (que giran con el bombo) y paralelos de la jaula; front elige
+ * la mitad de delante o la de detrás */
+static void drum_cage(float bx, float by, float r, bool front)
+{
+	const int SEG = 20;
+	u32 col = front ? C2D_Color32(240, 200, 90, 230) : C2D_Color32(120, 95, 45, 150);
+	for (int k = 0; k < 6; k++) {
+		float a = s_rot + k * (float)M_PI / 6.0f;
+		for (int i = 0; i < SEG; i++) {
+			float u0 = i * 2.0f * (float)M_PI / SEG, u1 = (i + 1) * 2.0f * (float)M_PI / SEG;
+			Vec3 p0 = { r * cosf(u0), r * sinf(u0) * cosf(a), r * sinf(u0) * sinf(a) };
+			Vec3 p1 = { r * cosf(u1), r * sinf(u1) * cosf(a), r * sinf(u1) * sinf(a) };
+			float x0, y0, x1, y1;
+			float z = drum_project(p0, bx, by, &x0, &y0) + drum_project(p1, bx, by, &x1, &y1);
+			if ((z > 0) == front)
+				gfx_line(x0, y0, x1, y1, front ? 1.6f : 1.0f, DEPTH_CARDS + (front ? 0.6f : 0.0f), col);
+		}
+	}
+	/* Aros fijos alrededor del eje (cerca de los polos y en el centro) */
+	static const float RINGS[3] = { -0.72f, 0.0f, 0.72f };
+	for (int k = 0; k < 3; k++) {
+		float x = r * RINGS[k], rr = sqrtf(r * r - x * x);
+		for (int i = 0; i < SEG; i++) {
+			float v0 = i * 2.0f * (float)M_PI / SEG, v1 = (i + 1) * 2.0f * (float)M_PI / SEG;
+			Vec3 p0 = { x, rr * cosf(v0), rr * sinf(v0) }, p1 = { x, rr * cosf(v1), rr * sinf(v1) };
+			float x0, y0, x1, y1;
+			float z = drum_project(p0, bx, by, &x0, &y0) + drum_project(p1, bx, by, &x1, &y1);
+			if ((z > 0) == front)
+				gfx_line(x0, y0, x1, y1, k == 1 ? 2.2f : 1.4f, DEPTH_CARDS + (front ? 0.6f : 0.0f),
+					k == 1 ? (front ? C2D_Color32(255, 215, 110, 240) : C2D_Color32(140, 105, 50, 170)) : col);
+		}
+	}
+}
+
+typedef struct {
+	float sx, sy, z, r;
+	int n;
+} DrumBall;
+
+static void draw_drum(float bx, float by, float r)
+{
+	/* Soporte: los ejes del sprite (a 11 px de cada lado, 6 px arriba) en los polos */
+	float sc = (2 * r + 18) / 138.0f;
+	gfx_piece(PIECE_DRUM_STAND, bx, by + (50 - 6) * sc, sc, sc, DEPTH_TABLE);
+	/* Sombra en la mesa */
+	gfx_ellipse(bx + 4, by + r + 30, r * 0.9f, 5, DEPTH_TABLE, C2D_Color32(0, 0, 0, 60));
+	drum_cage(bx, by, r, false);
+	/* Bolas: dan vueltas con el bombo y, cuando se para, caen al fondo */
+	int left = BI_BALLS - s_game.drawn_n;
+	int shown = left > 16 ? 16 : left;
+	DrumBall balls[16];
+	for (int i = 0; i < shown; i++) {
+		float ph = i * 2.399f;
+		float th = s_rot * (0.8f + 0.05f * (i % 5)) + ph;
+		float lift = s_spin * (0.5f + 0.5f * sinf(th));
+		Vec3 v = {
+			r * 0.55f * sinf(ph * 1.7f + s_rot * 0.2f),
+			r * (0.62f - 0.9f * lift) * (0.85f + 0.15f * cosf(ph)),
+			r * 0.5f * cosf(th + ph),
+		};
+		/* Que no se salgan de la esfera */
+		float len = sqrtf(v.x * v.x + v.y * v.y + v.z * v.z), lim = r * 0.78f;
+		if (len > lim) {
+			v.x *= lim / len;
+			v.y *= lim / len;
+			v.z *= lim / len;
+		}
+		DrumBall* b = &balls[i];
+		b->z = drum_project(v, bx, by, &b->sx, &b->sy);
+		b->r = 6.5f * (1.0f + b->z / (3.0f * r));
+		b->n = i * 5 % 90 + 1;
+	}
+	/* De atrás hacia delante */
+	for (int i = 1; i < shown; i++)
+		for (int j = i; j > 0 && balls[j].z < balls[j - 1].z; j--) {
+			DrumBall t = balls[j];
+			balls[j] = balls[j - 1];
+			balls[j - 1] = t;
+		}
+	for (int i = 0; i < shown; i++) {
+		const DrumBall* b = &balls[i];
+		gfx_piece(PIECE_BALL_FIRST + ball_index(b->n), b->sx, b->sy, b->r / 22.0f, b->r / 22.0f, DEPTH_CARDS + 0.3f);
+		if (b->z < 0)
+			gfx_ellipse(b->sx, b->sy, b->r, b->r, DEPTH_CARDS + 0.3f,
+				C2D_Color32(20, 30, 40, (u8)fminf(150.0f, -b->z / r * 150.0f)));
+	}
+	/* Cristal y mitad delantera de la jaula */
+	gfx_piece(PIECE_DRUM_GLASS, bx, by, 2 * r / 128.0f, 2 * r / 128.0f, DEPTH_CARDS + 0.5f);
+	drum_cage(bx, by, r, true);
+	/* Bujes del eje */
+	for (int side = -1; side <= 1; side += 2) {
+		float x, y;
+		drum_project((Vec3){ side * r, 0, 0 }, bx, by, &x, &y);
+		gfx_ellipse(x, y, 4.5f, 4.5f, DEPTH_CARDS + 0.7f, C2D_Color32(200, 150, 50, 255));
+		gfx_ellipse(x - 1, y - 1, 2, 2, DEPTH_CARDS + 0.7f, C2D_Color32(255, 235, 170, 255));
+	}
+}
+
 static void bi_draw_top(void)
 {
 	gfx_background(BG_TABLE_TOP);
-	float t = gfx_time();
 	/* El bombo */
-	float bx = 82, by = 92, br = 60;
-	gfx_ellipse(bx, by, br + 4, br + 4, DEPTH_CARDS, C2D_Color32(150, 110, 40, 255));
-	gfx_ellipse(bx, by, br, br, DEPTH_CARDS, C2D_Color32(220, 235, 245, 120));
-	int left = BI_BALLS - s_game.drawn_n;
-	int shown = left > 18 ? 18 : left;
-	for (int i = 0; i < shown; i++) {
-		float a = t * (s_game.phase == BI_PLAYING ? 2.2f : 0.3f) + i * 2.399f;
-		float rr = 18 + (i * 37 % 30);
-		float x = bx + cosf(a) * rr, y = by + sinf(a * 1.3f) * rr * 0.8f + 10;
-		gfx_ellipse(x, y, 7, 7, DEPTH_CARDS + 0.2f, gfx_rgb(ball_color(i * 5 + 1), 255));
-	}
-	gfx_rect(bx - 6, by + br, 12, 20, DEPTH_CARDS, C2D_Color32(150, 110, 40, 255));
+	float bx = 82, by = 90, br = 56;
+	draw_drum(bx, by, br);
 	/* La última bola sale del bombo */
 	int last = bi_last(&s_game);
 	if (last) {
 		float k = fminf(1.0f, s_ball_anim / 0.4f);
 		float e = 1.0f - (1.0f - k) * (1.0f - k);
-		draw_ball_at(bx + 60 * e, by + 70 - 30 * e, 12 + 14 * e, last, DEPTH_UI + 1.0f);
+		draw_ball_at(bx + br * 0.7f + 30 * e, by + br * 0.75f - 40 * e, 8 + 18 * e, last, DEPTH_UI + 1.0f);
 	}
 	/* Las cinco anteriores */
 	for (int i = 1; i <= 5 && s_game.drawn_n - 1 - i >= 0; i++)

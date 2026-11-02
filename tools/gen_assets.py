@@ -390,8 +390,8 @@ def make_logo():
     d = ImageDraw.Draw(img)
     f1 = font(S(34))
     f2 = font(S(15))
-    t1 = "Baraja Española"
-    t2 = "JUEGOS DE CARTAS"
+    t1 = "Juegos de mesa"
+    t2 = "VARIADOS  ·  by DAVICILIO"
     b1 = d.textbbox((0, 0), t1, font=f1)
     x1 = (S(w) - (b1[2] - b1[0])) / 2 - b1[0]
     y1 = S(6) - b1[1]
@@ -544,14 +544,18 @@ def make_menu_bottom():
 
 
 def make_icon():
+    """Icono: una carta, un dado y un caballo de ajedrez sobre el tapete."""
+    import gen_pieces
     n = 48
     img = Image.new("RGBA", (S(n), S(n)), (0, 0, 0, 0))
     d = ImageDraw.Draw(img)
     d.rounded_rectangle([0, 0, S(n) - 1, S(n) - 1], radius=S(8), fill=(28, 120, 62, 255), outline=WOOD_DARK, width=S(2))
-    back = make_back().resize((S(22), S(33)), Image.LANCZOS).rotate(18, expand=True, resample=Image.BICUBIC)
-    front = make_card("oros", 1).resize((S(22), S(33)), Image.LANCZOS).rotate(-12, expand=True, resample=Image.BICUBIC)
-    img.alpha_composite(back, (S(4), S(5)))
-    img.alpha_composite(front, (S(18), S(8)))
+    front = make_card("oros", 1).resize((S(20), S(30)), Image.LANCZOS).rotate(14, expand=True, resample=Image.BICUBIC)
+    img.alpha_composite(front, (S(2), S(3)))
+    knight = gen_pieces.make_chess("N", True).resize((S(26), S(26)), Image.LANCZOS)
+    img.alpha_composite(knight, (S(22), S(2)))
+    die = gen_pieces.make_die(5).resize((S(20), S(20)), Image.LANCZOS).rotate(-12, expand=True, resample=Image.BICUBIC)
+    img.alpha_composite(die, (S(17), S(23)))
     return img.resize((n, n), Image.LANCZOS)
 
 
@@ -571,12 +575,18 @@ def make_banner():
     d = ImageDraw.Draw(img)
     for i, y in enumerate(range(h - 9, h, 3)):
         d.line([(0, y), (w, y)], fill=(230, 170, 40) if i % 2 == 0 else (150, 90, 15))
-    # abanico de cartas a cada lado
-    cards = [("oros", 1), ("copas", 12), ("espadas", 7), ("bastos", 10)]
-    for k, (s, r) in enumerate(cards):
-        c = make_card(s, r).resize((40, 60), Image.LANCZOS).rotate(18 - k * 12, expand=True, resample=Image.BICUBIC)
-        x = 6 + k * 14 if k < 2 else w - 70 + (k - 2) * 14
-        img.alpha_composite(c, (int(x), 56 - k % 2 * 4))
+    # Cartas a la izquierda; dados y piezas de ajedrez a la derecha
+    import gen_pieces
+    for k, (s, r) in enumerate([("oros", 1), ("copas", 12)]):
+        c = make_card(s, r).resize((40, 60), Image.LANCZOS).rotate(18 - k * 14, expand=True, resample=Image.BICUBIC)
+        img.alpha_composite(c, (int(8 + k * 18), 56 - k * 4))
+    for k, kind in enumerate("KN"):
+        p = gen_pieces.make_chess(kind, k == 0).resize((44, 44), Image.LANCZOS)
+        img.alpha_composite(p, (w - 84 + k * 30, 62 - k * 4))
+    for k, v in enumerate((6, 3)):
+        die = gen_pieces.make_die(v).resize((22, 22), Image.LANCZOS).rotate(15 - 30 * k, expand=True,
+                                                                             resample=Image.BICUBIC)
+        img.alpha_composite(die, (w - 100 + k * 64, 92 - k * 2))
     logo = make_logo().resize((224, 59), Image.LANCZOS)
     img.alpha_composite(logo, ((w - 224) // 2, 6))
     return img

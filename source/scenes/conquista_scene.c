@@ -25,15 +25,6 @@ typedef struct {
 static const MapView BOTTOM_MAP = { 22.5f, 12.0f, BAR_H };
 static const MapView TOP_MAP = { 25.0f, 4.0f, 0.0f };
 
-/* Contorno aproximado de la península (lon, lat), para pintar la tierra */
-static const float COAST[][2] = { { -9.3f, 43.0f }, { -8.9f, 43.4f }, { -8.2f, 43.7f }, { -7.0f, 43.6f }, { -5.8f, 43.6f },
-	{ -4.5f, 43.45f }, { -3.5f, 43.5f }, { -2.5f, 43.45f }, { -1.8f, 43.4f }, { -1.4f, 43.1f }, { -0.5f, 42.8f },
-	{ 0.7f, 42.85f }, { 1.7f, 42.5f }, { 3.2f, 42.45f }, { 3.2f, 41.9f }, { 2.3f, 41.4f }, { 1.0f, 41.05f },
-	{ 0.8f, 40.7f }, { 0.0f, 40.0f }, { -0.3f, 39.5f }, { 0.2f, 38.8f }, { -0.5f, 38.3f }, { -0.8f, 37.6f },
-	{ -1.6f, 37.3f }, { -2.1f, 36.75f }, { -3.0f, 36.75f }, { -4.4f, 36.7f }, { -5.3f, 36.1f }, { -6.0f, 36.3f },
-	{ -6.4f, 36.8f }, { -7.4f, 37.2f }, { -8.9f, 37.0f }, { -8.8f, 38.0f }, { -9.5f, 38.8f }, { -9.0f, 40.0f },
-	{ -8.7f, 41.0f }, { -8.9f, 41.9f }, { -8.9f, 42.5f } };
-#define COAST_N ((int)(sizeof COAST / sizeof COAST[0]))
 
 typedef enum { MODE_SETUP, MODE_PLAY } Mode;
 
@@ -86,28 +77,12 @@ static void draw_map(const MapView* v, float depth, bool interactive)
 {
 	const Conquista* g = &s_game;
 	float r = v->k * 0.34f;
-	/* Mar y tierra */
-	float cx, cy;
-	lonlat_xy(v, -3.7f, 40.4f, &cx, &cy);
-	for (int i = 0; i < COAST_N; i++) {
-		float x0, y0, x1, y1;
-		lonlat_xy(v, COAST[i][0], COAST[i][1], &x0, &y0);
-		lonlat_xy(v, COAST[(i + 1) % COAST_N][0], COAST[(i + 1) % COAST_N][1], &x1, &y1);
-		gfx_triangle(cx, cy, x0, y0, x1, y1, depth, C2D_Color32(214, 200, 160, 255));
-	}
-	/* Portugal, en gris */
+	/* Mar, tierra, Baleares y el recuadro de Canarias: una imagen hecha con la
+	 * misma proyección (tools/gen_pieces.py) */
+	gfx_map(v == &TOP_MAP ? MAP_CONQUISTA_TOP : MAP_CONQUISTA_BOTTOM);
 	float px, py;
 	lonlat_xy(v, -8.1f, 39.6f, &px, &py);
-	gfx_text("Portugal", px, py, depth, 0.42f, C2D_Color32(150, 140, 110, 255), C2D_AlignCenter);
-	/* Baleares y el recuadro de Canarias */
-	float bx, by;
-	prov_xy(v, 12, &bx, &by);
-	gfx_ellipse(bx, by, r * 2.0f, r * 1.2f, depth, C2D_Color32(214, 200, 160, 255));
-	float lx, ly, tx, ty;
-	prov_xy(v, 13, &lx, &ly);
-	prov_xy(v, 14, &tx, &ty);
-	gfx_rect(tx - r * 2.2f, ty - r * 1.9f, lx - tx + r * 4.4f, r * 3.6f, depth, C2D_Color32(40, 90, 140, 255));
-	gfx_rect(tx - r * 2.2f + 1, ty - r * 1.9f + 1, lx - tx + r * 4.4f - 2, r * 3.6f - 2, depth, C2D_Color32(70, 130, 190, 255));
+	gfx_text("Portugal", px, py, depth, 0.42f, C2D_Color32(140, 130, 105, 255), C2D_AlignCenter);
 	/* Vecindades */
 	for (int a = 0; a < CN_PROVINCES; a++)
 		for (int k = 0; k < CN_MAX_ADJ && CN_MAP[a].adj[k] >= 0; k++) {
@@ -133,8 +108,10 @@ static void draw_map(const MapView* v, float depth, bool interactive)
 			gfx_ellipse(x, y, r + 3, r + 3, depth, COLOR_GOLD);
 		else if (target)
 			gfx_ellipse(x, y, r + 3, r + 3, depth, C2D_Color32(255, 255, 255, (u8)(120 + 120 * pulse)));
+		gfx_ellipse(x + 1, y + 1.5f, r + 1, r + 1, depth, C2D_Color32(0, 0, 0, 90));
 		gfx_ellipse(x, y, r + 1, r + 1, depth, C2D_Color32(30, 25, 20, 255));
 		gfx_ellipse(x, y, r, r, depth, gfx_rgb(COLOR[g->owner[i]], 255));
+		gfx_ellipse(x - r * 0.3f, y - r * 0.35f, r * 0.45f, r * 0.3f, depth, C2D_Color32(255, 255, 255, 70));
 		gfx_textf_plain(x, y - 15.0f * (r / 18.0f), depth, r / 18.0f, COLOR_WHITE, C2D_AlignCenter, "%d", g->troops[i]);
 	}
 	if (interactive && s_mode == MODE_PLAY) {
@@ -498,11 +475,11 @@ static void cn_draw_top(void)
 	gfx_textf(396, 4, DEPTH_UI, 0.42f, COLOR_WHITE, C2D_AlignRight, "Ronda %d de %d", g->round + 1, CN_MAX_ROUNDS);
 	/* Dados de la última batalla */
 	if (s_dice_time < 1.5f && g->die_a) {
+		/* Rojo: atacante; azul: defensor */
 		for (int k = 0; k < 2; k++) {
-			float x = 342 + k * 26, y = 100;
-			gfx_rrect(x, y, 22, 22, 5, DEPTH_BANNER, k == 0 ? C2D_Color32(250, 240, 240, 255) : C2D_Color32(240, 240, 250, 255));
-			gfx_textf_plain(x + 11, y + 3, DEPTH_BANNER, 0.55f, k == 0 ? COLOR_RED : C2D_Color32(40, 60, 160, 255),
-				C2D_AlignCenter, "%d", k == 0 ? g->die_a : g->die_d);
+			float x = 356 + k * 30, y = 112;
+			gfx_rrect(x - 13, y - 13, 26, 26, 6, DEPTH_BANNER, k == 0 ? C2D_Color32(210, 45, 50, 255) : C2D_Color32(40, 100, 200, 255));
+			gfx_piece(PIECE_DIE_FIRST + (k == 0 ? g->die_a : g->die_d) - 1, x, y, 0.7f, 0.7f, DEPTH_BANNER);
 		}
 	}
 	if (g->phase == CN_OVER && banner_draw(s_end_time, 200, 120, 300, 70)) {

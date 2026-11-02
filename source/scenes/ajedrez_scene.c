@@ -50,68 +50,14 @@ static bool s_resigned;
  * Piezas
  * ------------------------------------------------------------------------- */
 
-/* Dibuja la silueta de una pieza con los pies en by; e engorda la figura
- * (para el contorno) */
-static void piece_shape(int kind, float cx, float by, float u, float e, float depth, u32 col)
-{
-	gfx_rect(cx - 8 * u - e, by - 3 * u - e, 16 * u + 2 * e, 4 * u + 2 * e, depth, col);
-	switch (kind) {
-	case AJ_PAWN:
-		gfx_ellipse(cx, by - 6 * u, 5 * u + e, 4.5f * u + e, depth, col);
-		gfx_ellipse(cx, by - 12 * u, 4 * u + e, 4 * u + e, depth, col);
-		break;
-	case AJ_ROOK:
-		gfx_rect(cx - 5 * u - e, by - 15 * u - e, 10 * u + 2 * e, 13 * u + 2 * e, depth, col);
-		gfx_rect(cx - 7 * u - e, by - 18 * u - e, 14 * u + 2 * e, 4 * u + 2 * e, depth, col);
-		for (int k = 0; k < 3; k++)
-			gfx_rect(cx - 7 * u + k * 5.25f * u - e, by - 21 * u - e, 3.5f * u + 2 * e, 4 * u + 2 * e, depth, col);
-		break;
-	case AJ_KNIGHT:
-		gfx_triangle(cx - 7 * u - e, by - 2 * u + e, cx + 6 * u + e, by - 2 * u + e, cx + 3 * u + e, by - 16 * u - e, depth,
-			col);
-		gfx_ellipse(cx - 1 * u, by - 15 * u, 5.5f * u + e, 4.5f * u + e, depth, col);
-		gfx_triangle(cx - 2 * u, by - 19 * u - e, cx - 10 * u - e, by - 10 * u + e, cx - 1 * u, by - 11 * u + e, depth, col);
-		gfx_triangle(cx + 1 * u - e, by - 18 * u, cx + 3 * u, by - 23 * u - e, cx + 4 * u + e, by - 16 * u, depth, col);
-		break;
-	case AJ_BISHOP:
-		gfx_ellipse(cx, by - 10 * u, 5 * u + e, 8 * u + e, depth, col);
-		gfx_ellipse(cx, by - 19.5f * u, 2.2f * u + e, 2.2f * u + e, depth, col);
-		gfx_rect(cx - 6 * u - e, by - 4 * u - e, 12 * u + 2 * e, 2.5f * u + 2 * e, depth, col);
-		break;
-	case AJ_QUEEN:
-		gfx_triangle(cx - 7 * u - e, by - 2 * u + e, cx + 7 * u + e, by - 2 * u + e, cx, by - 15 * u - e, depth, col);
-		gfx_rect(cx - 4 * u - e, by - 16 * u - e, 8 * u + 2 * e, 12 * u + 2 * e, depth, col);
-		gfx_rect(cx - 7 * u - e, by - 18 * u - e, 14 * u + 2 * e, 3 * u + 2 * e, depth, col);
-		/* Corona de picos con bolitas, para no confundirla con la torre */
-		for (int k = 0; k < 5; k++) {
-			float px = cx - 7 * u + k * 3.5f * u;
-			gfx_triangle(px - 2 * u - e, by - 17 * u, px + 2 * u + e, by - 17 * u, px, by - 23 * u - e, depth, col);
-			gfx_ellipse(px, by - 23.5f * u, 1.2f * u + e, 1.2f * u + e, depth, col);
-		}
-		break;
-	case AJ_KING:
-		gfx_triangle(cx - 7 * u - e, by - 2 * u + e, cx + 7 * u + e, by - 2 * u + e, cx, by - 14 * u - e, depth, col);
-		gfx_rect(cx - 5 * u - e, by - 16 * u - e, 10 * u + 2 * e, 14 * u + 2 * e, depth, col);
-		gfx_rect(cx - 6.5f * u - e, by - 17 * u - e, 13 * u + 2 * e, 3 * u + 2 * e, depth, col);
-		gfx_rect(cx - 1.2f * u - e, by - 25 * u - e, 2.4f * u + 2 * e, 8 * u + 2 * e, depth, col);
-		gfx_rect(cx - 4 * u - e, by - 22.5f * u - e, 8 * u + 2 * e, 2.4f * u + 2 * e, depth, col);
-		break;
-	default:
-		break;
-	}
-}
-
+/* Pieza (con su signo) centrada en la casilla de lado cell */
 static void draw_piece(int p, float cx, float cy, float cell, float depth)
 {
 	if (!p)
 		return;
-	float u = cell / 29.0f;
-	float by = cy + cell * 0.40f;
-	bool white = p > 0;
-	u32 fill = white ? C2D_Color32(250, 246, 235, 255) : C2D_Color32(45, 40, 45, 255);
-	u32 line = white ? C2D_Color32(50, 40, 40, 255) : C2D_Color32(220, 210, 190, 255);
-	piece_shape(p < 0 ? -p : p, cx, by, u, 1.0f, depth, line);
-	piece_shape(p < 0 ? -p : p, cx, by, u, 0.0f, depth, fill);
+	int kind = p < 0 ? -p : p;
+	float sc = cell / 36.0f;
+	gfx_piece((p > 0 ? PIECE_CHESS_WHITE : PIECE_CHESS_BLACK) + kind - 1, cx, cy, sc, sc, depth);
 }
 
 /* ---------------------------------------------------------------------------

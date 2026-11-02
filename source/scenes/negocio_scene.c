@@ -156,26 +156,20 @@ static void draw_cell(const NgBoard* b, const Negocio* g, int i, float depth)
 		}
 		break;
 	case NG_START:
-		gfx_text("Salida", cx, y + 6, depth, 0.45f, C2D_Color32(20, 100, 40, 255), C2D_AlignCenter);
-		gfx_triangle(cx - 10, y + 26, cx + 6, y + 26, cx + 6, y + 21, depth, C2D_Color32(20, 120, 50, 255));
-		gfx_triangle(cx + 6, y + 18, cx + 6, y + 34, cx + 14, y + 26, depth, C2D_Color32(20, 120, 50, 255));
-		gfx_rect(cx - 12, y + 24, 18, 5, depth, C2D_Color32(20, 120, 50, 255));
+		gfx_text("Salida", cx, y + 2, depth, 0.42f, C2D_Color32(20, 100, 40, 255), C2D_AlignCenter);
+		gfx_piece(PIECE_NG_START, cx, cy + 6, 0.8f, 0.8f, depth);
 		break;
 	case NG_LUCK:
-		gfx_textf_plain(cx, cy - 14, depth, 1.0f, C2D_Color32(110, 50, 160, 255), C2D_AlignCenter, "?");
+		gfx_piece(PIECE_NG_LUCK, cx, cy, 0.95f, 0.95f, depth);
 		break;
 	case NG_TAX:
-		gfx_textf_plain(cx, cy - 12, depth, 0.9f, C2D_Color32(80, 80, 90, 255), C2D_AlignCenter, "%%");
+		gfx_piece(PIECE_NG_TAX, cx, cy, 0.95f, 0.95f, depth);
 		break;
 	case NG_WORKS:
-		for (int k = 0; k < 4; k++)
-			gfx_rect(x + 4 + k * 8, cy - 2, 4, 8, depth, C2D_Color32(40, 40, 40, 255));
-		gfx_rect(x + 4, cy - 4, CELL - 8, 2, depth, C2D_Color32(40, 40, 40, 255));
-		gfx_text("Obras", cx, y + 3, depth, 0.45f, ink, C2D_AlignCenter);
+		gfx_piece(PIECE_NG_WORKS, cx, cy, 0.95f, 0.95f, depth);
 		break;
 	case NG_REST:
-		gfx_ellipse(cx, cy - 2, 10, 9, depth, C2D_Color32(60, 150, 70, 255));
-		gfx_rect(cx - 2, cy + 6, 4, 9, depth, C2D_Color32(120, 80, 40, 255));
+		gfx_piece(PIECE_NG_REST, cx, cy, 0.95f, 0.95f, depth);
 		break;
 	default:
 		break;
@@ -201,20 +195,7 @@ static void token_pos(int p, int sq, float* x, float* y)
 
 static void draw_die(float cx, float cy, float s, int face)
 {
-	static const float pip[7][6][2] = {
-		{ { 0 } },
-		{ { 0, 0 } },
-		{ { -1, -1 }, { 1, 1 } },
-		{ { -1, -1 }, { 0, 0 }, { 1, 1 } },
-		{ { -1, -1 }, { 1, -1 }, { -1, 1 }, { 1, 1 } },
-		{ { -1, -1 }, { 1, -1 }, { 0, 0 }, { -1, 1 }, { 1, 1 } },
-		{ { -1, -1 }, { 1, -1 }, { -1, 0 }, { 1, 0 }, { -1, 1 }, { 1, 1 } },
-	};
-	gfx_rrect(cx - s + 2, cy - s + 3, 2 * s, 2 * s, s * 0.35f, DEPTH_UI, C2D_Color32(0, 0, 0, 90));
-	gfx_rrect(cx - s, cy - s, 2 * s, 2 * s, s * 0.35f, DEPTH_UI, C2D_Color32(250, 250, 245, 255));
-	for (int i = 0; i < face; i++)
-		gfx_ellipse(cx + pip[face][i][0] * s * 0.52f, cy + pip[face][i][1] * s * 0.52f, s * 0.17f, s * 0.17f, DEPTH_UI,
-			C2D_Color32(180, 30, 40, 255));
+	gfx_piece(PIECE_DIE_FIRST + face - 1, cx, cy, s / 15.0f, s / 15.0f, DEPTH_UI);
 }
 
 /* Ficha de información de una casilla, en el centro del tablero */

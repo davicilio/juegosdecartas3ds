@@ -358,20 +358,7 @@ static void pa_draw_top(void)
 
 static void draw_die(float cx, float cy, int face)
 {
-	static const float pip[7][6][2] = {
-		{ { 0 } },
-		{ { 0, 0 } },
-		{ { -1, -1 }, { 1, 1 } },
-		{ { -1, -1 }, { 0, 0 }, { 1, 1 } },
-		{ { -1, -1 }, { 1, -1 }, { -1, 1 }, { 1, 1 } },
-		{ { -1, -1 }, { 1, -1 }, { 0, 0 }, { -1, 1 }, { 1, 1 } },
-		{ { -1, -1 }, { 1, -1 }, { -1, 0 }, { 1, 0 }, { -1, 1 }, { 1, 1 } },
-	};
-	float s = 30;
-	gfx_rrect(cx - s + 3, cy - s + 4, 2 * s, 2 * s, 10, 0, C2D_Color32(0, 0, 0, 90));
-	gfx_rrect(cx - s, cy - s, 2 * s, 2 * s, 10, 0, C2D_Color32(250, 250, 245, 255));
-	for (int i = 0; i < face; i++)
-		gfx_ellipse(cx + pip[face][i][0] * 16, cy + pip[face][i][1] * 16, 5.5f, 5.5f, 0, C2D_Color32(30, 30, 40, 255));
+	gfx_piece(PIECE_DIE_FIRST + face - 1, cx, cy, 1.85f, 1.85f, 0);
 }
 
 static void pa_draw_bottom(void)

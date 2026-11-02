@@ -1,4 +1,4 @@
-# Baraja Española para Nintendo 3DS
+# Juegos de mesa variados by Davicilio
 
 **54 juegos** de cartas y de mesa para Nintendo 3DS, en español: siete y media, mus, chinchón,
 tute, brisca, póker, blackjack, parchís, bingo, mahjong, un juego de comprar calles con tableros

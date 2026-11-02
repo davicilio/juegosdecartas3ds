@@ -48,6 +48,27 @@ enum {
 	BOARD_JOKER, /* carita del comodín, encima de una ficha */
 };
 
+/* Índices del atlas gfx/pieces.t3s (el orden lo fija tools/gen_pieces.py). */
+enum {
+	PIECE_CHESS_WHITE = 0,  /* + pieza - 1 (peón, caballo, alfil, torre, dama, rey) */
+	PIECE_CHESS_BLACK = 6,
+	PIECE_DIE_FIRST = 12,   /* + valor - 1 */
+	PIECE_MJ_FIRST = 18,    /* + cara del solitario de mahjong (games/mahjong.h) */
+	PIECE_NG_START = 60,    /* casillas especiales de Negocio redondo */
+	PIECE_NG_LUCK,
+	PIECE_NG_TAX,
+	PIECE_NG_WORKS,
+	PIECE_NG_REST,
+	PIECE_MINE,
+	PIECE_FLAG,
+	PIECE_BALL_FIRST,                 /* + color de la decena (0..8) */
+	PIECE_DRUM_STAND = PIECE_BALL_FIRST + 9,
+	PIECE_DRUM_GLASS,
+};
+
+/* Fondos de mapa (gfx/maps.t3s) */
+enum { MAP_CONQUISTA_TOP, MAP_CONQUISTA_BOTTOM };
+
 /* Índices del atlas gfx/backgrounds.t3s. */
 enum {
 	BG_TITLE_TOP,
@@ -102,6 +123,12 @@ C2D_Image gfx_sprite_image(int id);
 /* Carta de la baraja francesa (atlas gfx/french.t3s): id = palo * 13 + valor - 2,
  * o FRENCH_BACK para el dorso. */
 #define FRENCH_BACK 52
+/* Pieza del atlas de juegos de mesa centrada en (cx, cy), con escala sx, sy */
+void gfx_piece(int id, float cx, float cy, float sx, float sy, float depth);
+/* La misma pieza ajustada al rectángulo (x, y, w, h) */
+void gfx_piece_rect(int id, float x, float y, float w, float h, float depth);
+/* Fondo de mapa a pantalla completa */
+void gfx_map(int id);
 void gfx_french(int id, float cx, float cy, float scale, float angle, float depth, bool shadow);
 /* Sprite del atlas de los juegos de mesa, centrado en (cx, cy). */
 void gfx_board(int id, float cx, float cy, float scale, float angle, float depth, const C2D_ImageTint* tint);

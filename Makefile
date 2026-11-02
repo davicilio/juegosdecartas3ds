@@ -40,9 +40,9 @@ GRAPHICS	:=	gfx
 #GFXBUILD	:=	$(BUILD)
 ROMFS		:=	romfs
 GFXBUILD	:=	$(ROMFS)/gfx
-APP_TITLE	:=	Baraja Española
-APP_DESCRIPTION	:=	Siete y media, cinquillo y más
-APP_AUTHOR	:=	davicilio
+APP_TITLE	:=	Juegos de mesa variados
+APP_DESCRIPTION	:=	by Davicilio
+APP_AUTHOR	:=	Davicilio
 
 #---------------------------------------------------------------------------------
 # options for code generation

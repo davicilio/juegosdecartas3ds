@@ -572,11 +572,16 @@ static void draw_board_icon(SceneId scene, float cx, float cy, float s, float de
 		return;
 	}
 	if (scene == SCENE_MAHJONG || scene == SCENE_RIICHI) {
-		gfx_rrect(cx - 6 * s, cy - 7 * s, 13 * s, 16 * s, 2 * s, depth, C2D_Color32(150, 110, 60, 255));
-		gfx_rrect(cx - 7 * s, cy - 9 * s, 13 * s, 16 * s, 2 * s, depth, C2D_Color32(250, 245, 230, 255));
-		gfx_rrect(cx - 4.5f * s, cy - 6 * s, 8 * s, 10 * s, 1.5f * s, depth, C2D_Color32(200, 40, 40, 255));
+		/* Dos fichas: el dragón rojo y el uno de círculos (o el viento este) */
+		int faces[2] = { 31, scene == SCENE_RIICHI ? 28 : 0 };
+		for (int k = 0; k < 2; k++) {
+			float x = cx - 9 * s + k * 8 * s, y = cy - 8 * s + k * 2 * s;
+			gfx_rect(x + 0.8f * s, y + 0.8f * s, 10 * s, 14 * s, depth, C2D_Color32(150, 110, 60, 255));
+			gfx_piece_rect(PIECE_MJ_FIRST + faces[k], x, y, 10 * s, 14 * s, depth);
+		}
 		return;
 	}
+
 	if (scene == SCENE_TOMA6) {
 		for (int k = 0; k < 2; k++) {
 			float x = cx + (k ? 3 : -3) * s, y = cy + (k ? 2 : -2) * s;
@@ -615,21 +620,16 @@ static void draw_board_icon(SceneId scene, float cx, float cy, float s, float de
 		return;
 	}
 	if (scene == SCENE_AJEDREZ) {
-		/* Un peón sobre dos casillas */
+		/* Un caballo sobre dos casillas */
 		gfx_rect(cx - 9 * s, cy - 9 * s, 9 * s, 18 * s, depth, C2D_Color32(240, 217, 181, 255));
 		gfx_rect(cx, cy - 9 * s, 9 * s, 18 * s, depth, C2D_Color32(181, 136, 99, 255));
-		gfx_rect(cx - 5 * s, cy + 4 * s, 10 * s, 3 * s, depth, C2D_Color32(40, 35, 40, 255));
-		gfx_ellipse(cx, cy + 1 * s, 3.6f * s, 3.4f * s, depth, C2D_Color32(40, 35, 40, 255));
-		gfx_ellipse(cx, cy - 4 * s, 2.8f * s, 2.8f * s, depth, C2D_Color32(40, 35, 40, 255));
+		gfx_piece(PIECE_CHESS_WHITE + 1, cx, cy, s * 0.5f, s * 0.5f, depth);
 		return;
 	}
 	if (scene == SCENE_BUSCAMINAS) {
 		/* Una mina sobre una casilla */
 		gfx_rrect(cx - 9 * s, cy - 9 * s, 18 * s, 18 * s, 2 * s, depth, C2D_Color32(185, 190, 200, 255));
-		gfx_rect(cx - 6.5f * s, cy - 0.6f * s, 13 * s, 1.2f * s, depth, C2D_Color32(20, 20, 20, 255));
-		gfx_rect(cx - 0.6f * s, cy - 6.5f * s, 1.2f * s, 13 * s, depth, C2D_Color32(20, 20, 20, 255));
-		gfx_ellipse(cx, cy, 4.5f * s, 4.5f * s, depth, C2D_Color32(20, 20, 20, 255));
-		gfx_ellipse(cx - 1.5f * s, cy - 1.5f * s, 1.2f * s, 1.2f * s, depth, C2D_Color32(255, 255, 255, 220));
+		gfx_piece(PIECE_MINE, cx, cy, s * 0.7f, s * 0.7f, depth);
 		return;
 	}
 	if (scene == SCENE_NEGOCIO) {

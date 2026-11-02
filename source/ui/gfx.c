@@ -15,6 +15,8 @@ static C2D_SpriteSheet s_chars;
 static C2D_SpriteSheet s_backs;
 static C2D_SpriteSheet s_board;
 static C2D_SpriteSheet s_french;
+static C2D_SpriteSheet s_pieces;
+static C2D_SpriteSheet s_maps;
 static C2D_TextBuf s_textbuf;
 
 /* Dorso de las cartas: se compone en una textura con las capas de
@@ -52,6 +54,8 @@ bool gfx_init(void)
 	s_backs = C2D_SpriteSheetLoad("romfs:/gfx/backs.t3x");
 	s_board = C2D_SpriteSheetLoad("romfs:/gfx/board.t3x");
 	s_french = C2D_SpriteSheetLoad("romfs:/gfx/french.t3x");
+	s_pieces = C2D_SpriteSheetLoad("romfs:/gfx/pieces.t3x");
+	s_maps = C2D_SpriteSheetLoad("romfs:/gfx/maps.t3x");
 	s_textbuf = C2D_TextBufNew(8192);
 
 	if (C3D_TexInitVRAM(&s_back_tex, BACK_TEX_W, BACK_TEX_H, GPU_RGBA8)) {
@@ -60,7 +64,7 @@ bool gfx_init(void)
 	}
 	cardback_default(&s_back);
 	s_back_dirty = true;
-	return s_sprites && s_backgrounds && s_chars && s_backs && s_board && s_french && s_textbuf;
+	return s_sprites && s_backgrounds && s_chars && s_backs && s_board && s_french && s_pieces && s_maps && s_textbuf;
 }
 
 void gfx_exit(void)
@@ -79,6 +83,10 @@ void gfx_exit(void)
 		C2D_SpriteSheetFree(s_board);
 	if (s_french)
 		C2D_SpriteSheetFree(s_french);
+	if (s_pieces)
+		C2D_SpriteSheetFree(s_pieces);
+	if (s_maps)
+		C2D_SpriteSheetFree(s_maps);
 	if (s_back_target) {
 		C3D_RenderTargetDelete(s_back_target);
 		C3D_TexDelete(&s_back_tex);
@@ -227,6 +235,22 @@ C2D_Image gfx_sprite_image(int id)
 void gfx_board(int id, float cx, float cy, float scale, float angle, float depth, const C2D_ImageTint* tint)
 {
 	C2D_DrawImageAtRotated(C2D_SpriteSheetGetImage(s_board, id), cx + gfx_dx(depth), cy, 0.5f, angle, tint, scale, scale);
+}
+
+void gfx_piece(int id, float cx, float cy, float sx, float sy, float depth)
+{
+	C2D_DrawImageAtRotated(C2D_SpriteSheetGetImage(s_pieces, id), cx + gfx_dx(depth), cy, 0.5f, 0.0f, NULL, sx, sy);
+}
+
+void gfx_piece_rect(int id, float x, float y, float w, float h, float depth)
+{
+	C2D_Image img = C2D_SpriteSheetGetImage(s_pieces, id);
+	gfx_piece(id, x + w / 2, y + h / 2, w / img.subtex->width, h / img.subtex->height, depth);
+}
+
+void gfx_map(int id)
+{
+	C2D_DrawImageAt(C2D_SpriteSheetGetImage(s_maps, id), 0, 0, 0.5f, NULL, 1.0f, 1.0f);
 }
 
 void gfx_french(int id, float cx, float cy, float scale, float angle, float depth, bool shadow)
