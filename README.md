@@ -25,7 +25,7 @@ FBI).
    (se actualiza sola con cada cambio).
 2. Cópialo a la tarjeta SD, por ejemplo a `/cias/`.
 3. En la consola abre **FBI → SD → cias → JuegosDeCartas.cia → Install CIA**.
-4. El juego aparece en el menú HOME con su icono y su banner ("Baraja Española").
+4. El juego aparece en el menú HOME con su icono y su banner ("Juegos de mesa variados").
 
 Para actualizarlo basta con instalar el `.cia` nuevo encima.
 
