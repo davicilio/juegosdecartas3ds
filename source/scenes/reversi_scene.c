@@ -8,6 +8,7 @@
 #include "ui/audio.h"
 #include "ui/gfx.h"
 #include "ui/mii.h"
+#include "ui/setup.h"
 #include "ui/widgets.h"
 
 #define TOP_CELL 26.0f
@@ -22,9 +23,11 @@ static float s_cpu_timer, s_end_time, s_flip = 1.0f;
 static Mood s_cpu_mood, s_my_mood;
 static int s_prev_winner;
 static int s_wins[3];
-static Button s_btn_again, s_btn_menu, s_btn_level;
+static Button s_btn_again, s_btn_menu;
 static const char* const LEVELS[] = { "Fácil", "Normal", "Difícil" };
 static int s_level = 1;
+static Setup s_setup;
+static bool s_in_setup;
 static char s_note[64];
 
 static void apply_level(void)
@@ -33,12 +36,21 @@ static void apply_level(void)
 	s_game.level = depth[s_level];
 }
 
+/* Empieza la partida con lo elegido en la pantalla de antes */
+static void begin(void)
+{
+	rv_init(&s_game, (uint32_t)time(NULL) ^ 0x2E7E);
+	apply_level();
+	s_prev_winner = s_game.winner;
+}
+
 static void rv_enter(void)
 {
 	if (!s_started) {
-		rv_init(&s_game, (uint32_t)time(NULL) ^ 0x2E7E);
-		apply_level();
 		s_started = true;
+		s_in_setup = true;
+		setup_init(&s_setup, "Reversi", "Encierra las fichas de tu rival entre dos tuyas para darles la vuelta. Gana quien acabe con más fichas de su color.");
+		setup_add(&s_setup, "Dificultad", LEVELS, 3, &s_level);
 	}
 	s_prev_winner = s_game.winner;
 	button_set(&s_btn_menu, 258, 2, 54, 20, "Menú", C2D_Color32(120, 30, 35, 255), KEY_START);
@@ -63,12 +75,12 @@ static SceneId rv_update(const Input* in, float dt)
 {
 	if (button_update(&s_btn_menu, in))
 		return SCENE_MENU;
-	static char level_label[24];
-	snprintf(level_label, sizeof level_label, GLYPH_Y " %s", LEVELS[s_level]);
-	button_set(&s_btn_level, 8, 2, 90, 20, level_label, C2D_Color32(60, 90, 160, 255), KEY_Y);
-	if (button_update(&s_btn_level, in)) {
-		s_level = (s_level + 1) % 3;
-		apply_level();
+	if (s_in_setup) {
+		if (setup_update(&s_setup, in)) {
+			s_in_setup = false;
+			begin();
+		}
+		return SCENE_REVERSI;
 	}
 	s_flip = fminf(1.0f, s_flip + dt * 3.0f);
 	if (!s_game.winner) {
@@ -164,6 +176,10 @@ static void draw_board(float x0, float y0, float cell, float depth, bool hints)
 
 static void rv_draw_top(void)
 {
+	if (s_in_setup) {
+		setup_draw_top(&s_setup);
+		return;
+	}
 	gfx_background(BG_TABLE_TOP);
 	float x0 = (TOP_W - RV_SIZE * TOP_CELL) / 2.0f, y0 = 16.0f;
 	draw_board(x0, y0, TOP_CELL, DEPTH_CARDS, false);
@@ -184,9 +200,13 @@ static void rv_draw_top(void)
 
 static void rv_draw_bottom(void)
 {
+	if (s_in_setup) {
+		setup_draw_bottom(&s_setup);
+		button_draw(&s_btn_menu, false);
+		return;
+	}
 	gfx_background(BG_TABLE_BOTTOM);
 	button_draw(&s_btn_menu, false);
-	button_draw(&s_btn_level, true);
 	draw_board(BOT_X0, BOT_Y0, BOT_CELL, 0, true);
 	if (!s_game.winner && s_game.current == 1) {
 		float pulse = 0.6f + 0.4f * sinf(gfx_time() * 6.0f);

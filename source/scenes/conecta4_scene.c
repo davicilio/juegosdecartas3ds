@@ -8,6 +8,7 @@
 #include "ui/audio.h"
 #include "ui/gfx.h"
 #include "ui/mii.h"
+#include "ui/setup.h"
 #include "ui/widgets.h"
 
 #define TOP_CELL 30.0f
@@ -22,9 +23,11 @@ static float s_cpu_timer, s_end_time, s_fall;
 static Mood s_cpu_mood, s_my_mood;
 static int s_prev_winner;
 static int s_wins[3];
-static Button s_btn_drop, s_btn_again, s_btn_menu, s_btn_level;
+static Button s_btn_drop, s_btn_again, s_btn_menu;
 static const char* const LEVELS[] = { "Fácil", "Normal", "Difícil" };
 static int s_level = 1;
+static Setup s_setup;
+static bool s_in_setup;
 
 static u32 disc_color(int who, int alpha)
 {
@@ -37,14 +40,23 @@ static void apply_level(void)
 	s_game.level = depth[s_level];
 }
 
+/* Empieza la partida con lo elegido en la pantalla de antes */
+static void begin(void)
+{
+	c4_init(&s_game, (uint32_t)time(NULL) ^ 0xC4);
+	apply_level();
+	s_game.starter = 2;
+	c4_new_game(&s_game);
+	s_prev_winner = s_game.winner;
+}
+
 static void c4_enter(void)
 {
 	if (!s_started) {
-		c4_init(&s_game, (uint32_t)time(NULL) ^ 0xC4);
-		apply_level();
-		s_game.starter = 2;
-		c4_new_game(&s_game);
 		s_started = true;
+		s_in_setup = true;
+		setup_init(&s_setup, "Conecta 4", "Deja caer tus fichas rojas por las columnas y junta cuatro en raya (horizontal, vertical o diagonal) antes que la consola.");
+		setup_add(&s_setup, "Dificultad", LEVELS, 3, &s_level);
 	}
 	s_prev_winner = s_game.winner;
 	button_set(&s_btn_menu, 258, 4, 54, 20, "Menú", C2D_Color32(120, 30, 35, 255), KEY_START);
@@ -62,12 +74,12 @@ static SceneId c4_update(const Input* in, float dt)
 {
 	if (button_update(&s_btn_menu, in))
 		return SCENE_MENU;
-	static char level_label[24];
-	snprintf(level_label, sizeof level_label, GLYPH_Y " %s", LEVELS[s_level]);
-	button_set(&s_btn_level, 8, 4, 90, 20, level_label, C2D_Color32(60, 90, 160, 255), KEY_Y);
-	if (button_update(&s_btn_level, in)) {
-		s_level = (s_level + 1) % 3;
-		apply_level();
+	if (s_in_setup) {
+		if (setup_update(&s_setup, in)) {
+			s_in_setup = false;
+			begin();
+		}
+		return SCENE_CONECTA4;
 	}
 	s_fall += dt * 4.0f;
 	if (!s_game.winner) {
@@ -157,6 +169,10 @@ static void draw_board(float x0, float y0, float cell, float depth, bool top)
 
 static void c4_draw_top(void)
 {
+	if (s_in_setup) {
+		setup_draw_top(&s_setup);
+		return;
+	}
 	gfx_background(BG_TABLE_TOP);
 	float x0 = (TOP_W - C4_COLS * TOP_CELL) / 2.0f, y0 = 34.0f;
 	draw_board(x0, y0, TOP_CELL, DEPTH_CARDS, true);
@@ -174,9 +190,13 @@ static void c4_draw_top(void)
 
 static void c4_draw_bottom(void)
 {
+	if (s_in_setup) {
+		setup_draw_bottom(&s_setup);
+		button_draw(&s_btn_menu, false);
+		return;
+	}
 	gfx_background(BG_TABLE_BOTTOM);
 	button_draw(&s_btn_menu, false);
-	button_draw(&s_btn_level, true);
 	draw_board(BOT_X0, BOT_Y0, BOT_CELL, 0, false);
 	if (!s_game.winner && s_game.current == 1) {
 		float cx = BOT_X0 + s_cursor * BOT_CELL + BOT_CELL / 2;

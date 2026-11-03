@@ -190,12 +190,13 @@ static bool is_card_game(SceneId id)
 #define GAME_MUSIC "sdmc:/3ds/JuegosDeCartas/juegos.wav"
 
 /* Pausa: la partida se queda quieta debajo hasta que se reanuda o se sale */
-static Button s_btn_resume, s_btn_quit;
+static Button s_btn_resume, s_btn_restart, s_btn_quit;
 
 static void pause_start(void)
 {
-	button_set(&s_btn_resume, 40, 70, 240, 44, GLYPH_A " Reanudar", C2D_Color32(40, 140, 60, 255), KEY_A);
-	button_set(&s_btn_quit, 40, 134, 240, 44, GLYPH_X " Salir", C2D_Color32(190, 60, 50, 255), KEY_X);
+	button_set(&s_btn_resume, 40, 52, 240, 38, GLYPH_A " Reanudar", C2D_Color32(40, 140, 60, 255), KEY_A);
+	button_set(&s_btn_restart, 40, 98, 240, 38, GLYPH_Y " Reiniciar", C2D_Color32(200, 140, 30, 255), KEY_Y);
+	button_set(&s_btn_quit, 40, 144, 240, 38, GLYPH_X " Salir", C2D_Color32(190, 60, 50, 255), KEY_X);
 	audio_play(SFX_SELECT);
 }
 
@@ -211,9 +212,10 @@ static void pause_draw_bottom(void)
 	gfx_rect(0, 0, BOTTOM_W, SCREEN_H, 0, C2D_Color32(20, 4, 6, 225));
 	gfx_text("Partida en pausa", BOTTOM_W / 2, 24, 0, 0.6f, COLOR_GOLD, C2D_AlignCenter);
 	button_draw(&s_btn_resume, true);
+	button_draw(&s_btn_restart, false);
 	button_draw(&s_btn_quit, false);
-	gfx_text_wrap("Si sales, la partida se da por acabada y vuelven a tu monedero las fichas que tenías en la mesa.",
-		24, 190, 0, 0.42f, C2D_Color32(230, 215, 190, 255), 272);
+	gfx_text_wrap("Al reiniciar o salir, la partida acaba y vuelven a tu monedero las fichas de la mesa.",
+		24, 192, 0, 0.42f, C2D_Color32(230, 215, 190, 255), 272);
 }
 
 int main(int argc, char** argv)
@@ -280,6 +282,13 @@ int main(int argc, char** argv)
 		} else if (paused) {
 			if (button_update(&s_btn_resume, &in) || (in.down & (KEY_B | KEY_START))) {
 				paused = false;
+			} else if (button_update(&s_btn_restart, &in)) {
+				/* Se da por acabada y se vuelve a entrar: empieza de cero */
+				paused = false;
+				if (scene->leave)
+					scene->leave();
+				pending = current;
+				fading_out = true;
 			} else if (button_update(&s_btn_quit, &in)) {
 				paused = false;
 				if (scene->leave)

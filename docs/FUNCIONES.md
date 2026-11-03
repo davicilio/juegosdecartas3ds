@@ -38,10 +38,19 @@ de la consola, las que se ganan andando con la 3DS en el bolsillo: cada moneda v
 
 ## Pausa
 
-En cualquier juego, el botón **Menú** (o START) pausa la partida. **Reanudar** sigue donde
-estabas; **Salir** da la partida por acabada, sin guardarla, y devuelve al monedero las fichas
-que tenías en la mesa (también las apostadas en una mano sin terminar, que se anula). La
-próxima vez se empieza una partida nueva.
+En cualquier juego, el botón **Menú** (o START) pausa la partida:
+
+- **Reanudar** sigue donde estabas.
+- **Reiniciar** da la partida por acabada y empieza otra. En los juegos que tienen pantalla de antes
+  de jugar (jugadores, dificultad...), vuelve a ella para elegir de nuevo.
+- **Salir** da la partida por acabada, sin guardarla, y vuelve al menú.
+
+Al reiniciar o salir, las fichas que tenías en la mesa vuelven al monedero (también las apostadas
+en una mano sin terminar, que se anula).
+
+Lo que se elige antes de empezar (por ejemplo, los jugadores de la oca o la dificultad del conecta
+4, el reversi, las damas y el tres en raya) ya no se puede cambiar a mitad de partida: para eso
+está Reiniciar.
 
 ## Los personajes: basados en los Miis de tu consola
 

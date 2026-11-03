@@ -9,6 +9,7 @@
 #include "ui/audio.h"
 #include "ui/gfx.h"
 #include "ui/mii.h"
+#include "ui/setup.h"
 #include "ui/widgets.h"
 
 #define BOT_CELL 26.0f
@@ -25,8 +26,10 @@ static int s_move_count;
 static float s_cpu_timer, s_end_time;
 static int s_prev_winner;
 static Mood s_cpu_mood, s_my_mood;
-static Button s_btn_menu, s_btn_again, s_btn_level;
+static Button s_btn_menu, s_btn_again;
 static int s_level = 1;
+static Setup s_setup;
+static bool s_in_setup;
 static const char* const LEVELS[] = { "Fácil", "Normal", "Difícil" };
 
 static void refresh_moves(void)
@@ -40,12 +43,22 @@ static void apply_level(void)
 	s_game.level = depth[s_level];
 }
 
+/* Empieza la partida con lo elegido en la pantalla de antes */
+static void begin(void)
+{
+	da_init(&s_game, (uint32_t)time(NULL) ^ 0xDA);
+	apply_level();
+	refresh_moves();
+	s_prev_winner = s_game.winner;
+}
+
 static void da_enter(void)
 {
 	if (!s_started) {
-		da_init(&s_game, (uint32_t)time(NULL) ^ 0xDA);
-		apply_level();
 		s_started = true;
+		s_in_setup = true;
+		setup_init(&s_setup, "Damas", "Mueve en diagonal, come saltando por encima y corona tus fichas al llegar al otro lado. Comer es obligatorio.");
+		setup_add(&s_setup, "Dificultad", LEVELS, 3, &s_level);
 	}
 	refresh_moves();
 	s_prev_winner = s_game.winner;
@@ -98,12 +111,12 @@ static SceneId da_update(const Input* in, float dt)
 {
 	if (button_update(&s_btn_menu, in))
 		return SCENE_MENU;
-	static char level_label[24];
-	snprintf(level_label, sizeof level_label, GLYPH_Y " %s", LEVELS[s_level]);
-	button_set(&s_btn_level, 8, 2, 84, 16, level_label, C2D_Color32(60, 90, 160, 255), KEY_Y);
-	if (button_update(&s_btn_level, in)) {
-		s_level = (s_level + 1) % 3;
-		apply_level();
+	if (s_in_setup) {
+		if (setup_update(&s_setup, in)) {
+			s_in_setup = false;
+			begin();
+		}
+		return SCENE_DAMAS;
 	}
 	if (!s_game.winner) {
 		if (s_game.current == 1) {
@@ -231,6 +244,10 @@ static void draw_board(float x0, float y0, float cell, float depth, bool interac
 
 static void da_draw_top(void)
 {
+	if (s_in_setup) {
+		setup_draw_top(&s_setup);
+		return;
+	}
 	gfx_background(BG_TABLE_TOP);
 	draw_board((TOP_W - 8 * TOP_CELL) / 2.0f, 12, TOP_CELL, DEPTH_CARDS, false);
 	mii_draw(cpu_avatar(CPU_MANOLO), 44, 50, 20, DEPTH_UI, mood_expr(&s_cpu_mood), false);
@@ -247,10 +264,14 @@ static void da_draw_top(void)
 
 static void da_draw_bottom(void)
 {
+	if (s_in_setup) {
+		setup_draw_bottom(&s_setup);
+		button_draw(&s_btn_menu, false);
+		return;
+	}
 	gfx_background(BG_TABLE_BOTTOM);
 	draw_board(BOT_X0, BOT_Y0, BOT_CELL, 0, true);
 	button_draw(&s_btn_menu, false);
-	button_draw(&s_btn_level, true);
 	if (s_game.winner)
 		button_draw(&s_btn_again, s_end_time > 0.6f);
 	else if (s_game.current == 2)

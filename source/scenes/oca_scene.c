@@ -8,6 +8,7 @@
 #include "ui/audio.h"
 #include "ui/gfx.h"
 #include "ui/mii.h"
+#include "ui/setup.h"
 #include "ui/widgets.h"
 
 #define COLS   9
@@ -25,6 +26,10 @@ typedef enum { ANIM_NONE, ANIM_ROLL, ANIM_WALK, ANIM_JUMP } Anim;
 static Oca s_game;
 static bool s_started;
 static int s_players = 4;
+static const char* const PLAYERS[] = { "2", "3", "4" };
+static int s_players_idx = 2;
+static Setup s_setup;
+static bool s_in_setup;
 static int s_cell_col[OCA_GOAL + 1], s_cell_row[OCA_GOAL + 1];
 static float s_disp_x[OCA_MAX_PLAYERS], s_disp_y[OCA_MAX_PLAYERS];
 static int s_shown[OCA_MAX_PLAYERS]; /* casilla en la que se ve cada ficha */
@@ -34,7 +39,7 @@ static int s_from, s_step, s_face = 1, s_mover;
 static Mood s_mood[OCA_MAX_PLAYERS];
 static char s_message[96];
 static bool s_recorded;
-static Button s_btn_roll, s_btn_players, s_btn_menu;
+static Button s_btn_roll, s_btn_menu;
 
 /* La espiral: de la casilla 1 (abajo a la izquierda) hacia el centro */
 static void build_spiral(void)
@@ -115,7 +120,9 @@ static void oca_enter(void)
 	if (!s_started) {
 		build_spiral();
 		s_started = true;
-		new_game();
+		s_in_setup = true;
+		setup_init(&s_setup, "La oca", "De oca a oca y tiro porque me toca. Llega justo a la casilla 63 esquivando la posada, el pozo, el laberinto, la cárcel y la muerte.");
+		setup_add(&s_setup, "Jugadores", PLAYERS, 3, &s_players_idx);
 	}
 	button_set(&s_btn_menu, 258, 6, 54, 20, "Menú", C2D_Color32(120, 30, 35, 255), KEY_START);
 }
@@ -209,14 +216,12 @@ static SceneId oca_update(const Input* in, float dt)
 {
 	if (button_update(&s_btn_menu, in))
 		return SCENE_MENU;
-	static char players_label[24];
-	snprintf(players_label, sizeof players_label, GLYPH_X " %d jugadores", s_players);
-	button_set(&s_btn_players, 12, 205, 144, 28, players_label, C2D_Color32(60, 90, 160, 255), KEY_X);
-	if (s_anim == ANIM_NONE && button_update(&s_btn_players, in)) {
-		if (!s_recorded && s_game.winner < 0 && s_game.last_player >= 0)
-			profile_record_game(GAME_OCA, false);
-		s_players = s_players == 4 ? 2 : s_players + 1;
-		new_game();
+	if (s_in_setup) {
+		if (setup_update(&s_setup, in)) {
+			s_in_setup = false;
+			s_players = s_players_idx + 2;
+			new_game();
+		}
 		return SCENE_OCA;
 	}
 	bool over = s_game.winner >= 0;
@@ -336,6 +341,10 @@ static void draw_goose(float cx, float cy, float depth)
 
 static void oca_draw_top(void)
 {
+	if (s_in_setup) {
+		setup_draw_top(&s_setup);
+		return;
+	}
 	gfx_background(BG_TABLE_TOP);
 	gfx_rrect(X0 - 4, Y0 - 4, COLS * CELL_W + 8, ROWS * CELL_H + 8, 6, DEPTH_TABLE,
 		C2D_Color32(110, 70, 30, 255));
@@ -373,6 +382,11 @@ static void draw_die(float cx, float cy, int face)
 
 static void oca_draw_bottom(void)
 {
+	if (s_in_setup) {
+		setup_draw_bottom(&s_setup);
+		button_draw(&s_btn_menu, false);
+		return;
+	}
 	gfx_background(BG_TABLE_BOTTOM);
 	gfx_text_wrap(s_message, 10, 4, 0, 0.42f, COLOR_GOLD, 240);
 	button_draw(&s_btn_menu, false);
@@ -390,7 +404,6 @@ static void oca_draw_bottom(void)
 	draw_die(250, 100, s_face);
 	if (s_game.winner < 0 && s_anim == ANIM_NONE)
 		gfx_text(s_game.current == 0 ? "¡Te toca!" : "", 250, 140, 0, 0.5f, COLOR_GOLD, C2D_AlignCenter);
-	button_draw(&s_btn_players, s_anim == ANIM_NONE);
 	button_draw(&s_btn_roll, s_btn_roll.enabled);
 }
 

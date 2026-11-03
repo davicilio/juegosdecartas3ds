@@ -8,6 +8,7 @@
 #include "scenes/scene.h"
 #include "ui/audio.h"
 #include "ui/gfx.h"
+#include "ui/setup.h"
 #include "ui/table.h"
 #include "ui/widgets.h"
 
@@ -22,9 +23,13 @@ static As23 s_game;
 static Table s_table;
 static bool s_started;
 static int s_players = 4;
+static const char* const PLAYERS[] = { "2", "3", "4" };
+static int s_players_idx = 2;
+static Setup s_setup;
+static bool s_in_setup;
 static float s_cpu_timer, s_end_time, s_flip;
 static bool s_recorded;
-static Button s_btn_play, s_btn_players, s_btn_menu;
+static Button s_btn_play, s_btn_menu;
 
 static int seat(int p)
 {
@@ -53,7 +58,9 @@ static void as23_enter(void)
 	if (!s_started) {
 		table_init(&s_table, CPU_MANOLO, CPU_LUCIA, CPU_RAMON);
 		s_started = true;
-		new_game();
+		s_in_setup = true;
+		setup_init(&s_setup, "As, 2, 3", "Se echan las cartas contando del as al rey. Si la carta coincide con lo que se dice, ¡a darle al montón! El último en dar se lo lleva.");
+		setup_add(&s_setup, "Jugadores", PLAYERS, 3, &s_players_idx);
 	}
 	button_set(&s_btn_menu, 258, 6, 54, 20, "Menú", C2D_Color32(120, 30, 35, 255), KEY_START);
 	button_set(&s_btn_play, 164, 205, 144, 28, GLYPH_A " Echar carta", C2D_Color32(40, 140, 60, 255), KEY_A);
@@ -90,14 +97,12 @@ static SceneId as23_update(const Input* in, float dt)
 {
 	if (button_update(&s_btn_menu, in))
 		return SCENE_MENU;
-	static char players_label[24];
-	snprintf(players_label, sizeof players_label, GLYPH_X " %d jugadores", s_players);
-	button_set(&s_btn_players, 12, 205, 144, 28, players_label, C2D_Color32(60, 90, 160, 255), KEY_X);
-	if (button_update(&s_btn_players, in)) {
-		if (!s_recorded && !as23_over(&s_game) && s_game.plays > 0)
-			profile_record_game(GAME_AS23, false);
-		s_players = s_players == 4 ? 2 : s_players + 1;
-		new_game();
+	if (s_in_setup) {
+		if (setup_update(&s_setup, in)) {
+			s_in_setup = false;
+			s_players = s_players_idx + 2;
+			new_game();
+		}
 		return SCENE_AS23;
 	}
 	s_flip = fminf(1.0f, s_flip + dt * 5.0f);
@@ -145,6 +150,10 @@ static SceneId as23_update(const Input* in, float dt)
 
 static void as23_draw_top(void)
 {
+	if (s_in_setup) {
+		setup_draw_top(&s_setup);
+		return;
+	}
 	gfx_background(BG_TABLE_TOP);
 	for (int p = 1; p < s_players; p++) {
 		char info[24];
@@ -177,6 +186,11 @@ static void as23_draw_top(void)
 
 static void as23_draw_bottom(void)
 {
+	if (s_in_setup) {
+		setup_draw_bottom(&s_setup);
+		button_draw(&s_btn_menu, false);
+		return;
+	}
 	gfx_background(BG_TABLE_BOTTOM);
 	table_draw_message(&s_table);
 	button_draw(&s_btn_menu, false);
@@ -212,7 +226,6 @@ static void as23_draw_bottom(void)
 			gfx_text("Toca tu mazo o pulsa " GLYPH_A, 228, 160, 0, 0.42f, C2D_Color32(200, 230, 200, 255),
 				C2D_AlignCenter);
 	}
-	button_draw(&s_btn_players, true);
 	button_draw(&s_btn_play, s_btn_play.enabled);
 }
 
