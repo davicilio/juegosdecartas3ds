@@ -113,10 +113,20 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          gh release delete ultima-version --repo "$GITHUB_REPOSITORY" --cleanup-tag --yes || true
+          NOTES="Compilada automáticamente desde ${GITHUB_SHA::7}. Instala JuegosDeCartas.cia con FBI o abre JuegosDeCartas.3dsx desde el Homebrew Launcher."
           # version.txt: lo que mira el actualizador del juego para saber si hay versión nueva
           echo "${{ github.run_number }}" > version.txt
-          gh release create ultima-version JuegosDeCartas.cia JuegosDeCartas.3dsx version.txt \
-            --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" --prerelease \
-            --title "Última versión" \
-            --notes "Compilada automáticamente desde ${GITHUB_SHA::7}. Instala JuegosDeCartas.cia con FBI o abre JuegosDeCartas.3dsx desde el Homebrew Launcher."
+          if gh release view ultima-version --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            # La release no se borra (así no desaparece mientras alguien descarga):
+            # se sustituyen los ficheros y version.txt va el último, para que el
+            # juego no vea la versión nueva hasta que el .cia esté entero
+            gh release upload ultima-version JuegosDeCartas.cia JuegosDeCartas.3dsx --clobber --repo "$GITHUB_REPOSITORY"
+            gh release upload ultima-version version.txt --clobber --repo "$GITHUB_REPOSITORY"
+            git tag -f ultima-version "$GITHUB_SHA"
+            git push -f origin refs/tags/ultima-version
+            gh release edit ultima-version --repo "$GITHUB_REPOSITORY" --notes "$NOTES"
+          else
+            gh release create ultima-version JuegosDeCartas.cia JuegosDeCartas.3dsx version.txt \
+              --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" --prerelease \
+              --title "Última versión" --notes "$NOTES"
+          fi
