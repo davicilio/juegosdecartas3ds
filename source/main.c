@@ -95,6 +95,16 @@ static const Scene* scene_for(SceneId id)
 		return &scene_backgammon;
 	case SCENE_SPIDER:
 		return &scene_spider;
+	case SCENE_KLONDIKE:
+		return &scene_klondike;
+	case SCENE_GOMOKU:
+		return &scene_gomoku;
+	case SCENE_MANCALA:
+		return &scene_mancala;
+	case SCENE_SERPIENTES:
+		return &scene_serpientes;
+	case SCENE_DESLIZANTE:
+		return &scene_deslizante;
 	case SCENE_TABLEROS:
 		return &scene_tableros;
 	case SCENE_TOMA6:
@@ -178,6 +188,10 @@ static bool is_card_game(SceneId id)
 	case SCENE_SUDOKU:
 	case SCENE_GENERALA:
 	case SCENE_BACKGAMMON:
+	case SCENE_GOMOKU:
+	case SCENE_MANCALA:
+	case SCENE_SERPIENTES:
+	case SCENE_DESLIZANTE:
 	case SCENE_BINGO:
 	case SCENE_RUMMIKUB:
 		return false;

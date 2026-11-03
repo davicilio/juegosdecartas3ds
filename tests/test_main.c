@@ -33,6 +33,11 @@
 #include "games/ajedrez.h"
 #include "games/backgammon.h"
 #include "games/buscaminas.h"
+#include "games/deslizante.h"
+#include "games/gomoku.h"
+#include "games/klondike.h"
+#include "games/mancala.h"
+#include "games/serpientes.h"
 #include "games/generala.h"
 #include "games/spider.h"
 #include "games/sudoku.h"
@@ -3799,6 +3804,219 @@ static void test_spider(void)
 	printf("  araña (1 palo): %d escaleras y %d partidas ganadas en 20, solo con las pistas\n", runs, won);
 }
 
+static void test_klondike(void)
+{
+	Klondike g;
+	kl_init(&g, 1, 4);
+	int total = g.b.stock_n;
+	for (int c = 0; c < KL_COLS; c++) {
+		CHECK(g.b.col_n[c] == c + 1 && g.b.col[c][c].up && (c == 0 || !g.b.col[c][0].up));
+		total += g.b.col_n[c];
+	}
+	CHECK(total == 52 && g.b.stock_n == 24);
+	/* Robar y dar la vuelta */
+	for (int k = 0; k < 24; k++)
+		kl_draw(&g);
+	CHECK(g.b.stock_n == 0 && g.b.waste_n == 24);
+	kl_draw(&g);
+	CHECK(g.b.stock_n == 24 && g.b.waste_n == 0 && g.b.passes == 1);
+	CHECK(kl_undo(&g) && g.b.waste_n == 24);
+	kl_init(&g, 3, 4);
+	kl_draw(&g);
+	CHECK(g.b.waste_n == 3);
+	/* Reglas de las columnas y los montones */
+	memset(&g.b, 0, sizeof g.b);
+	g.b.col[0][g.b.col_n[0]++] = (KlCard){ 8, 0, true };  /* 8 de picas */
+	g.b.col[1][g.b.col_n[1]++] = (KlCard){ 7, 1, true };  /* 7 de corazones */
+	g.b.col[2][g.b.col_n[2]++] = (KlCard){ 7, 3, true };  /* 7 de tréboles */
+	g.b.col[3][g.b.col_n[3]++] = (KlCard){ 1, 2, true };  /* as de diamantes */
+	CHECK(kl_can_move(&g.b, 1, 1, 0) && !kl_can_move(&g.b, 2, 1, 0));
+	CHECK(!kl_can_move(&g.b, 1, 1, 4) || g.b.col_n[4] != 0); /* columna vacía: solo reyes */
+	CHECK(kl_move(&g, 1, 1, 0) && g.b.col_n[0] == 2);
+	CHECK(kl_auto_found(&g, 3) && g.b.found[2] == 1);
+	/* Partidas jugadas con una estrategia sencilla: alguna se gana */
+	int won = 0;
+	for (int seed = 1; seed <= 60; seed++) {
+		kl_init(&g, 1, (uint32_t)seed);
+		for (int step = 0; step < 3000 && !g.won; step++) {
+			bool moved = false;
+			for (int f = 0; f <= KL_WASTE && !moved; f++)
+				if (f < KL_COLS || f == KL_WASTE)
+					moved = kl_auto_found(&g, f);
+			for (int f = 0; f < KL_COLS && !moved; f++)
+				for (int n = g.b.col_n[f]; n >= 1 && !moved; n--) {
+					if (!g.b.col[f][g.b.col_n[f] - n].up)
+						continue;
+					/* Solo si destapa una carta o mueve un rey a un hueco desde debajo de otras */
+					bool useful = n < g.b.col_n[f] && !g.b.col[f][g.b.col_n[f] - n - 1].up;
+					for (int t2 = 0; t2 < KL_COLS && !moved; t2++)
+						if (useful && kl_can_move(&g.b, f, n, t2))
+							moved = kl_move(&g, f, n, t2);
+				}
+			for (int t2 = 0; t2 < KL_COLS && !moved; t2++)
+				if (kl_can_move(&g.b, KL_WASTE, 1, t2))
+					moved = kl_move(&g, KL_WASTE, 1, t2);
+			if (!moved) {
+				if (g.b.passes > 3)
+					break;
+				kl_draw(&g);
+			}
+			while (kl_can_finish(&g.b) && kl_finish_step(&g) >= 0)
+				;
+		}
+		won += g.won;
+		int cards = g.b.stock_n + g.b.waste_n;
+		for (int c = 0; c < KL_COLS; c++)
+			cards += g.b.col_n[c];
+		for (int s2 = 0; s2 < 4; s2++)
+			cards += g.b.found[s2];
+		CHECK(cards == 52);
+	}
+	CHECK(won >= 1);
+	printf("  klondike: %d de 60 ganadas con una estrategia sencilla\n", won);
+}
+
+static void test_gomoku(void)
+{
+	Gomoku g;
+	go_init(&g, 2, 1);
+	/* Cinco en horizontal */
+	for (int k = 0; k < 4; k++) {
+		CHECK(go_play(&g, 7, 3 + k));
+		CHECK(go_play(&g, 0, k));
+	}
+	CHECK(!go_play(&g, 7, 3)); /* ocupada */
+	CHECK(go_play(&g, 7, 7) && g.winner == 1);
+	/* La consola tapa un cuatro abierto y remata el suyo */
+	go_init(&g, 2, 2);
+	go_play(&g, 7, 4);
+	go_play(&g, 0, 0);
+	go_play(&g, 7, 5);
+	go_play(&g, 0, 2);
+	go_play(&g, 7, 6);
+	int m = go_ai(&g);
+	CHECK(m == 7 * GO_N + 3 || m == 7 * GO_N + 7);
+	go_init(&g, 2, 3);
+	g.cell[3][3] = g.cell[3][4] = g.cell[3][5] = g.cell[3][6] = 2;
+	g.cell[10][10] = g.cell[10][11] = g.cell[10][12] = 1;
+	g.moves = 7;
+	g.current = 2;
+	m = go_ai(&g);
+	CHECK(m == 3 * GO_N + 2 || m == 3 * GO_N + 7);
+	/* Partidas enteras contra la consola en difícil: el jugador al azar pierde */
+	int ai_wins = 0;
+	for (int seed = 1; seed <= 20; seed++) {
+		go_init(&g, 2, (uint32_t)seed);
+		while (!g.winner) {
+			if (g.current == 1) {
+				int r, c;
+				do {
+					r = rng_range(&g.rng, GO_N);
+					c = rng_range(&g.rng, GO_N);
+				} while (g.cell[r][c]);
+				go_play(&g, r, c);
+			} else {
+				int a = go_ai(&g);
+				CHECK(go_play(&g, a / GO_N, a % GO_N));
+			}
+		}
+		ai_wins += g.winner == 2;
+	}
+	CHECK(ai_wins >= 18);
+}
+
+static void test_mancala(void)
+{
+	Mancala g;
+	mc_init(&g, 1, 1);
+	CHECK(mc_can_play(&g, 2) && mc_play(&g, 2)); /* 4 semillas desde el 2: la última al granero */
+	CHECK(g.pit[6] == 1 && g.again && g.current == 0);
+	CHECK(mc_play(&g, 5) && g.current == 1);
+	/* Captura */
+	memset(g.pit, 0, sizeof g.pit);
+	g.pit[0] = 1;  /* cae en el hoyo 1, vacío; enfrente (el 11) hay 5 */
+	g.pit[11] = 5;
+	g.pit[8] = 2; /* para que el rival no se quede sin semillas */
+	g.pit[3] = 1;
+	g.current = 0;
+	g.over = false;
+	CHECK(mc_play(&g, 0) && g.captured && g.pit[6] == 6 && g.pit[11] == 0);
+	/* Partidas enteras: las semillas no se pierden y la IA difícil gana a la fácil */
+	int strong = 0;
+	for (int seed = 1; seed <= 40; seed++) {
+		mc_init(&g, 0, (uint32_t)seed);
+		int guard = 0;
+		while (!g.over && guard++ < 500) {
+			g.level = g.current == 1 ? 2 : 0;
+			int i = mc_ai(&g);
+			CHECK(mc_play(&g, i));
+			int total = 0;
+			for (int k = 0; k < MC_PITS; k++)
+				total += g.pit[k];
+			CHECK(total == 48);
+		}
+		CHECK(g.over);
+		strong += g.pit[13] > g.pit[6];
+	}
+	CHECK(strong >= 32);
+}
+
+static void test_serpientes(void)
+{
+	for (int i = 0; i < SE_LINKS; i++) {
+		CHECK(SE_BOARD[i].from > 1 && SE_BOARD[i].from < SE_GOAL && SE_BOARD[i].to >= 1 && SE_BOARD[i].to <= SE_GOAL);
+		for (int j = 0; j < SE_LINKS; j++)
+			CHECK(i == j || SE_BOARD[i].from != SE_BOARD[j].from);
+	}
+	Serpientes g;
+	se_init(&g, 2, 1);
+	se_roll(&g, 3);
+	CHECK(g.pos[0] == 22 && g.current == 1); /* escalera del 3 */
+	se_roll(&g, 6);
+	CHECK(g.pos[1] == 6 && g.current == 1); /* con un 6 se repite */
+	g.pos[1] = 97;
+	se_roll(&g, 5); /* 97 + 5 = 102: rebota a la 98, que es una serpiente */
+	CHECK(g.last_land == 98 && g.pos[1] == 79);
+	g.pos[0] = 96;
+	se_roll(&g, 4);
+	CHECK(g.pos[0] == SE_GOAL && g.winner == 0);
+	for (int seed = 1; seed <= 100; seed++) {
+		se_init(&g, 2 + seed % 3, (uint32_t)seed);
+		int guard = 0;
+		while (g.winner < 0 && guard++ < 5000)
+			se_roll(&g, 0);
+		CHECK(g.winner >= 0);
+	}
+}
+
+static void test_deslizante(void)
+{
+	for (int n = 3; n <= DZ_MAX; n++) {
+		Deslizante g;
+		dz_init(&g, n, (uint32_t)n * 11);
+		CHECK(!dz_solved(&g) && g.moves == 0);
+		/* Es una permutación válida */
+		int seen[DZ_MAX * DZ_MAX] = { 0 };
+		for (int i = 0; i < n * n; i++)
+			seen[g.cell[i]]++;
+		for (int v = 0; v < n * n; v++)
+			CHECK(seen[v] == 1);
+		/* Mover una fila entera */
+		int b = dz_blank(&g), r = b / n;
+		int far = r * n + (b % n == 0 ? n - 1 : 0);
+		CHECK(dz_slide(&g, far) && dz_blank(&g) == far);
+		CHECK(!dz_slide(&g, (far + n + 1) % (n * n)) || (far + n + 1) % (n * n) / n == far / n ||
+			(far + n + 1) % (n * n) % n == far % n);
+	}
+	/* Desde resuelto, una ficha y vuelta: resuelto */
+	Deslizante g;
+	memset(&g, 0, sizeof g);
+	g.n = 3;
+	for (int i = 0; i < 8; i++)
+		g.cell[i] = i + 1;
+	CHECK(dz_solved(&g) && dz_slide(&g, 7) && !dz_solved(&g) && dz_slide(&g, 8) && dz_solved(&g));
+}
+
 static void test_negocio(void)
 {
 	NgBoard b, c;
@@ -4706,6 +4924,11 @@ int main(void)
 	test_poker_variants();
 	test_chip_stacks();
 	test_negocio();
+	test_klondike();
+	test_gomoku();
+	test_mancala();
+	test_serpientes();
+	test_deslizante();
 	test_sudoku();
 	test_generala();
 	test_backgammon();

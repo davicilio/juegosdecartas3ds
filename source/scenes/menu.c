@@ -167,12 +167,32 @@ static const MenuEntry entries[] = {
 	  "Dos barajas en diez columnas: ordena del rey al as del mismo palo para sacar las escaleras. "
 	  "Con 1, 2 o 4 palos. Con pistas y deshacer.",
 	  SCENE_SPIDER, SUIT_OROS, { C(OROS, 1), C(OROS, 1), C(OROS, 1) }, { -1, -1, -1 }, KIND_FRENCH },
+	{ "Solitario Klondike",
+	  "El solitario de siempre: siete columnas, el mazo y cuatro casas. Baja alternando rojo y negro "
+	  "y sube los palos del as al rey. Robando de una en una o de tres en tres.",
+	  SCENE_KLONDIKE, SUIT_OROS, { C(OROS, 1), C(OROS, 1), C(OROS, 1) }, { -1, -1, -1 }, KIND_FRENCH },
 	{ "Corazones",
 	  "Evita llevarte corazones (1 punto) y la reina de picas (13). Antes de cada mano se pasan tres "
 	  "cartas. ¡O llévatelos todos y dispara a la luna! A 100 puntos gana quien menos tenga.",
 	  SCENE_CORAZONES, SUIT_OROS, { C(OROS, 1), C(OROS, 1), C(OROS, 1) }, { CPU_LOLA, CPU_PEPE, CPU_PACO },
 	  KIND_FRENCH },
 	/* Juegos de mesa */
+	{ "Cinco en raya",
+	  "En un tablero de 15x15, pon piedras por turnos y junta cinco en línea antes que la CPU: en "
+	  "horizontal, vertical o diagonal. Tres niveles de dificultad.",
+	  SCENE_GOMOKU, SUIT_OROS, { C(OROS, 1), C(OROS, 1), C(OROS, 1) }, { CPU_LUCIA, -1, -1 }, KIND_BOARD },
+	{ "Mancala",
+	  "El juego de siembra africano (Kalah): reparte las semillas de un hoyo y llena tu granero. Si "
+	  "acabas en tu granero, repites; en un hoyo vacío tuyo, capturas. Tres niveles.",
+	  SCENE_MANCALA, SUIT_OROS, { C(OROS, 1), C(OROS, 1), C(OROS, 1) }, { CPU_CARMEN, -1, -1 }, KIND_BOARD },
+	{ "Serpientes y escaleras",
+	  "Tira el dado y recorre las 100 casillas: las escaleras te suben y las serpientes te bajan. "
+	  "Hay que llegar justo a la 100. De 2 a 4 jugadores.",
+	  SCENE_SERPIENTES, SUIT_OROS, { C(OROS, 1), C(OROS, 1), C(OROS, 1) }, { CPU_PEPE, CPU_LOLA, CPU_PACO }, KIND_BOARD },
+	{ "Puzle deslizante",
+	  "El clásico 15: desliza las fichas por el hueco hasta ordenarlas. En 3x3, 4x4 o 5x5, con "
+	  "contador de movimientos y tiempo.",
+	  SCENE_DESLIZANTE, SUIT_OROS, { C(OROS, 1), C(OROS, 1), C(OROS, 1) }, { -1, -1, -1 }, KIND_BOARD },
 	{ "Conecta 4",
 	  "Deja caer tus fichas rojas en las columnas y junta cuatro en línea antes que la CPU: en "
 	  "horizontal, vertical o diagonal. Tres niveles de dificultad.",
@@ -564,7 +584,8 @@ static void draw_update_icon(float cx, float cy, float s, float depth)
 static bool is_french(SceneId scene)
 {
 	return scene == SCENE_POKER || scene == SCENE_BLACKJACK || scene == SCENE_CORAZONES || scene == SCENE_FREECELL ||
-	       scene == SCENE_OMAHA || scene == SCENE_DRAWPOKER || scene == SCENE_VIDEOPOKER || scene == SCENE_SPIDER;
+	       scene == SCENE_OMAHA || scene == SCENE_DRAWPOKER || scene == SCENE_VIDEOPOKER || scene == SCENE_SPIDER ||
+	       scene == SCENE_KLONDIKE;
 }
 
 /* Icono de los juegos de mesa sin cartas (s = escala, 1 = unos 16 px) */
@@ -574,7 +595,8 @@ static bool has_board_icon(SceneId scene)
 	       scene == SCENE_OCA || scene == SCENE_BINGO || scene == SCENE_TRESENRAYA || scene == SCENE_FLOTA ||
 	       scene == SCENE_PARCHIS || scene == SCENE_TOMA6 || scene == SCENE_MAHJONG || scene == SCENE_NEGOCIO ||
 	       scene == SCENE_RIICHI || scene == SCENE_BUSCAMINAS || scene == SCENE_AJEDREZ ||
-	       scene == SCENE_CONQUISTA || scene == SCENE_SUDOKU || scene == SCENE_GENERALA || scene == SCENE_BACKGAMMON;
+	       scene == SCENE_CONQUISTA || scene == SCENE_SUDOKU || scene == SCENE_GENERALA || scene == SCENE_BACKGAMMON ||
+	       scene == SCENE_GOMOKU || scene == SCENE_MANCALA || scene == SCENE_SERPIENTES || scene == SCENE_DESLIZANTE;
 }
 
 static void draw_board_icon(SceneId scene, float cx, float cy, float s, float depth)
@@ -635,6 +657,50 @@ static void draw_board_icon(SceneId scene, float cx, float cy, float s, float de
 			gfx_text("15", cx, cy - 3.2f * s, depth, 0.25f * s, C2D_Color32(30, 30, 40, 255), C2D_AlignCenter);
 		else
 			gfx_ellipse(cx - 3 * s, cy - 3.5f * s, 1.6f * s, 1.1f * s, depth, C2D_Color32(255, 255, 255, 160));
+		return;
+	}
+	if (scene == SCENE_GOMOKU) {
+		/* Cuadrícula de go con piedras blancas y negras */
+		gfx_rrect(cx - 9 * s, cy - 9 * s, 18 * s, 18 * s, 2 * s, depth, C2D_Color32(220, 175, 100, 255));
+		for (int k = 0; k < 4; k++) {
+			float p = -6 * s + k * 4 * s;
+			gfx_line(cx - 7 * s, cy + p, cx + 7 * s, cy + p, 0.5f * s, depth, C2D_Color32(90, 60, 30, 255));
+			gfx_line(cx + p, cy - 7 * s, cx + p, cy + 7 * s, 0.5f * s, depth, C2D_Color32(90, 60, 30, 255));
+		}
+		for (int k = 0; k < 3; k++)
+			gfx_ellipse(cx - 6 * s + k * 4 * s, cy + 2 * s - k * 4 * s, 1.8f * s, 1.8f * s, depth, C2D_Color32(25, 25, 30, 255));
+		gfx_ellipse(cx - 2 * s, cy + 2 * s, 1.8f * s, 1.8f * s, depth, C2D_Color32(245, 245, 240, 255));
+		gfx_ellipse(cx + 2 * s, cy + 6 * s, 1.8f * s, 1.8f * s, depth, C2D_Color32(245, 245, 240, 255));
+		return;
+	}
+	if (scene == SCENE_MANCALA) {
+		gfx_rrect(cx - 10 * s, cy - 6 * s, 20 * s, 12 * s, 5 * s, depth, C2D_Color32(140, 85, 40, 255));
+		for (int k = 0; k < 3; k++)
+			for (int r = 0; r < 2; r++) {
+				float x = cx - 4.5f * s + k * 4.5f * s, y = cy + (r ? 2.5f : -2.5f) * s;
+				gfx_ellipse(x, y, 1.9f * s, 1.9f * s, depth, C2D_Color32(90, 50, 22, 255));
+				gfx_ellipse(x, y, 0.8f * s, 0.8f * s, depth, k == r ? C2D_Color32(60, 150, 200, 255) : C2D_Color32(220, 70, 60, 255));
+			}
+		gfx_ellipse(cx - 8 * s, cy, 1.5f * s, 4 * s, depth, C2D_Color32(90, 50, 22, 255));
+		gfx_ellipse(cx + 8 * s, cy, 1.5f * s, 4 * s, depth, C2D_Color32(90, 50, 22, 255));
+		return;
+	}
+	if (scene == SCENE_SERPIENTES) {
+		for (int k = 0; k < 16; k++)
+			gfx_rect(cx - 9 * s + k % 4 * 4.5f * s, cy - 9 * s + k / 4 * 4.5f * s, 4.5f * s, 4.5f * s, depth,
+				(k + k / 4) % 2 ? C2D_Color32(250, 240, 215, 255) : C2D_Color32(215, 235, 200, 255));
+		gfx_line(cx - 5 * s, cy + 7 * s, cx + 1 * s, cy - 7 * s, 1.0f * s, depth, C2D_Color32(150, 95, 40, 255));
+		gfx_line(cx - 1 * s, cy + 7 * s, cx + 5 * s, cy - 7 * s, 1.0f * s, depth, C2D_Color32(150, 95, 40, 255));
+		gfx_line(cx + 6 * s, cy - 6 * s, cx + 3 * s, cy + 1 * s, 1.6f * s, depth, C2D_Color32(60, 160, 70, 255));
+		gfx_line(cx + 3 * s, cy + 1 * s, cx + 7 * s, cy + 7 * s, 1.2f * s, depth, C2D_Color32(60, 160, 70, 255));
+		gfx_ellipse(cx + 6 * s, cy - 6 * s, 1.8f * s, 1.8f * s, depth, C2D_Color32(60, 160, 70, 255));
+		return;
+	}
+	if (scene == SCENE_DESLIZANTE) {
+		gfx_rrect(cx - 9 * s, cy - 9 * s, 18 * s, 18 * s, 2 * s, depth, C2D_Color32(90, 55, 25, 255));
+		for (int k = 0; k < 8; k++)
+			gfx_rrect(cx - 8 * s + k % 3 * 5.5f * s, cy - 8 * s + k / 3 * 5.5f * s, 5 * s, 5 * s, 1 * s, depth,
+				C2D_Color32(240, 180, 100, 255));
 		return;
 	}
 	if (scene == SCENE_SUDOKU) {
@@ -765,8 +831,11 @@ static void menu_draw_top(void)
 			static const int draw[3] = { 3 * 13 + 8, 3 * 13 + 9, 3 * 13 + 10 };
 			static const int royal[3] = { 1 * 13 + 10, 1 * 13 + 11, 1 * 13 + 12 };
 			static const int spider[3] = { 0 * 13 + 11, 0 * 13 + 10, 0 * 13 + 9 };
+			static const int klondike[3] = { 3 * 13 + 11, 1 * 13 + 10, 0 * 13 + 12 };
 			if (e->scene == SCENE_SPIDER)
 				f0 = spider;
+			else if (e->scene == SCENE_KLONDIKE)
+				f0 = klondike;
 			else if (e->scene == SCENE_OMAHA)
 				f0 = omaha;
 			else if (e->scene == SCENE_DRAWPOKER)

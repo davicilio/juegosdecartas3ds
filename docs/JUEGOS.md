@@ -344,8 +344,8 @@ consola, hasta 24 letras), su **tipo** (calle, suerte, Hacienda, obras o plaza),
 
 ## Reversi y la oca (juegos de mesa)
 - **Reversi**: pon ficha encerrando en línea las del rival, que se dan la vuelta. Se marcan
-  las casillas donde puedes poner. Ⓨ cambia la dificultad.
-- **La oca**: de 2 a 4 jugadores (Ⓧ). Tira el dado (Ⓐ o tocándolo) y llega justo a la 63.
+  las casillas donde puedes poner. La dificultad se elige antes de empezar.
+- **La oca**: de 2 a 4 jugadores (se elige antes de empezar). Tira el dado (Ⓐ o tocándolo) y llega justo a la 63.
   De oca a oca, de puente a puente y de dado a dado se vuelve a tirar; la posada quita un
   turno, la cárcel dos, del pozo no sales hasta que caiga otro, el laberinto te devuelve
   a la 30 y la muerte, a la casilla 1.
@@ -448,6 +448,14 @@ solo se mueven juntas las escaleras del mismo palo. Al completar del rey al as d
 escalera sale del tablero; hay que sacar las ocho. **Dar** (Ⓧ) pone una carta en cada columna
 (sin columnas vacías). Con 1, 2 o 4 palos, deshacer (Ⓨ) y pistas (R).
 
+## Solitario Klondike (baraja francesa)
+El solitario de toda la vida: siete columnas, con la última carta de cada una boca arriba, y el
+mazo. Baja cartas alternando rojo y negro y de mayor a menor, y sube los cuatro palos del as al
+rey a las casas. En las columnas vacías solo entra un rey. Toca el mazo (o Ⓧ) para robar de una
+en una o de tres en tres (se elige antes de empezar); cuando se acaba, se le da la vuelta. Toca
+una carta y luego su destino; tocándola dos veces sube a su casa. Deshacer con Ⓨ. Cuando todo está
+boca arriba, el resto se sube solo.
+
 ## Corazones (baraja francesa)
 Cuatro jugadores, trece cartas. Antes de cada mano pasas tres cartas (izquierda,
 derecha, enfrente o ninguna). Sale el 2 de tréboles; hay que asistir. Cada corazón
@@ -457,12 +465,36 @@ los "rompe". Si te llevas los 26 puntos, disparas a la luna: los demás suman 26
 
 ## Conecta 4, damas y dominó (juegos de mesa)
 - **Conecta 4**: toca una columna (o elige con la cruceta y Ⓐ) para dejar caer tu
-  ficha roja. Gana quien junta cuatro en línea. Ⓨ cambia la dificultad.
+  ficha roja. Gana quien junta cuatro en línea. La dificultad se elige antes de empezar.
 - **Damas** con reglas españolas: toca tu ficha y luego la casilla de destino (se
   marcan las jugadas posibles). Comer es obligatorio, y la jugada que más come; las
-  fichas comen hacia delante y la dama vuela. Ⓨ cambia la dificultad.
+  fichas comen hacia delante y la dama vuela. La dificultad se elige antes de empezar.
 - **Dominó** por parejas, a 100 puntos: toca una ficha que case con un extremo (si
   casa por los dos, eliges el lado con L/R). Si no puedes, pasas (Ⓧ).
+
+## Cinco en raya (juego de mesa)
+En un tablero de 15 x 15, tú con las piedras negras y la CPU con las blancas. Toca una
+intersección (o cruceta y Ⓐ) para poner tu piedra. Gana quien junta cinco seguidas en horizontal,
+vertical o diagonal. Tres niveles de dificultad, que se eligen antes de empezar.
+
+## Mancala (juego de mesa)
+La versión Kalah, con cuatro semillas en cada uno de los doce hoyos. Toca uno de tus hoyos (la fila
+de abajo): sus semillas se reparten de una en una hacia la derecha y, en sentido contrario a las
+agujas del reloj, por tu granero (a la derecha) y los hoyos del rival, saltándote su granero. Si
+la última cae en tu granero, vuelves a jugar; si cae en un hoyo tuyo vacío, te llevas esa semilla
+y las del hoyo de enfrente. Cuando un lado se queda vacío, cada uno guarda lo que le queda. Gana
+quien tiene más semillas en su granero. Tres niveles de dificultad.
+
+## Serpientes y escaleras (juego de mesa)
+De 2 a 4 jugadores. Tira el dado (Ⓐ) y avanza por las 100 casillas: al caer al pie de una
+escalera subes hasta arriba y al caer en la cabeza de una serpiente bajas hasta su cola. Hay que
+llegar justo a la 100: si sobran puntos, se cuentan hacia atrás. Con un 6 se vuelve a tirar.
+
+## Puzle deslizante (juego de mesa)
+Las fichas están desordenadas y hay un hueco. Toca una ficha de la misma fila o columna que el
+hueco y se deslizan todas hacia él (o usa la cruceta). Hay que dejarlas en orden, de izquierda a
+derecha y de arriba abajo, con el hueco al final. En 3 x 3, 4 x 4 (el clásico 15) o 5 x 5, con
+movimientos y tiempo. Siempre tiene solución.
 
 ## Uno (juego de mesa)
 Tú contra tres personajes, con cartas de colores dibujadas para el juego (diseño

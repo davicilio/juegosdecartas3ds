@@ -52,6 +52,11 @@ typedef enum {
 	SCENE_GENERALA,
 	SCENE_BACKGAMMON,
 	SCENE_SPIDER,
+	SCENE_KLONDIKE,
+	SCENE_GOMOKU,
+	SCENE_MANCALA,
+	SCENE_SERPIENTES,
+	SCENE_DESLIZANTE,
 	SCENE_TABLEROS,
 	SCENE_OMAHA,
 	SCENE_DRAWPOKER,
@@ -132,6 +137,11 @@ extern const Scene scene_sudoku;
 extern const Scene scene_generala;
 extern const Scene scene_backgammon;
 extern const Scene scene_spider;
+extern const Scene scene_klondike;
+extern const Scene scene_gomoku;
+extern const Scene scene_mancala;
+extern const Scene scene_serpientes;
+extern const Scene scene_deslizante;
 extern const Scene scene_tableros;
 extern const Scene scene_omaha;
 extern const Scene scene_drawpoker;
