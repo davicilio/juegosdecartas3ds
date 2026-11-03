@@ -3844,6 +3844,46 @@ static void test_negocio(void)
 	CHECK(strcmp(back[0].sq[5].name, "Calle de la Peña") == 0);
 	CHECK(ng_boards_load(back, 2, path) == 2);
 	remove(path);
+	/* Nombres largos: 24 caracteres, con tildes */
+	ng_board_default(&list[0]);
+	snprintf(list[0].sq[1].name, sizeof list[0].sq[1].name, "Avenida de la Constitución");
+	CHECK(strlen(list[0].sq[1].name) < NG_NAME_MAX);
+	CHECK(ng_boards_save(list, 1, path) && ng_boards_load(back, NG_MAX_BOARDS, path) == 1);
+	CHECK(strcmp(back[0].sq[1].name, "Avenida de la Constitución") == 0);
+	remove(path);
+	/* Los tableros guardados con la versión 1 (nombres de 25 bytes) se siguen leyendo */
+	{
+		struct {
+			uint32_t magic;
+			uint16_t version, count;
+		} h1 = { 0x3142474Eu, 1, 1 };
+		/* Misma estructura que NgBoard en la versión 1 (con su relleno) */
+		struct {
+			char title[25];
+			struct {
+				uint8_t type, group;
+				uint16_t price;
+				char name[25];
+			} sq[NG_SQUARES];
+		} old;
+		memset(&old, 0, sizeof old);
+		snprintf(old.title, sizeof old.title, "Mi pueblo");
+		for (int i = 0; i < NG_SQUARES; i++) {
+			old.sq[i].type = (uint8_t)b.sq[i].type;
+			old.sq[i].group = b.sq[i].group;
+			old.sq[i].price = b.sq[i].price;
+			snprintf(old.sq[i].name, sizeof old.sq[i].name, "%s", b.sq[i].name);
+		}
+		snprintf(old.sq[4].name, sizeof old.sq[4].name, "Calle del Olmo");
+		FILE* f = fopen(path, "wb");
+		fwrite(&h1, sizeof h1, 1, f);
+		fwrite(&old, sizeof old, 1, f);
+		fclose(f);
+		CHECK(ng_boards_load(back, NG_MAX_BOARDS, path) == 1);
+		CHECK(strcmp(back[0].title, "Mi pueblo") == 0 && strcmp(back[0].sq[4].name, "Calle del Olmo") == 0);
+		CHECK(back[0].sq[4].price == b.sq[4].price && back[0].sq[0].type == NG_START);
+		remove(path);
+	}
 	CHECK(ng_boards_load(back, NG_MAX_BOARDS, path) == 0);
 
 	/* Comprar, cobrar alquiler y pasar por la salida */

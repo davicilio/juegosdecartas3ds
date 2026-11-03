@@ -48,7 +48,7 @@ static int s_walk_player, s_walk_left, s_walk_target;
 static int s_face[2] = { 1, 1 };
 static int s_list_cursor;
 static Mood s_mood[NG_PLAYERS];
-static char s_message[128];
+static char s_message[192];
 static Button s_btn_a, s_btn_b, s_btn_x, s_btn_y, s_btn_new, s_btn_del, s_btn_prev, s_btn_next, s_btn_menu;
 
 static const NgBoard* board_at(int i)
@@ -89,6 +89,15 @@ static void set_message(const char* fmt, ...)
 	va_start(ap, fmt);
 	vsnprintf(s_message, sizeof s_message, fmt, ap);
 	va_end(ap);
+}
+
+/* Texto que se encoge para caber en max_w (los nombres pueden ser largos) */
+static void fit_text(const char* str, float x, float y, float depth, float scale, u32 color, u32 align, float max_w)
+{
+	float w = gfx_text_width(str, scale);
+	if (w > max_w)
+		scale *= max_w / w;
+	gfx_text(str, x, y, depth, scale, color, align);
 }
 
 /* ---------------------------------------------------------------------------
@@ -206,7 +215,7 @@ static void draw_square_info(const NgBoard* b, const Negocio* g, int i, float x,
 	if (q->type == NG_STREET)
 		gfx_rect(x + 3, y + 3, 194, 16, DEPTH_UI, gfx_rgb(GROUP_COLOR[q->group], 255));
 	u32 ink = C2D_Color32(60, 30, 20, 255);
-	gfx_text(q->name, x + 100, y + 2, DEPTH_UI, 0.55f, q->type == NG_STREET ? COLOR_WHITE : ink, C2D_AlignCenter);
+	fit_text(q->name, x + 100, y + 2, DEPTH_UI, 0.55f, q->type == NG_STREET ? COLOR_WHITE : ink, C2D_AlignCenter, 190);
 	switch (q->type) {
 	case NG_STREET: {
 		int owner = g ? g->owner[i] : -1;
@@ -617,7 +626,7 @@ static void neg_draw_top(void)
 	if (s_mode == MODE_SETUP) {
 		const NgBoard* b = board_at(s_board);
 		draw_board(b, NULL);
-		gfx_text(b->title, 200, 52, DEPTH_UI, 0.8f, COLOR_GOLD, C2D_AlignCenter);
+		fit_text(b->title, 200, 52, DEPTH_UI, 0.8f, COLOR_GOLD, C2D_AlignCenter, 300);
 		gfx_text("Negocio redondo", 200, 84, DEPTH_UI, 0.5f, COLOR_CREAM, C2D_AlignCenter);
 		int streets = 0;
 		for (int i = 0; i < NG_SQUARES; i++)
@@ -679,7 +688,7 @@ static void neg_draw_bottom(void)
 		gfx_text("Negocio redondo", 10, 4, 0, 0.55f, COLOR_GOLD, C2D_AlignLeft);
 		button_draw(&s_btn_prev, true);
 		button_draw(&s_btn_next, true);
-		gfx_text(b->title, BOTTOM_W / 2, 46, 0, 0.6f, COLOR_CREAM, C2D_AlignCenter);
+		fit_text(b->title, BOTTOM_W / 2, 46, 0, 0.6f, COLOR_CREAM, C2D_AlignCenter, 220);
 		gfx_textf(BOTTOM_W / 2, 66, 0, 0.42f, C2D_Color32(200, 230, 200, 255), C2D_AlignCenter, "Tablero %d de %d",
 			s_board + 1, s_nboards + 1);
 		gfx_text_wrap(s_message, 14, 92, 0, 0.42f, COLOR_GOLD, 292);
@@ -705,7 +714,7 @@ static void neg_draw_bottom(void)
 			if (k == s_list_cursor)
 				gfx_rect(6, y, 308, 14, 0, C2D_Color32(255, 215, 90, 90));
 			gfx_rect(10, y + 3, 10, 8, 0, gfx_rgb(GROUP_COLOR[q->group], 255));
-			gfx_textf_plain(26, y, 0, 0.42f, COLOR_CREAM, C2D_AlignLeft, "%s", q->name);
+			fit_text(q->name, 26, y, 0, 0.42f, COLOR_CREAM, C2D_AlignLeft, 166);
 			gfx_textf_plain(196, y, 0, 0.42f, C2D_Color32(200, 230, 200, 255), C2D_AlignLeft, "%d pl. · %d",
 				g->level[sq], ng_rent(g, sq));
 			if (ng_full_group(g, sq))
@@ -776,7 +785,7 @@ static void edit_text(char* text, size_t size, const char* hint)
 {
 	SwkbdState kbd;
 	char buf[NG_NAME_MAX];
-	swkbdInit(&kbd, SWKBD_TYPE_NORMAL, 2, 12);
+	swkbdInit(&kbd, SWKBD_TYPE_NORMAL, 2, NG_NAME_CHARS);
 	swkbdSetHintText(&kbd, hint);
 	swkbdSetInitialText(&kbd, text);
 	swkbdSetValidation(&kbd, SWKBD_NOTEMPTY_NOTBLANK, 0, 0);
@@ -857,7 +866,7 @@ static void ed_draw_top(void)
 	gfx_rect(x, y + CELL - 3, CELL, 3, DEPTH_UI, c);
 	gfx_rect(x, y, 3, CELL, DEPTH_UI, c);
 	gfx_rect(x + CELL - 3, y, 3, CELL, DEPTH_UI, c);
-	gfx_text(b->title, 200, 48, DEPTH_UI, 0.7f, COLOR_GOLD, C2D_AlignCenter);
+	fit_text(b->title, 200, 48, DEPTH_UI, 0.7f, COLOR_GOLD, C2D_AlignCenter, 300);
 	gfx_text("Editor de tableros", 200, 76, DEPTH_UI, 0.45f, COLOR_CREAM, C2D_AlignCenter);
 	draw_square_info(b, NULL, s_edit_sq, 100, 112);
 }
@@ -873,7 +882,7 @@ static void ed_draw_bottom(void)
 		NG_SQUARES);
 	button_draw(&s_ed_prev, true);
 	button_draw(&s_ed_next, true);
-	gfx_text(q->name, BOTTOM_W / 2, 28, 0, 0.6f, COLOR_CREAM, C2D_AlignCenter);
+	fit_text(q->name, BOTTOM_W / 2, 28, 0, 0.6f, COLOR_CREAM, C2D_AlignCenter, 220);
 	button_draw(&s_ed_name, true);
 	static char type_label[32], color_label[32];
 	snprintf(type_label, sizeof type_label, GLYPH_X " %s", TYPE_NAME[q->type]);

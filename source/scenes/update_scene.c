@@ -13,9 +13,10 @@ static UpdState s_prev;
 
 static void up_enter(void)
 {
-	/* Si no se ha mirado todavía (o falló), se vuelve a mirar */
+	/* Se vuelve a mirar siempre al entrar: lo de al arrancar puede haberse
+	 * quedado viejo (por ejemplo, si se publicó una versión después) */
 	UpdState st = updater_state();
-	if (st == UPD_IDLE || st == UPD_ERROR)
+	if (st != UPD_CHECKING && st != UPD_DOWNLOADING && st != UPD_DONE)
 		updater_check();
 	s_prev = updater_state();
 	button_set(&s_btn_back, 164, 205, 144, 28, GLYPH_B " Volver", C2D_Color32(120, 120, 120, 255), KEY_B);
@@ -78,9 +79,12 @@ static void up_draw_bottom(void)
 	case UPD_CHECKING:
 		msg = "Buscando versiones nuevas...";
 		break;
-	case UPD_UP_TO_DATE:
-		msg = "Ya tienes la última versión. ¡A jugar!";
+	case UPD_UP_TO_DATE: {
+		static char buf[80];
+		snprintf(buf, sizeof buf, "Ya tienes la última versión (la publicada es la %d). ¡A jugar!", updater_remote_build());
+		msg = buf;
 		break;
+	}
 	case UPD_AVAILABLE:
 		msg = "Hay una versión nueva. Tu perfil, tus fichas y tus partidas guardadas se conservan.";
 		break;

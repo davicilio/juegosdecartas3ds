@@ -101,7 +101,20 @@ void ng_board_sanitize(NgBoard* b)
 }
 
 #define BOARDS_MAGIC   0x3142474Eu /* "NGB1" */
-#define BOARDS_VERSION 1
+#define BOARDS_VERSION 2
+
+/* Versión 1 del fichero: nombres de 12 caracteres (25 bytes) */
+#define V1_NAME_MAX 25
+typedef struct {
+	uint8_t type, group;
+	uint16_t price;
+	char name[V1_NAME_MAX];
+} NgSquareV1;
+
+typedef struct {
+	char title[V1_NAME_MAX];
+	NgSquareV1 sq[NG_SQUARES];
+} NgBoardV1;
 
 typedef struct {
 	uint32_t magic;
@@ -116,11 +129,29 @@ int ng_boards_load(NgBoard* boards, int max, const char* path)
 		return 0;
 	BoardsHeader h;
 	int n = 0;
-	if (fread(&h, sizeof h, 1, f) == 1 && h.magic == BOARDS_MAGIC && h.version == BOARDS_VERSION) {
+	if (fread(&h, sizeof h, 1, f) == 1 && h.magic == BOARDS_MAGIC) {
 		int want = h.count < max ? h.count : max;
-		while (n < want && fread(&boards[n], sizeof boards[n], 1, f) == 1) {
-			ng_board_sanitize(&boards[n]);
-			n++;
+		if (h.version == BOARDS_VERSION) {
+			while (n < want && fread(&boards[n], sizeof boards[n], 1, f) == 1) {
+				ng_board_sanitize(&boards[n]);
+				n++;
+			}
+		} else if (h.version == 1) {
+			/* Los tableros de antes se pasan al formato nuevo */
+			NgBoardV1 old;
+			while (n < want && fread(&old, sizeof old, 1, f) == 1) {
+				NgBoard* b = &boards[n];
+				memset(b, 0, sizeof *b);
+				memcpy(b->title, old.title, V1_NAME_MAX);
+				for (int i = 0; i < NG_SQUARES; i++) {
+					b->sq[i].type = old.sq[i].type;
+					b->sq[i].group = old.sq[i].group;
+					b->sq[i].price = old.sq[i].price;
+					memcpy(b->sq[i].name, old.sq[i].name, V1_NAME_MAX);
+				}
+				ng_board_sanitize(b);
+				n++;
+			}
 		}
 	}
 	fclose(f);

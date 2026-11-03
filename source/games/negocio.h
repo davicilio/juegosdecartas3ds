@@ -28,7 +28,8 @@
 
 #define NG_SQUARES     28
 #define NG_PLAYERS     4
-#define NG_NAME_MAX    25 /* bytes en UTF-8, con el cero final */
+#define NG_NAME_CHARS  24 /* caracteres que se pueden escribir en un nombre */
+#define NG_NAME_MAX    49 /* bytes en UTF-8 (hasta dos por letra con tilde), con el cero final */
 #define NG_GROUPS      8
 #define NG_MAX_LEVEL   3
 #define NG_START_MONEY 1500

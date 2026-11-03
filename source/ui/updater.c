@@ -162,6 +162,10 @@ static long download(const char* url, Sink sink, void* ctx, long timeout)
 	curl_easy_setopt(c, CURLOPT_NOPROGRESS, 0L);
 	curl_easy_setopt(c, CURLOPT_XFERINFOFUNCTION, on_progress);
 	curl_easy_setopt(c, CURLOPT_BUFFERSIZE, 64L * 1024);
+	/* Nada de copias guardadas por el camino: siempre lo último publicado */
+	struct curl_slist* headers = curl_slist_append(NULL, "Cache-Control: no-cache");
+	headers = curl_slist_append(headers, "Pragma: no-cache");
+	curl_easy_setopt(c, CURLOPT_HTTPHEADER, headers);
 	CURLcode res = curl_easy_perform(c);
 	long code = -1;
 	if (res == CURLE_OK && !w.failed)
@@ -171,6 +175,7 @@ static long download(const char* url, Sink sink, void* ctx, long timeout)
 	else
 		snprintf(s_error, sizeof s_error, "%s", curl_message(res));
 	curl_easy_cleanup(c);
+	curl_slist_free_all(headers);
 	return code;
 }
 

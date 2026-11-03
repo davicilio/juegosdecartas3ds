@@ -338,7 +338,7 @@ Juego de compraventa de calles para 2 a 4 jugadores en un tablero de 28 casillas
 **Tableros propios**: en la pantalla de inicio eliges el tablero con ◀ ▶. **Nuevo tablero**
 copia el que tengas elegido y **Editar** abre el editor (si es el de serie, edita una copia). En
 el editor vas casilla a casilla con la cruceta y cambias su **nombre** (con el teclado de la
-consola), su **tipo** (calle, suerte, Hacienda, obras o plaza), su **color** y su **precio**
+consola, hasta 24 letras), su **tipo** (calle, suerte, Hacienda, obras o plaza), su **color** y su **precio**
 (L/R), y el nombre del tablero. Caben 6 tableros, que se guardan en
 `/3ds/JuegosDeCartas/tableros.dat`.
 
