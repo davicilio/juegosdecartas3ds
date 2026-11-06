@@ -1,0 +1,76 @@
+name: Sincronizar Backloggd
+
+# Lee el tiempo de juego de Steam, Epic, PlayStation y Nintendo y lo apunta como
+# sesiones en Backloggd. Instrucciones en backloggd-sync/README.md.
+# Está apagado hasta que crees la variable del repositorio BACKLOGGD_SYNC = 1.
+
+on:
+  schedule:
+    - cron: "23 * * * *"   # cada hora
+  workflow_dispatch:
+
+concurrency:
+  group: backloggd-sync
+  cancel-in-progress: false
+
+jobs:
+  sincronizar:
+    if: ${{ vars.BACKLOGGD_SYNC == '1' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: backloggd-sync
+
+      # El estado (tiempos anteriores, juegos asociados y tokens que se renuevan) se
+      # guarda cifrado en la caché de Actions entre ejecuciones.
+      - name: Recuperar el estado
+        uses: actions/cache/restore@v4
+        with:
+          path: estado.enc
+          key: bsync-estado-${{ github.run_id }}
+          restore-keys: bsync-estado-
+
+      - name: Descifrar el estado
+        env:
+          CLAVE_ESTADO: ${{ secrets.CLAVE_ESTADO }}
+        run: |
+          if [ -z "$CLAVE_ESTADO" ]; then echo "::error::Falta el secreto CLAVE_ESTADO"; exit 1; fi
+          if [ -f estado.enc ]; then
+            openssl enc -d -aes-256-cbc -pbkdf2 -iter 200000 -pass env:CLAVE_ESTADO \
+              -in estado.enc -out backloggd-sync/estado.json
+          fi
+
+      - name: Sincronizar
+        env:
+          BACKLOGGD_COOKIE: ${{ secrets.BACKLOGGD_COOKIE }}
+          BACKLOGGD_USUARIO: ${{ secrets.BACKLOGGD_USUARIO }}
+          BACKLOGGD_CONTRASENA: ${{ secrets.BACKLOGGD_CONTRASENA }}
+          STEAM_API_KEY: ${{ secrets.STEAM_API_KEY }}
+          STEAM_ID: ${{ secrets.STEAM_ID }}
+          EPIC_REFRESH_TOKEN: ${{ secrets.EPIC_REFRESH_TOKEN }}
+          PSN_NPSSO: ${{ secrets.PSN_NPSSO }}
+          NINTENDO_SESSION_TOKEN: ${{ secrets.NINTENDO_SESSION_TOKEN }}
+          NINTENDO_JUGADOR: ${{ vars.NINTENDO_JUGADOR }}
+          ZONA_HORARIA: ${{ vars.ZONA_HORARIA || 'Europe/Madrid' }}
+          MINUTOS_MINIMOS: ${{ vars.MINUTOS_MINIMOS || '5' }}
+        run: python3 backloggd-sync/sincronizar.py
+
+      - name: Cifrar el estado
+        if: always()
+        env:
+          CLAVE_ESTADO: ${{ secrets.CLAVE_ESTADO }}
+        run: |
+          if [ -f backloggd-sync/estado.json ]; then
+            openssl enc -aes-256-cbc -salt -pbkdf2 -iter 200000 -pass env:CLAVE_ESTADO \
+              -in backloggd-sync/estado.json -out estado.enc
+            rm backloggd-sync/estado.json
+          fi
+
+      - name: Guardar el estado
+        if: always() && hashFiles('estado.enc') != ''
+        uses: actions/cache/save@v4
+        with:
+          path: estado.enc
+          key: bsync-estado-${{ github.run_id }}-${{ github.run_attempt }}

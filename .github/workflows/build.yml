@@ -13,6 +13,14 @@ jobs:
       - name: Ejecutar tests
         run: make -C tests
 
+  tests-backloggd:
+    name: Tests del sincronizador de Backloggd
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Ejecutar tests
+        run: python3 -m unittest discover -s backloggd-sync/tests -v
+
   voz:
     name: Voz del bingo
     runs-on: ubuntu-latest
