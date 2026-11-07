@@ -34,6 +34,12 @@
 #include "games/backgammon.h"
 #include "games/buscaminas.h"
 #include "games/deslizante.h"
+#include "games/ruleta.h"
+#include "games/tragaperras.h"
+#include "games/baccarat.h"
+#include "games/craps.h"
+#include "games/keno.h"
+#include "games/rueda.h"
 #include "games/gomoku.h"
 #include "games/klondike.h"
 #include "games/mancala.h"
@@ -1084,6 +1090,42 @@ static void test_profile_v3(void)
 	remove(path);
 }
 
+static void test_profile_v5(void)
+{
+	/* Un perfil de la versión 5 (64 huecos) conserva estadísticas y fichas */
+	struct {
+		uint32_t magic;
+		uint16_t version;
+		uint8_t created, from_console, online_miis, reserved[3];
+		Avatar avatar;
+		uint32_t played[PROFILE_V5_SLOTS], won[PROFILE_V5_SLOTS];
+		int32_t chips;
+		uint32_t reserved2[3];
+	} old;
+	memset(&old, 0, sizeof old);
+	old.magic = PROFILE_MAGIC;
+	old.version = 5;
+	old.created = 1;
+	avatar_from_mii(&old.avatar, &cpu_avatar(CPU_LOLA)->mii, "Cinco");
+	old.played[GAME_SPIDER] = 9;
+	old.won[GAME_DESLIZANTE] = 3;
+	old.chips = 4321;
+	const char* path = "test_perfil_v5.dat";
+	FILE* f = fopen(path, "wb");
+	fwrite(&old, 1, sizeof old, f);
+	fclose(f);
+	PlayerProfile p;
+	CHECK(profile_load(&p, path));
+	CHECK(p.version == PROFILE_VERSION && p.created == 1 && strcmp(p.avatar.name, "Cinco") == 0);
+	CHECK(p.played[GAME_SPIDER] == 9 && p.won[GAME_DESLIZANTE] == 3 && p.chips == 4321);
+	CHECK(p.played[GAME_RUEDA] == 0);
+	profile_record(&p, GAME_RUEDA, true);
+	CHECK(profile_save(&p, path));
+	PlayerProfile q;
+	CHECK(profile_load(&q, path) && q.played[GAME_RUEDA] == 1 && q.won[GAME_RUEDA] == 1 && q.chips == 4321);
+	remove(path);
+}
+
 static void test_profile_v4(void)
 {
 	/* Un perfil de la versión 4 conserva todo y recibe el monedero inicial */
@@ -1092,7 +1134,7 @@ static void test_profile_v4(void)
 		uint16_t version;
 		uint8_t created, from_console, online_miis, reserved[3];
 		Avatar avatar;
-		uint32_t played[PROFILE_GAME_SLOTS], won[PROFILE_GAME_SLOTS];
+		uint32_t played[PROFILE_V5_SLOTS], won[PROFILE_V5_SLOTS];
 	} old;
 	memset(&old, 0, sizeof old);
 	old.magic = PROFILE_MAGIC;
@@ -3989,6 +4031,177 @@ static void test_serpientes(void)
 	}
 }
 
+
+/* ---------------------------------------------------------------- casino */
+static PkCard bc_c(int rank)
+{
+	return (PkCard){ (uint8_t)rank, 0 };
+}
+
+static void test_casino(void)
+{
+	/* Ruleta: 18 rojos, columnas, docenas y una ventaja de la casa de 1/37 */
+	int reds = 0;
+	for (int n = 0; n < RL_NUMBERS; n++)
+		reds += rl_is_red(n);
+	CHECK(reds == 18);
+	CHECK(rl_is_red(1) && !rl_is_red(2) && rl_is_red(36) && !rl_is_red(0));
+	CHECK(rl_wins(RL_COLUMN0, 34) && rl_wins(RL_COLUMN0 + 2, 36) && rl_wins(RL_DOZEN0 + 1, 13));
+	CHECK(!rl_wins(RL_RED, 0) && !rl_wins(RL_EVEN, 0) && rl_wins(0, 0));
+	bool seen[RL_NUMBERS] = { false };
+	for (int i = 0; i < RL_NUMBERS; i++)
+		seen[RL_WHEEL[i]] = true;
+	for (int i = 0; i < RL_NUMBERS; i++)
+		CHECK(seen[i]);
+	for (int spot = 0; spot < RL_SPOTS; spot++) {
+		int bets[RL_SPOTS] = { 0 };
+		bets[spot] = 1;
+		int back = 0;
+		for (int n = 0; n < RL_NUMBERS; n++)
+			back += rl_payout(bets, n);
+		CHECK(back == 36); /* 36/37 de lo apostado vuelve */
+	}
+	/* Tragaperras: rentabilidad entre el 85 y el 98 % en cualquier número de líneas */
+	for (int lines = 1; lines <= TP_LINES; lines += 2) {
+		long total = 0;
+		int stop[TP_REELS];
+		for (stop[0] = 0; stop[0] < TP_STRIP; stop[0]++)
+			for (stop[1] = 0; stop[1] < TP_STRIP; stop[1]++)
+				for (stop[2] = 0; stop[2] < TP_STRIP; stop[2]++)
+					total += tp_eval(stop, lines, NULL);
+		double rtp = (double)total / (TP_STRIP * TP_STRIP * TP_STRIP) / lines;
+		if (lines == 1)
+			printf("  tragaperras: devuelve el %.1f %%\n", rtp * 100);
+		CHECK(rtp > 0.85 && rtp < 0.98);
+	}
+	{
+		int sym[3] = { TP_SEVEN, TP_SEVEN, TP_SEVEN }, mask;
+		CHECK(tp_line_pay(sym) == 300);
+		int stop[3] = { 13, 15, 13 }; /* los tres sietes en el centro */
+		CHECK(tp_eval(stop, 1, &mask) == 300 && mask == 1);
+	}
+	/* Punto y banca: reglas de la tercera carta */
+	Baccarat bc;
+	bc_init(&bc, 7);
+	{
+		PkCard o[] = { bc_c(4), bc_c(9), bc_c(4), bc_c(14) }; /* punto 8, natural; banca 0 */
+		bc_deal_cards(&bc, o);
+		CHECK(bc.n[0] == 2 && bc.n[1] == 2 && bc.winner == BC_PLAYER);
+	}
+	{
+		PkCard o[] = { bc_c(2), bc_c(3), bc_c(3), bc_c(13), bc_c(8) }; /* punto 5 pide un 8, banca 3 no pide */
+		bc_deal_cards(&bc, o);
+		CHECK(bc.n[0] == 3 && bc.n[1] == 2 && bc_total(bc.hand[0], 3) == 3 && bc.winner == BC_TIE);
+	}
+	{
+		PkCard o[] = { bc_c(3), bc_c(2), bc_c(3), bc_c(4), bc_c(2), bc_c(3) }; /* punto 6 se planta, banca 6... */
+		bc_deal_cards(&bc, o);
+		CHECK(bc.n[0] == 2 && bc.n[1] == 2 && bc.winner == BC_TIE);
+	}
+	{
+		PkCard o[] = { bc_c(14), bc_c(2), bc_c(2), bc_c(2), bc_c(6), bc_c(9) }; /* punto 3 pide 6; banca 4 pide */
+		bc_deal_cards(&bc, o);
+		CHECK(bc.n[0] == 3 && bc.n[1] == 3 && bc_total(bc.hand[1], 3) == 3 && bc.winner == BC_PLAYER);
+		int bets[BC_BETS] = { 10, 20, 5 };
+		CHECK(bc_payout(&bc, bets) == 20);
+	}
+	{
+		int bets[BC_BETS] = { 10, 20, 5 };
+		bc.winner = BC_BANKER;
+		CHECK(bc_payout(&bc, bets) == 39);
+		bc.winner = BC_TIE;
+		CHECK(bc_payout(&bc, bets) == 75);
+	}
+	{
+		/* Muchas manos: la banca gana algo más que el punto, el empate ~9,5 % */
+		int w[3] = { 0 };
+		for (int i = 0; i < 200000; i++) {
+			bc_deal(&bc);
+			w[bc.winner]++;
+			CHECK(bc.n[0] >= 2 && bc.n[0] <= 3 && bc.n[1] >= 2 && bc.n[1] <= 3);
+		}
+		CHECK(w[BC_BANKER] > w[BC_PLAYER] && w[BC_TIE] > 16000 && w[BC_TIE] < 22000);
+	}
+	/* Dados */
+	Craps cr;
+	cr_init(&cr, 3);
+	cr.bets[CR_PASS] = 10;
+	cr.bets[CR_FIELD] = 5;
+	CHECK(cr_roll(&cr, 3, 4) == 20 && cr.point == 0 && cr.last_lost == 5); /* 7 de salida */
+	cr.bets[CR_PASS] = 10;
+	cr.bets[CR_DONTPASS] = 10;
+	CHECK(cr_roll(&cr, 2, 2) == 0 && cr.point == 4 && cr.bets[CR_PASS] == 10);
+	CHECK(!cr_can_bet(&cr, CR_PASS) && cr_can_bet(&cr, CR_FIELD));
+	cr.bets[CR_ANY7] = 2;
+	CHECK(cr_roll(&cr, 6, 1) == 30 && cr.point == 0 && cr.last_lost == 10);
+	cr.bets[CR_DONTPASS] = 10;
+	cr.bets[CR_CRAPS] = 1;
+	CHECK(cr_roll(&cr, 6, 6) == 18); /* empate del no pase y craps 7 a 1 */
+	cr.bets[CR_FIELD] = 1;
+	CHECK(cr_roll(&cr, 1, 1) == 3);
+	{
+		/* El pase devuelve ~98,6 % */
+		long back = 0;
+		const int N = 300000;
+		for (int i = 0; i < N; i++) {
+			cr.bets[CR_PASS] = 1;
+			while (cr.bets[CR_PASS])
+				back += cr_roll(&cr, 0, 0);
+		}
+		double rtp = (double)back / N;
+		CHECK(rtp > 0.975 && rtp < 0.995);
+	}
+	/* Keno: rentabilidad de cada tabla */
+	for (int picks = 1; picks <= KN_MAX_PICK; picks++) {
+		/* Hipergeométrica: P(h) = C(picks,h) C(80-picks,20-h) / C(80,20) */
+		double rtp = 0;
+		for (int h = 0; h <= picks; h++) {
+			double p = 1;
+			for (int i = 0; i < h; i++)
+				p *= (double)(picks - i) / (i + 1);
+			/* C(80-picks, 20-h) / C(80,20) */
+			double q = 1;
+			int a = 80 - picks, b = 20 - h;
+			for (int i = 0; i < b; i++)
+				q *= (double)(a - i) / (b - i);
+			for (int i = 0; i < 20; i++)
+				q /= (double)(80 - i) / (20 - i);
+			rtp += p * q * kn_pay(picks, h) / 10.0;
+		}
+		printf("  keno con %d: devuelve el %.1f %%\n", picks, rtp * 100);
+		CHECK(rtp > 0.85 && rtp < 0.98);
+	}
+	Keno kn;
+	kn_init(&kn, 11);
+	kn_quick_pick(&kn, 10);
+	CHECK(kn.picks == 10 && !kn_toggle(&kn, 0));
+	int extra = 1;
+	while (kn.picked[extra])
+		extra++;
+	CHECK(!kn_toggle(&kn, extra));
+	kn_draw(&kn);
+	int count = 0, hits = 0;
+	for (int n = 1; n <= KN_NUMBERS; n++) {
+		count += kn.is_drawn[n];
+		hits += kn.is_drawn[n] && kn.picked[n];
+	}
+	CHECK(count == KN_DRAWN && hits == kn.hits);
+	/* Rueda: el reparto de casillas y una ventaja de la casa razonable */
+	int cnt[RD_SYMBOLS] = { 0 };
+	for (int i = 0; i < RD_SLOTS; i++)
+		cnt[RD_WHEEL[i]]++;
+	CHECK(cnt[RD_1] == 24 && cnt[RD_2] == 15 && cnt[RD_5] == 7 && cnt[RD_10] == 4 && cnt[RD_20] == 2 &&
+		cnt[RD_JOKER] == 1 && cnt[RD_STAR] == 1);
+	for (int s = 0; s < RD_SYMBOLS; s++) {
+		int bets[RD_SYMBOLS] = { 0 };
+		bets[s] = 1;
+		int back = 0;
+		for (int i = 0; i < RD_SLOTS; i++)
+			back += rd_payout(bets, i);
+		CHECK(back < RD_SLOTS && back > RD_SLOTS * 3 / 4);
+	}
+}
+
 static void test_deslizante(void)
 {
 	for (int n = 3; n <= DZ_MAX; n++) {
@@ -4929,6 +5142,7 @@ int main(void)
 	test_mancala();
 	test_serpientes();
 	test_deslizante();
+	test_casino();
 	test_sudoku();
 	test_generala();
 	test_backgammon();
@@ -4974,6 +5188,7 @@ int main(void)
 	test_profile();
 	test_profile_v3();
 	test_profile_v4();
+	test_profile_v5();
 	test_mii_parts();
 	test_cardback();
 	test_profile_v1();

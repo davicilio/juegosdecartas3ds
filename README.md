@@ -1,7 +1,7 @@
 # Juegos de mesa variados by Davicilio
 
-**63 juegos** de cartas y de mesa para Nintendo 3DS, en español: siete y media, mus, chinchón,
-tute, brisca, póker, blackjack, parchís, bingo, mahjong, un juego de comprar calles con tableros
+**69 juegos** de cartas y de mesa para Nintendo 3DS, en español: siete y media, mus, chinchón,
+tute, brisca, póker, ruleta, tragaperras, blackjack, parchís, bingo, mahjong, un juego de comprar calles con tableros
 personalizables y muchos más. Juegas contra personajes
 basados en los Miis de tu consola, con fichas comunes para todos los juegos de apuestas (que se
 compran con las monedas de juego que ganas andando), 3D estereoscópico y pantalla táctil.
@@ -53,8 +53,10 @@ También funciona en el emulador [Azahar](https://azahar-emu.org/).
   tute cabrón, tute subastado, julepe, pocha, la mona, cucú, treinta y una, mentiroso, culo,
   mierda, burro, as 2 3, pumba, tresillo, cuatrillo, truc, truco argentino, butifarra,
   solitario tradicional, solitario en pirámide y parejas.
-- **Baraja francesa:** póker Texas Hold'em, Omaha, póker de descarte, videopóker, blackjack,
-  corazones, carta blanca, solitario Araña y solitario Klondike.
+- **Baraja francesa:** póker Texas Hold'em, Omaha, póker de descarte, corazones, carta blanca,
+  solitario Araña y solitario Klondike.
+- **Casino:** ruleta, tragaperras, punto y banca (baccarat), dados (craps), keno, rueda de la
+  fortuna, blackjack y videopóker.
 - **De mesa:** ajedrez, backgammon, cinco en raya, mancala, serpientes y escaleras, puzle deslizante, generala, sudoku, Conquista (estrategia por las provincias de España), parchís, la oca, bingo, dominó, damas, reversi, conecta 4, tres en raya, hundir
   la flota, toma 6, mahjong solitario, mahjong riichi, buscaminas, Uno, Rummikub y Negocio redondo (compraventa de calles con
   tableros que puedes crear tú).

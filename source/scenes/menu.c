@@ -16,12 +16,12 @@ typedef struct {
 	Suit icon;
 	Card fan[3];
 	int rivals[3]; /* Miis contra (o con) los que se juega; -1 = nadie */
-	int kind;      /* KIND_SPANISH, KIND_BOARD o KIND_FRENCH */
+	int kind;      /* KIND_SPANISH, KIND_BOARD, KIND_FRENCH o KIND_CASINO */
 } MenuEntry;
 
 #define C(s, r) { SUIT_##s, r }
 
-enum { KIND_SPANISH, KIND_BOARD, KIND_FRENCH };
+enum { KIND_SPANISH, KIND_BOARD, KIND_FRENCH, KIND_CASINO };
 
 static const MenuEntry entries[] = {
 	{ "Siete y media",
@@ -151,14 +151,6 @@ static const MenuEntry entries[] = {
 	  "El póker clásico de cinco cartas: una ronda de apuestas, cambias hasta tres cartas (cuatro si "
 	  "te quedas un as) y otra ronda antes de enseñar.",
 	  SCENE_DRAWPOKER, SUIT_OROS, { C(OROS, 1), C(OROS, 1), C(OROS, 1) }, { CPU_LOLA, CPU_MANOLO, CPU_RAMON }, KIND_FRENCH },
-	{ "Videopóker",
-	  "La máquina \"Jacks or Better\": apuesta de 1 a 5 créditos, guarda las cartas que quieras y "
-	  "cambia las demás. Paga desde una pareja de jotas hasta la escalera real.",
-	  SCENE_VIDEOPOKER, SUIT_OROS, { C(OROS, 1), C(OROS, 1), C(OROS, 1) }, { -1, -1, -1 }, KIND_FRENCH },
-	{ "Blackjack",
-	  "Contra la banca: acércate a 21 sin pasarte. Pide, plántate, dobla o separa las parejas. "
-	  "El blackjack paga 3 a 2. Abajo te dice qué haría la estrategia básica.",
-	  SCENE_BLACKJACK, SUIT_OROS, { C(OROS, 1), C(OROS, 1), C(OROS, 1) }, { CPU_RAMON, -1, -1 }, KIND_FRENCH },
 	{ "Carta blanca",
 	  "El solitario FreeCell: todas las cartas boca arriba en ocho columnas y cuatro casillas "
 	  "libres. Sube los cuatro palos del as al rey. Las partidas van numeradas como en Windows.",
@@ -176,6 +168,39 @@ static const MenuEntry entries[] = {
 	  "cartas. ¡O llévatelos todos y dispara a la luna! A 100 puntos gana quien menos tenga.",
 	  SCENE_CORAZONES, SUIT_OROS, { C(OROS, 1), C(OROS, 1), C(OROS, 1) }, { CPU_LOLA, CPU_PEPE, CPU_PACO },
 	  KIND_FRENCH },
+	/* Casino */
+	{ "Ruleta",
+	  "La ruleta francesa, con un solo cero: apuesta a plenos, docenas, columnas, rojo o negro, par o "
+	  "impar y falta o pasa. ¡Hagan juego... no va más!",
+	  SCENE_RULETA, SUIT_OROS, { C(OROS, 1), C(OROS, 1), C(OROS, 1) }, { -1, -1, -1 }, KIND_CASINO },
+	{ "Tragaperras",
+	  "Tres rodillos y hasta cinco líneas de premio. Elige la apuesta, tira de la palanca y a por los "
+	  "tres sietes. Las cerezas siempre pagan algo.",
+	  SCENE_TRAGAPERRAS, SUIT_OROS, { C(OROS, 1), C(OROS, 1), C(OROS, 1) }, { -1, -1, -1 }, KIND_CASINO },
+	{ "Punto y banca",
+	  "El baccarat de los casinos: apuesta a la mano del punto, a la de la banca o al empate. Gana la "
+	  "que más se acerca a 9; la tercera carta va por reglas fijas.",
+	  SCENE_BACCARAT, SUIT_OROS, { C(OROS, 1), C(OROS, 1), C(OROS, 1) }, { -1, -1, -1 }, KIND_CASINO },
+	{ "Dados",
+	  "Craps: apuesta al pase y tira los dados. Con 7 u 11 de salida ganas; si sale un punto, tiene que "
+	  "repetirse antes que el 7. Y apuestas de una tirada: campo, 7 y craps.",
+	  SCENE_CRAPS, SUIT_OROS, { C(OROS, 1), C(OROS, 1), C(OROS, 1) }, { -1, -1, -1 }, KIND_CASINO },
+	{ "Keno",
+	  "Marca de 1 a 10 números del 1 al 80 y salen 20 bolas. Cuantos más aciertes, más cobras: con 10 "
+	  "de 10, el premio gordo.",
+	  SCENE_KENO, SUIT_OROS, { C(OROS, 1), C(OROS, 1), C(OROS, 1) }, { -1, -1, -1 }, KIND_CASINO },
+	{ "Rueda de la fortuna",
+	  "Apuesta al 1, 2, 5, 10 o 20, o a los comodines, y gira la rueda: si para en tu símbolo, cobras "
+	  "su número a 1 (los comodines, 40 a 1).",
+	  SCENE_RUEDA, SUIT_OROS, { C(OROS, 1), C(OROS, 1), C(OROS, 1) }, { -1, -1, -1 }, KIND_CASINO },
+	{ "Blackjack",
+	  "Contra la banca: acércate a 21 sin pasarte. Pide, plántate, dobla o separa las parejas. "
+	  "El blackjack paga 3 a 2. Abajo te dice qué haría la estrategia básica.",
+	  SCENE_BLACKJACK, SUIT_OROS, { C(OROS, 1), C(OROS, 1), C(OROS, 1) }, { CPU_RAMON, -1, -1 }, KIND_CASINO },
+	{ "Videopóker",
+	  "La máquina \"Jacks or Better\": apuesta de 1 a 5 créditos, guarda las cartas que quieras y "
+	  "cambia las demás. Paga desde una pareja de jotas hasta la escalera real.",
+	  SCENE_VIDEOPOKER, SUIT_OROS, { C(OROS, 1), C(OROS, 1), C(OROS, 1) }, { -1, -1, -1 }, KIND_CASINO },
 	/* Juegos de mesa */
 	{ "Cinco en raya",
 	  "En un tablero de 15x15, pon piedras por turnos y junta cinco en línea antes que la CPU: en "
@@ -304,8 +329,8 @@ static const MenuEntry entries[] = {
 /* Páginas (pestañas arriba): baraja española, baraja francesa y juegos de
  * mesa. Cada página tiene sus juegos y sus próximos juegos en dos columnas,
  * con desplazamiento. Configuración va aparte, fija abajo y en pequeño. */
-enum { PAGE_SPANISH, PAGE_FRENCH, PAGE_BOARD, PAGES };
-static const char* const PAGE_TITLE[PAGES] = { "Baraja española", "Baraja francesa", "De mesa" };
+enum { PAGE_SPANISH, PAGE_FRENCH, PAGE_BOARD, PAGE_CASINO, PAGES };
+static const char* const PAGE_TITLE[PAGES] = { "Española", "Francesa", "De mesa", "Casino" };
 enum { SEC_PLAY, SEC_SOON, SEC_LIST, SEC_CONFIG = SEC_LIST, SEC_HIDDEN = -1 };
 static const char* const SECTION_TITLE[SEC_LIST] = { "Juegos", "Próximamente" };
 
@@ -328,7 +353,7 @@ static int s_page;
 
 static int page_of(const MenuEntry* e)
 {
-	return e->kind == KIND_FRENCH ? PAGE_FRENCH : e->kind == KIND_BOARD ? PAGE_BOARD : PAGE_SPANISH;
+	return e->kind == KIND_FRENCH ? PAGE_FRENCH : e->kind == KIND_BOARD ? PAGE_BOARD : e->kind == KIND_CASINO ? PAGE_CASINO : PAGE_SPANISH;
 }
 
 static int section_of(int i)
@@ -394,7 +419,7 @@ static void layout(void)
 }
 
 static int s_selected;
-static int s_page_selected[PAGES] = { -1, -1, -1 };
+static int s_page_selected[PAGES] = { -1, -1, -1, -1 };
 static Mood s_mood;
 static float s_cursor_x, s_cursor_y;
 static float s_scroll; /* desplazamiento de la lista de juegos */
@@ -585,7 +610,7 @@ static bool is_french(SceneId scene)
 {
 	return scene == SCENE_POKER || scene == SCENE_BLACKJACK || scene == SCENE_CORAZONES || scene == SCENE_FREECELL ||
 	       scene == SCENE_OMAHA || scene == SCENE_DRAWPOKER || scene == SCENE_VIDEOPOKER || scene == SCENE_SPIDER ||
-	       scene == SCENE_KLONDIKE;
+	       scene == SCENE_KLONDIKE || scene == SCENE_BACCARAT;
 }
 
 /* Icono de los juegos de mesa sin cartas (s = escala, 1 = unos 16 px) */
@@ -596,7 +621,9 @@ static bool has_board_icon(SceneId scene)
 	       scene == SCENE_PARCHIS || scene == SCENE_TOMA6 || scene == SCENE_MAHJONG || scene == SCENE_NEGOCIO ||
 	       scene == SCENE_RIICHI || scene == SCENE_BUSCAMINAS || scene == SCENE_AJEDREZ ||
 	       scene == SCENE_CONQUISTA || scene == SCENE_SUDOKU || scene == SCENE_GENERALA || scene == SCENE_BACKGAMMON ||
-	       scene == SCENE_GOMOKU || scene == SCENE_MANCALA || scene == SCENE_SERPIENTES || scene == SCENE_DESLIZANTE;
+	       scene == SCENE_GOMOKU || scene == SCENE_MANCALA || scene == SCENE_SERPIENTES || scene == SCENE_DESLIZANTE ||
+	       scene == SCENE_RULETA || scene == SCENE_TRAGAPERRAS || scene == SCENE_CRAPS || scene == SCENE_KENO ||
+	       scene == SCENE_RUEDA;
 }
 
 static void draw_board_icon(SceneId scene, float cx, float cy, float s, float depth)
@@ -657,6 +684,48 @@ static void draw_board_icon(SceneId scene, float cx, float cy, float s, float de
 			gfx_text("15", cx, cy - 3.2f * s, depth, 0.25f * s, C2D_Color32(30, 30, 40, 255), C2D_AlignCenter);
 		else
 			gfx_ellipse(cx - 3 * s, cy - 3.5f * s, 1.6f * s, 1.1f * s, depth, C2D_Color32(255, 255, 255, 160));
+		return;
+	}
+	if (scene == SCENE_RULETA || scene == SCENE_RUEDA) {
+		/* Una rueda con casillas de colores */
+		bool ru = scene == SCENE_RULETA;
+		gfx_ellipse(cx, cy, 9.5f * s, 9.5f * s, depth, ru ? C2D_Color32(110, 60, 25, 255) : C2D_Color32(200, 150, 40, 255));
+		int n = ru ? 12 : 10;
+		for (int k = 0; k < n; k++) {
+			float a0 = k * 6.2832f / n, a1 = (k + 1) * 6.2832f / n;
+			static const u32 RD[5] = { 0xE8D040, 0x3C8CDC, 0xD24646, 0x46B45A, 0x9A50C8 };
+			u32 c = ru ? (k == 0 ? C2D_Color32(20, 130, 60, 255) : k % 2 ? C2D_Color32(190, 25, 30, 255) : C2D_Color32(25, 25, 30, 255))
+				: gfx_rgb(RD[k % 5], 255);
+			gfx_triangle(cx, cy, cx + cosf(a0) * 8 * s, cy + sinf(a0) * 8 * s, cx + cosf(a1) * 8 * s, cy + sinf(a1) * 8 * s, depth, c);
+		}
+		gfx_ellipse(cx, cy, 3.5f * s, 3.5f * s, depth, ru ? C2D_Color32(200, 160, 70, 255) : C2D_Color32(140, 20, 30, 255));
+		if (ru)
+			gfx_ellipse(cx + 5 * s, cy - 4 * s, 1.3f * s, 1.3f * s, depth, COLOR_WHITE);
+		else
+			gfx_triangle(cx - 2.5f * s, cy - 10 * s, cx + 2.5f * s, cy - 10 * s, cx, cy - 6 * s, depth, COLOR_WHITE);
+		return;
+	}
+	if (scene == SCENE_TRAGAPERRAS) {
+		gfx_rrect(cx - 9 * s, cy - 9 * s, 18 * s, 18 * s, 3 * s, depth, C2D_Color32(190, 40, 45, 255));
+		gfx_rect(cx - 7 * s, cy - 4 * s, 14 * s, 8 * s, depth, C2D_Color32(250, 246, 235, 255));
+		if (s >= 2.0f)
+			gfx_text("777", cx, cy - 4 * s, depth, 0.17f * s, C2D_Color32(220, 30, 40, 255), C2D_AlignCenter);
+		else
+			for (int k = 0; k < 3; k++)
+				gfx_rect(cx - 5.5f * s + k * 4.2f * s, cy - 2.5f * s, 2.6f * s, 5 * s, depth, C2D_Color32(220, 30, 40, 255));
+		gfx_ellipse(cx, cy - 7 * s, 1.2f * s, 1.2f * s, depth, COLOR_GOLD);
+		return;
+	}
+	if (scene == SCENE_CRAPS) {
+		gfx_piece(PIECE_DIE_FIRST + 5, cx - 4 * s, cy - 3 * s, s * 0.36f, s * 0.36f, depth);
+		gfx_piece(PIECE_DIE_FIRST + 0, cx + 4 * s, cy + 4 * s, s * 0.36f, s * 0.36f, depth);
+		return;
+	}
+	if (scene == SCENE_KENO) {
+		gfx_rrect(cx - 9 * s, cy - 9 * s, 18 * s, 18 * s, 2 * s, depth, C2D_Color32(250, 246, 235, 255));
+		for (int k = 0; k < 9; k++)
+			gfx_ellipse(cx - 5.5f * s + k % 3 * 5.5f * s, cy - 5.5f * s + k / 3 * 5.5f * s, 2 * s, 2 * s, depth,
+				k == 1 || k == 5 || k == 6 ? C2D_Color32(240, 190, 30, 255) : C2D_Color32(200, 40, 45, 255));
 		return;
 	}
 	if (scene == SCENE_GOMOKU) {
@@ -836,6 +905,9 @@ static void menu_draw_top(void)
 				f0 = spider;
 			else if (e->scene == SCENE_KLONDIKE)
 				f0 = klondike;
+			static const int baccarat[3] = { 2 * 13 + 7, 3 * 13 + 8, 1 * 13 + 12 };
+			if (e->scene == SCENE_BACCARAT)
+				f0 = baccarat;
 			else if (e->scene == SCENE_OMAHA)
 				f0 = omaha;
 			else if (e->scene == SCENE_DRAWPOKER)

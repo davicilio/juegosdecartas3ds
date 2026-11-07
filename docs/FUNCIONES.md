@@ -29,9 +29,12 @@ el repositorio tiene que ser público y la consola, tener internet.
 ## Fichas y monedas de juego
 
 Todos los juegos con apuestas (siete y media, cinquillo, julepe, póker, Omaha, póker de descarte,
-blackjack, videopóker y bingo) usan **las mismas fichas**, que se guardan en tu perfil. Empiezas
+bingo y todo el casino) usan **las mismas fichas**, que se guardan en tu perfil. Empiezas
 con 2000. Al sentarte a una mesa coges fichas del monedero (100 en la siete y media, 1000 en el
-póker...) y al acabar la partida vuelven las que te queden, con lo que hayas ganado.
+póker...) y al acabar la partida vuelven las que te queden, con lo que hayas ganado. En los juegos
+del **Casino** (ruleta, tragaperras, punto y banca, dados, keno y rueda de la fortuna) cada
+apuesta sale directamente del monedero y los premios vuelven a él; si sales a media jugada, la
+apuesta se anula y se devuelve.
 
 Si te quedas sin fichas, en **Configuración → Fichas** las cambias por las **monedas de juego**
 de la consola, las que se ganan andando con la 3DS en el bolsillo: cada moneda vale 100 fichas.

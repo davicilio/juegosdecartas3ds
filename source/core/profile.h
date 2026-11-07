@@ -72,18 +72,25 @@ typedef enum {
 	GAME_MANCALA,
 	GAME_SERPIENTES,
 	GAME_DESLIZANTE,
+	GAME_RULETA,
+	GAME_TRAGAPERRAS,
+	GAME_BACCARAT,
+	GAME_CRAPS,
+	GAME_KENO,
+	GAME_RUEDA,
 	GAME_COUNT
 } GameId;
 
 /* Huecos de estadísticas en el fichero: sobran para añadir juegos sin
- * cambiar el formato. Las versiones 1 y 2 tenían 6, y la 3, 32. */
-#define PROFILE_GAME_SLOTS 64
+ * cambiar el formato. Las versiones 1 y 2 tenían 6; la 3, 32; y la 4 y la 5, 64. */
+#define PROFILE_GAME_SLOTS 128
+#define PROFILE_V5_SLOTS 64
 #define PROFILE_LEGACY_GAMES 6
 #define PROFILE_V3_SLOTS 32
 _Static_assert(GAME_COUNT <= PROFILE_GAME_SLOTS, "faltan huecos de estadísticas en el perfil");
 
 #define PROFILE_MAGIC   0x4D494931u /* "MII1" */
-#define PROFILE_VERSION 5
+#define PROFILE_VERSION 6
 /* Fichas con las que empieza un perfil nuevo (o uno de antes de la versión 5) */
 #define PROFILE_START_CHIPS 2000
 

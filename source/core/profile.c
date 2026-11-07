@@ -64,9 +64,24 @@ typedef struct {
 	uint8_t online_miis;
 	uint8_t reserved[3];
 	Avatar avatar;
-	uint32_t played[PROFILE_GAME_SLOTS];
-	uint32_t won[PROFILE_GAME_SLOTS];
+	uint32_t played[PROFILE_V5_SLOTS];
+	uint32_t won[PROFILE_V5_SLOTS];
 } PlayerProfileV4;
+
+/* Versión 5: con monedero, pero con 64 huecos de estadísticas */
+typedef struct {
+	uint32_t magic;
+	uint16_t version;
+	uint8_t created;
+	uint8_t from_console;
+	uint8_t online_miis;
+	uint8_t reserved[3];
+	Avatar avatar;
+	uint32_t played[PROFILE_V5_SLOTS];
+	uint32_t won[PROFILE_V5_SLOTS];
+	int32_t chips;
+	uint32_t reserved2[3];
+} PlayerProfileV5;
 
 static bool load_v1(PlayerProfile* p, const uint8_t* buf, size_t n)
 {
@@ -150,6 +165,26 @@ static bool load_v4(PlayerProfile* p, const uint8_t* buf, size_t n)
 	return true;
 }
 
+static bool load_v5(PlayerProfile* p, const uint8_t* buf, size_t n)
+{
+	PlayerProfileV5 old;
+	if (n != sizeof old)
+		return false;
+	memcpy(&old, buf, sizeof old);
+	if (old.magic != PROFILE_MAGIC || old.version != 5)
+		return false;
+	profile_init(p);
+	p->created = old.created;
+	p->from_console = old.from_console;
+	p->online_miis = old.online_miis;
+	p->avatar = old.avatar;
+	avatar_sanitize(&p->avatar);
+	memcpy(p->played, old.played, sizeof old.played);
+	memcpy(p->won, old.won, sizeof old.won);
+	p->chips = old.chips < 0 ? 0 : old.chips;
+	return true;
+}
+
 bool profile_load(PlayerProfile* p, const char* path)
 {
 	PlayerProfile tmp;
@@ -159,7 +194,8 @@ bool profile_load(PlayerProfile* p, const char* path)
 		return false;
 	size_t n = fread(buf, 1, sizeof buf, f);
 	fclose(f);
-	if (load_v1(p, buf, n) || load_v2(p, buf, n) || load_v3(p, buf, n) || load_v4(p, buf, n))
+	if (load_v1(p, buf, n) || load_v2(p, buf, n) || load_v3(p, buf, n) || load_v4(p, buf, n) ||
+	    load_v5(p, buf, n))
 		return true;
 	if (n != sizeof tmp)
 		return false;
@@ -213,7 +249,7 @@ const char* game_name(GameId game)
 	static const char* names[GAME_COUNT] = { "Siete y media", "Cinquillo", "Brisca", "Escoba", "Mus", "Chinchón",
 		"Guiñote", "Solitario", "Pirámide", "Tute", "Tute cabrón", "Uno",
 		"Rummikub", "La mona", "Cucú", "Treinta y una", "Mentiroso", "Culo",
-		"Póker", "Blackjack", "Corazones", "Pocha", "Conecta 4", "Damas", "Dominó", "As, 2, 3", "Pumba", "Julepe", "Tute subastado", "Truco", "Butifarra", "Reversi", "La oca", "Burro", "Mierda", "Truc", "Tresillo", "Cuatrillo", "Bingo", "Tres en raya", "Hundir la flota", "Parchís", "Carta blanca", "Toma 6", "Mahjong solitario", "Omaha", "Póker de descarte", "Videopóker", "Negocio redondo", "Mahjong riichi", "Buscaminas", "Parejas", "Ajedrez", "Conquista", "Sudoku", "Generala", "Backgammon", "Solitario Araña", "Solitario Klondike", "Cinco en raya", "Mancala", "Serpientes y escaleras", "Puzle deslizante" };
+		"Póker", "Blackjack", "Corazones", "Pocha", "Conecta 4", "Damas", "Dominó", "As, 2, 3", "Pumba", "Julepe", "Tute subastado", "Truco", "Butifarra", "Reversi", "La oca", "Burro", "Mierda", "Truc", "Tresillo", "Cuatrillo", "Bingo", "Tres en raya", "Hundir la flota", "Parchís", "Carta blanca", "Toma 6", "Mahjong solitario", "Omaha", "Póker de descarte", "Videopóker", "Negocio redondo", "Mahjong riichi", "Buscaminas", "Parejas", "Ajedrez", "Conquista", "Sudoku", "Generala", "Backgammon", "Solitario Araña", "Solitario Klondike", "Cinco en raya", "Mancala", "Serpientes y escaleras", "Puzle deslizante", "Ruleta", "Tragaperras", "Punto y banca", "Dados", "Keno", "Rueda de la fortuna" };
 	return game < GAME_COUNT ? names[game] : "?";
 }
 

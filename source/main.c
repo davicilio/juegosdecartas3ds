@@ -105,6 +105,18 @@ static const Scene* scene_for(SceneId id)
 		return &scene_serpientes;
 	case SCENE_DESLIZANTE:
 		return &scene_deslizante;
+	case SCENE_RULETA:
+		return &scene_ruleta;
+	case SCENE_TRAGAPERRAS:
+		return &scene_tragaperras;
+	case SCENE_BACCARAT:
+		return &scene_baccarat;
+	case SCENE_CRAPS:
+		return &scene_craps;
+	case SCENE_KENO:
+		return &scene_keno;
+	case SCENE_RUEDA:
+		return &scene_rueda;
 	case SCENE_TABLEROS:
 		return &scene_tableros;
 	case SCENE_TOMA6:

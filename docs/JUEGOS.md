@@ -2,7 +2,7 @@
 
 [← Volver al README](../README.md)
 
-El menú tiene páginas (se cambian con L/R o tocando las pestañas): **Baraja española**, **Baraja francesa** y **De mesa**. Cada una tiene sus juegos y sus **Próximamente** (los que todavía no se
+El menú tiene páginas (se cambian con L/R o tocando las pestañas): **Española**, **Francesa**, **De mesa** y **Casino**. Cada una tiene sus juegos y sus **Próximamente** (los que todavía no se
 pueden jugar; la lista se desplaza con la cruceta) y, en pequeño, **Configuración** (*Mi perfil*, *Dorso de las cartas* y *Fichas*).
 
 ## Siete y media
@@ -275,7 +275,7 @@ bambúes, vientos y dragones). Se juega la ronda del Este, empezando con 25000 p
   exactamente dos tuyas y tres de la mesa.
 - **Póker de descarte**: cinco cartas, una ronda de apuestas, cambias hasta tres (cuatro si te
   quedas un as) tocando las que quieres cambiar, y otra ronda antes de enseñar.
-- **Videopóker** ("Jacks or Better"): apuesta de 1 a 5 créditos (Ⓧ cambia la apuesta, Ⓨ
+- **Videopóker** ("Jacks or Better", en la página del casino): apuesta de 1 a 5 créditos (Ⓧ cambia la apuesta, Ⓨ
   apuesta 5), guarda las cartas que quieras tocándolas y cambia el resto. Ⓨ, con la mano
   servida, te da un consejo de qué guardar. Paga desde una pareja de jotas.
 
@@ -436,11 +436,37 @@ quien reparte no puede decir el número que haría cuadrar la suma. Hay que asis
 matar y fallar. Si aciertas: 10 puntos más 5 por baza; si no, -5 por cada baza de
 diferencia.
 
-## Blackjack (baraja francesa)
+## Blackjack (casino)
 Contra la banca, con cuatro barajas. Elige la apuesta (L/R ±10, Ⓧ +100) y reparte.
 **Pedir** (Ⓐ), **Plantarse** (Ⓑ), **Doblar** (Ⓧ: doblas la apuesta y recibes una
 carta) y **Separar** (Ⓨ: dos cartas iguales en dos manos). La banca pide hasta 17;
 el blackjack paga 3 a 2. En la pantalla de abajo ves qué haría la estrategia básica.
+
+## Casino
+En todos se apuesta con las fichas del monedero. Elige el valor de la ficha (1, 5, 25, 100 o 500)
+con L/R o tocándola y toca la casilla donde quieres ponerla; cada toque añade otra. **Quitar** (Ⓧ)
+devuelve las fichas de la mesa y **Repetir** (Ⓨ) vuelve a poner las de la jugada anterior.
+
+- **Ruleta** francesa, con un solo cero. Plenos a un número (35 a 1), docenas y columnas (2 a 1)
+  y las sencillas: rojo o negro, par o impar, 1-18 o 19-36 (1 a 1). Con el cero solo gana el
+  pleno al cero. Arriba se ven el cilindro, la bola y los últimos números.
+- **Tragaperras** de tres rodillos. Juega 1, 3 o 5 líneas (Ⓨ: la del centro, las tres filas o
+  además las dos diagonales) con una apuesta por línea (Ⓧ). Tres iguales pagan según la tabla
+  (tres sietes, 300 veces la apuesta), y una o dos cerezas desde la izquierda también pagan.
+  Ⓐ tira y, con los rodillos girando, los para antes.
+- **Punto y banca** (baccarat), con seis barajas. Apuesta al punto (1 a 1), a la banca (1 a 1
+  con un 5 % de comisión) o al empate (8 a 1). Las figuras y el 10 no valen nada y de la suma
+  solo cuenta la última cifra; gana quien se acerca más a 9. La tercera carta se pide sola,
+  según las reglas de siempre. Con empate, lo apostado a punto y banca se devuelve.
+- **Dados** (craps). **Pase**: en la salida gana con 7 u 11 y pierde con 2, 3 o 12; con otro
+  número, ese es el punto y hay que sacarlo otra vez antes que un 7. **No pase**: lo contrario
+  (el 12 de salida empata). Solo se apuesta a ellos en la salida y, con punto, no se pueden
+  retirar. De una tirada: **campo** (2, 3, 4, 9, 10, 11 o 12; el 2 paga doble y el 12 triple),
+  **cualquier 7** (4 a 1) y **craps** (2, 3 o 12; 7 a 1).
+- **Keno**: marca de 1 a 10 números del 1 al 80 (o Ⓨ al azar), elige la apuesta con L/R y salen
+  20 bolas. Arriba se ve cuánto pagan los aciertos para los números que has marcado.
+- **Rueda de la fortuna**: 54 casillas con 1, 2, 5, 10 y 20 y dos comodines. Si para en tu
+  símbolo, cobras su número a 1; los comodines pagan 40 a 1.
 
 ## Solitario Araña (baraja francesa)
 Dos barajas en diez columnas. Una carta va sobre otra de un número más, de cualquier palo, pero
