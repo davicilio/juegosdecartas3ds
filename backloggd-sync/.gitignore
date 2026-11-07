@@ -1,5 +1,0 @@
-# Contienen tokens y cookies: nunca al repositorio.
-.env
-estado.json
-.estado-*
-__pycache__/

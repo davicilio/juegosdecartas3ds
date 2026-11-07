@@ -67,9 +67,3 @@ También funciona en el emulador [Azahar](https://azahar-emu.org/).
 | ⚙️ [Funciones](docs/FUNCIONES.md) | Fichas y monedas de juego, pausa, personajes, dorso, música, controles |
 | 🖼️ [Capturas](docs/CAPTURAS.md) | Imágenes de todos los juegos |
 | 🛠️ [Desarrollo](docs/DESARROLLO.md) | Compilar, tests y estructura del código |
-
-## Extra: sincronizador de Backloggd
-
-La carpeta [`backloggd-sync/`](backloggd-sync/README.md) tiene una herramienta aparte (no es
-parte del juego de 3DS) que apunta en Backloggd las sesiones de juego de Steam, Epic Games,
-PlayStation y Nintendo Switch.
